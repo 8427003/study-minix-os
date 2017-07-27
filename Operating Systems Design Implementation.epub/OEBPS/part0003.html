@@ -1,0 +1,825 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>part0003</title>
+    <meta content="abbyy to epub tool, v0.2" name="generator"/>
+    <link href="stylesheet.css" type="text/css" rel="stylesheet"/>
+    <meta content="application/xhtml+xml; charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <div class="body">
+      <p> In particular, when a line feed is output on the bottom line of the screen, the</p>
+      <p> 16 bits</p>
+      <p class="illus">
+        <img src="images/picture42.jpg" alt="picture42"/>
+      </p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> screen must be scrolled. To see how scrolling works, look at Fig. 3-28. If the video controller always began reading the RAM at OxBOOOO, the only way to scroll the screen would be to copy 24 X 160 characters from OxBOOAO to OxBOOOO, a time-consuming proposition.</p>
+      <p> Fortunately, the hardware usually provides some help here. Most video controllers contain a register that determines where in the video RAM to begin fetching bytes for the top line on the screen. By setting this register to point to OxBOOAO instead of OxBOOOO, the line that was previously number two will move to the top, and the whole screen will scroll up one line. The only other thing the driver must do is copy whatever is needed to the new bottom line. When the video controller gets to the top of the RAM, it just wraps around and continues fetching bytes starting at the lowest address.</p>
+      <p> Another issue that the driver must deal with on a memory mapped terminal is cursor positioning. Again, the hardware usually provides some assistance in the form of a register that tells where the cursor is to go. Finally, there is the problem of the bell. It is sounded by outputting a sine or square wave to the loudspeaker, a part of the computer quite separate from the video RAM.</p>
+      <p> It is worth noting that many of the issues faced by the terminal driver for a memory-mapped display (scrolling, bell, and so on) are also faced by the microprocessor inside an RS-232 terminal. From the viewpoint of the microprocessor, it is the main processor in a system with a memory-mapped display.</p>
+      <p> Screen editors and many other sophisticated programs need to be able to update the screen in more complex ways than just scrolling text onto the bottom of the display. To accommodate them, many terminal drivers support a variety of escape sequences. Some of the more common ones are:</p>
+      <p> 1. Move cursor up, down, left, or right one position.</p>
+      <p> 2. Move cursor to  (x , y).</p>
+      <p> 3. Insert character or line at cursor.</p>
+      <p> 4. Delete character or line at cursor.</p>
+      <p> 5. Scroll screen up or down  n  lines.</p>
+      <p> 6. Clear screen from cursor to end of line or end of screen.</p>
+      <p> 7. Enter reverse video, underlining, blinking, or normal mode.</p>
+      <p> 8. Create, destroy, move, or otherwise manage windows.</p>
+      <p> When the driver sees the character that starts the escape sequences, it sets a flag and waits until the rest of the escape sequence comes in. When everything has arrived, the driver must carry it out in software. Inserting and deleting text requires moving blocks of characters around the video RAM. The hardware is of no help with anything except scrolling and displaying the cursor.</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 171</p>
+      <p> 3.8.3. Overview of the Terminal Driver in MINIX</p>
+      <p> The terminal driver is far and away the largest source file in MINIX, being almost twice as long as the floppy disk, driver, which is the second largest. The size of the terminal driver is partly explained by the observation that the driver handles both the keyboard and the display, each of which is a complicated device in its own right. Still, it comes as a surprise to most people to learn that terminal I/O requires thirty times as much code as the scheduler. (This feeling is reinforced by looking at the numerous books on operating systems that devote thirty times as much space to scheduling as to all I/O combined.)</p>
+      <p> The terminal driver accepts five messages:</p>
+      <p> 1. Read characters from the terminal (from the file system on behalf of a user process).</p>
+      <p> 2. Write characters to the terminal (from the file system on behalf of a user process).</p>
+      <p> 3. Set terminal parameters for IOCTL (from the file system on behalf of a user process).</p>
+      <p> 4. Character available (from the interrupt procedure).</p>
+      <p> 5. Cancel previous read request (from the file system when a signal occurs).</p>
+      <p> (In the code a sixth message is mentioned, for signaling that output is completed; it is intended for future terminals whose output is interrupt driven. It is provided as an aid to future modifications of the driver.) The messages for reading and writing have the same format as shown in Fig. 3 15, except that no  POSITION field is needed. With a disk, the program has to specify which block it wants to read. With a terminal, there is no choice: the program always gets the next character typed in. Terminals do not support seeks and random access.</p>
+      <p> The message sent to the driver when the IOCTL system call is made contains a function code (are the terminal parameters to be read or to be written?), the mode word shown in Fig. 3-31, and a long that may contain up to four characters. For one of the request types,  TIOCSETP,  only two of the characters are used: erase and kill. For another,  TIOCSETC,  all four characters are used: the SIGINT and SIGQUIT characters (DEL and CTRL-\), and the stop and start characters (CTRL-S and CTRL-Q). The message used to cancel requests specifies the terminal and process involved, and the message used for character arrival interrupts points to the input.</p>
+      <p> The terminal driver uses one main data structure,  ttystruct,  which is an array of structures, one per terminal. Even though the IBM PC generally has only one keyboard and display, the driver has been written to make it easy to add additional terminals, which is especially important if MINIX is ever ported to larger systems.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> Ttystruct  keeps track of both input and output. For input, it holds all characters that have been typed but not yet read by the program, requests to read characters that have not yet been typed, and the erase, kill, interrupt, quit, start, and stop characters. For output, it holds the parameters of write requests that are not yet finished, the current position on the screen and in the video RAM, the current attribute byte for the display, and information about escape sequences currently being processed. It also holds various general variables, such as the terminal mode and the I/O port, if any, corresponding to the terminal.</p>
+      <p> Terminal Input</p>
+      <p> To better understand how the driver works, let us first look at how characters typed in on the terminal work their way through the system to the program that wants them.</p>
+      <p> When a user logs in (e.g., on terminal 0), a shell is created for him with IdevlttyO  as standard input, standard output, and standard error. The shell starts up by trying to read from standard input by calling the library procedure  read. This procedure sends a message that contains the file descriptor, buffer address and count to the file system. This message is shown as (1) in Fig. 3-32. After sending the message, the shell blocks, waiting for the reply. (User processes execute only the SEND_REC primitive, which combines a SEND with a RECEIVE from the process sent to.)</p>
+      <p class="illus">
+        <img src="images/picture43.jpg" alt="picture43"/>
+      </p>
+      <p> Fig. 3-32. Read request from terminal when no characters are pending. FS is the tile system. TTY is the terminal task. Interrupt is the interrupt routine.</p>
+      <p> The file system gets the message and locates the i-node corresponding to the specified file descriptor. This i-node is for the character special file  IdevlttyO, and contains the major and minor device numbers for the terminal.  The major</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 173</p>
+      <p> device type for terminals in the standard distribution is 4; for terminal 0, the minor device number is 0.</p>
+      <p> The file system indexes into its device map,  dmap,  to find the number of the terminal task. Then it sends a message to the terminal task, shown as (2) in Fig. 3-32. Normally, the user will not have typed anything yet, so the terminal driver will be unable to satisfy the request. It sends a reply back immediately to unblock the file system and report that no characters are available, shown as (3). The file system records the fact that a process waiting for terminal input in its tables, and then goes off to get the next request for work. The shell remains blocked, of course.</p>
+      <p> When a character is finally typed, it causes two interrupts, one when the key is depressed and one when it is released. This rule also applies to keys such as CTRL and SHIFT, which do not transmit any data by themselves, but still cause two interrupts per key hit. The interrupt routine in the assembly code file mpx88.s  calls a C procedure,  keyboard  (line 4113) to extract the character from the keyboard hardware and put it in an array called  ity-driverJbuf  along with the number of the line it came in on.  Keyboard  then calls  interrupt,  which, as we have seen in the previous chapter, then sends a message to the terminal task (4) in Fig. 3-32.</p>
+      <p> When enough characters have come in (meaning one character in raw or cbreak mode, or a line feed or CTRL-D in cooked mode), the terminal task calls the assembly language procedure  phys-copy  to copy the data to the address requested by the shell. This operation is not message passing and is shown by the dashed line in Fig. 3-32. Then the terminal driver sends a true message to the file system telling it that the work has been done (6). The file system reacts to this message by sending a message back to the shell to unblock it (7).</p>
+      <p> Note that the terminal driver copies the actual characters directly from its own address space to that of the shell. It does not first go through the file system. With block I/O, data do pass through the file system to allow it to maintain a buffer cache of the most recently used blocks. If a requested block happens to be in the cache, the request can be satisfied directly by the file system, without doing any disk I/O.</p>
+      <p> For terminal I/O, a cache makes no sense. Furthermore, a request from the file system to a disk driver can always be satisfied in at most a few hundred mil-lisec, so there is no real harm in having the file system just wait. Terminal I/O may take hours to complete (it waits until something is typed in), so it is unacceptable to have the file system block that long.</p>
+      <p> Later on, it may happen that the user hu^ typed ahead, and the characters are available before they have been requested. In that case, events 1, 2, 5, 6, and 7 all happen in quick succession after the read request; 3 and 4 do not occur.</p>
+      <p> When characters are typed in, they are put in the array  tty-driver-buf  as mentioned above. If the terminal task happens to be running at the time of the interrupt, no message can be sent to it because it is not waiting for one. Instead, a bit is set in the kernel variable  busy^map  in  interrupt.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> When the terminal task finally blocks, the bit is checked, and the message is sent then. If two or more terminal interrupts occur before the terminal driver finishes what it is doing, all the characters are stored in  tty-driver-buf,  and the bit in  busy-map  is repeatedly set. Ultimately, the terminal task gets one message; the rest are lost. But since all the characters are safely stored in tty-driver-buf,  no typed input is lost.</p>
+      <p> The problem of what to do in an unbuffered message system (rendezvous principle) when an interrupt routine wants to send a message to a process that is busy is inherent in this kind of design. For most devices, such as disks, interrupts occur only in response to commands issued by the driver, so only one interrupt can be pending at any instant. The only devices that generate interrupts on their own are the clock and the terminal. The clock is handled by just counting lost interrupts, so they can be exactly compensated for later. The terminal is handled by having the interrupt routine accumulate the characters in a fixed buffer, so losing the second, third, and subsequent messages in a series is unimportant, as long as the first one is not lost. In MINIX the bit in  busy-map  guarantees that the first one is never lost.</p>
+      <p> In all fairness, this is not a part of the system that we are most proud of, but it does the job without too much additional software complexity and no loss in performance. The obvious alternative, to throw away the rendezvous principle and have the system buffer all messages sent to destinations not waiting for them, is much more complicated and also slower.</p>
+      <p> While it was not our primary purpose to air our dirty linen in public, real system designers are often faced with a tradeoff between using the general case, which is elegant all the time but slow, and using a simpler technique, which is usually fast but in one or two cases requires a trick to make it work properly. Experience is really the only guide to which approach is better under given circumstances. A considerable amount of experience on designing operating systems is summarized by Lampson (1984) and Brooks (1975).</p>
+      <p> When a message comes into the terminal task requesting characters, the main procedure,  tty-task  (line 3500) calls  do-read  (line 3784) to handle the request (see Fig. 3-33).  Do-read  stores the parameters of the call in  ttystruct,  just in case there are insufficient characters already buffered to satisfy the request now.</p>
+      <p> Then it calls  rd-chars  (line 3813) to check to see if enough input is available. If it is, the input is copied to the user. If no input is available, nothing is copied. In both cases,  rd-chars  returns a code to  do-read  reporting what happened, so that  do-read  can tell the file system.</p>
+      <p> When a character is typed, the interrupt procedure sends a message to the terminal driver telling it that one or more characters are now available in tty-driver-buf.  Upon receiving this message,  tty-task  calls  do-charint  (line 3528) to loop on the characters accumulated in  tty-driver-buf  (almost always just one, but in theory, two or more are also possible) and call  in-char  (line 3581) for each character found (see Fig. 3-33).</p>
+      <p> Before doing any processing,  in-char  converts the key codes (scan codes)</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 175</p>
+      <p class="illus">
+        <img src="images/picture44.jpg" alt="picture44"/>
+      </p>
+      <p> Convert Key Code Echo character</p>
+      <p> to ASCI I on display</p>
+      <p> Fig. 3-33. Input handling in the terminal driver. The left branch of the tree is taken to process a request to read characters. The right branch is taken when a character-has-been-typed message is sent to the driver.</p>
+      <p> generated by the hardware into ASCII characters by calling  makeJbreak  to look them up in the appropriate table. After that,  in-char  distinguishes between cooked mode, cbreak mode, and raw mode, and handles all the characters that need special processing. These are shown in Fig. 3-30. It also calls  echo  (line 3746) to have the characters displayed on the screen.</p>
+      <p> Terminal Output</p>
+      <p> Terminal output in MINIX is simpler than terminal input because the display is memory mapped. When a process wants to print something, it generally calls printf to  format a line.  Printf  calls WRITE to send a message to the file system. The message contains a pointer to the characters to be printed (not the characters themselves). The file system then sends a message to the terminal driver, which fetches them and copies them to the video RAM.</p>
+      <p> When a message comes in to the terminal task to write on the screen, do-write  (line 3905) is called to store the parameters in  ttystruct.  It then calls the output procedure for memory-mapped displays. (If RS-232 terminals are added later, a different procedure will be called for them.) This output procedure, called  console  (line 4178), consists mainly of a loop that fetches one byte directly from the user process and calls  ouuchar  (line 4217) to print it. Figure 3-34 shows the main procedures involved in output.</p>
+      <p> Logically, the bytes fetched from the user process could be written into the video RAM one per loop iteration. Unfortunately, writing into the video RAM while the 6845 is fetching characters from it interferes with the 6845's critical timing and may generate visual garbage all over the screen. Only during vertical retrace of the CRT beam is it always safe to write in the video RAM. Vertical</p>
+      <p> 176 INPUT/OUTPUT CHAP. 3</p>
+      <p class="illus">
+        <img src="images/picture45.jpg" alt="picture45"/>
+      </p>
+      <p> Move cursor Scroll screen Copy characters to video RAM</p>
+      <p> Fig. 3-34. Major procedures used on terminal output.</p>
+      <p> retrace periods occur 50 or 60 times a second, each one lasting a few msec. To deal with this problem,  out-char  accumulates characters in  tty-ramqueue  rather than writing them directly into the video RAM.</p>
+      <p> When this buffer fills up, or a character involving cursor motion has to be printed,  flush  (line 4326) is called to output the buffer to the screen.  Flush  calls the assembly language procedure  vid^copy  to wait until the vertical retrace bit comes on, and then it quickly copies the buffer to the screen.</p>
+      <p> Out-char  also checks for characters that need special handling, such as the bell, line feed, carriage return, tab, backspace, some cursor motion keys, and the escape sequences. If one of these is found, it is processed directly.</p>
+      <p> The current cursor position is stored in  ttystruct  in the fields tfy_row and tty-column.  The coordinate (0, 0) is in the lower left-hand corner of the screen, even though the hardware fills the screen starting in the upper left-hand corner. Each video scan begins at the address given by  tty^org  and continues for 160 X 25 = 4000 bytes, wrapping around the video RAM, if necessary.</p>
+      <p> In other words, the 6845 chip pulls the word at offset  tty-org  from the video RAM, and displays the character in the upper left-hand corner using the attribute byte to control color, blinking, and so forth. Then it fetches the next word and displays the character at coordinate (0, 24). This process continues until it gets to (79, 0), at which time it begins again. Adding 160 to  tty-.org  and then loading it into the 6845 causes the screen to scroll upward by one line.</p>
+      <p> The position of the cursor relative to the start of the video RAM can be derived from  tty^row  and  tty-column,  but it is faster to store it explicitly, which is done in the field  tty^vid.  When a character is to be printed, it is put into the video RAM at location  tty-vid,  which is then updated, as is  tty-column.  Figure 3-35 summarizes the fields of  ttystruct  that affect the current position and the display origin.</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 177</p>
+      <p> Fig. 3-35. Fields of the tty structure that relate to the current screen position.</p>
+      <p> The characters that affect the cursor position (e.g., line feed, backspace) are handled by simply adjusting the values of  try-row, tty-column,  and  tty-vid.  This work is done by  move-to  (line 4343). When a line feed is to be printed on the bottom line of the screen,  scroll-screen  (line 4304) is called to add 160 to tty-org  and scroll the screen. It must also copy a row of blanks to the video RAM to ensure that the new line that suddenly appears at the bottom of the screen is empty.</p>
+      <p> The terminal driver supports a few escape sequences to allow screen editors and other interactive programs to update the screen in a flexible way. These escape sequences are all 3 bytes long and are shown in Fig. 3-36. By having ESC 32 32 correspond to moving to (0, 0), we have arranged that the parameters for cursor motion are printable characters. (When output to the screen, the escape sequences are not printed, but when they appear in programs they can be seen.)</p>
+      <p> Byte 1     Byte 2    Byte 3</p>
+      <p> Fig. 3-36. The escape sequences accepted by the terminal driver on output. ESC denotes the ASCII escape character (033).</p>
+      <p> 3.8.4. Implementation of the Terminal Driver in MINIX</p>
+      <p> In this section we will inspect the actual code of the terminal driver in detail, first doing the input part and then doing the output part. The main loop of the driver (line 3508) is similar to that of the other drivers, except that the replies are sent by the procedures that are called here, rather than in  try-task  itself.</p>
+      <p> Terminal Input</p>
+      <p> After our study of the other drivers, the only part of the terminal driver that is genuinely new is the way characters are processed as they are typed. When a key is struck or released, the CPU interrupts to line 1187, which saves the</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> registers and calls the C procedure  keyboard  on line 4113. This .procedure first plucks the key code (scan code) from the hardware and acknowledges this fact to the keyboard hardware. If the high-order bit of the key code is set, the key in question was released; otherwise, it was struck. Key releases, other than case shifts such as SHIFT, CTRL, and ALT, are just ignored and do not cause messages to be sent to the terminal task. This optimization reduces the message traffic within the system.</p>
+      <p> On lines 4144 to 4150 a check is made to see if the character is CTRL-S, which freezes the display. If it is, the  tty-inhibited  field is set to  STOPPED, which causes the output loop in  console  (line 4196) to stop, if it is running.</p>
+      <p> On line 4154 a check is made to see if CTRL-ALT-DEL has been typed. If it has, the computer is rebooted. The code for  reboot  is in  klib88.s.  The rest of keyboard  deals with storing the key code in the array  tty_driver-buf  and sending a message to the terminal task to have it process the stored characters.</p>
+      <p> When that message is received later, it is handled in  do-charint  (line 3528), which is mostly concerned with looping over the characters in  try-driverJbuf  and passing them to  in-char  one at a time. After each character is processed, a check is made to see if a previously incomplete read request can now be satisfied. In cooked mode this happens when a line feed is processed. In the other modes it happens on any character. If the read request can be completed now,  rd-chars  is called on line 3566 to copy the data to the user process.</p>
+      <p> The basic processing of each character typed in is done by  in-char  (line 3581). Early on it calls  make-break  (line 3695) to convert the key code received from the keyboard to an ASCII code by table lookup. Four tables are used, corresponding to lower and upper case for the IBM PC and for the Olivetti M24. The flag  olivetti  is set when the system is initialized, depending on which key code was typed in when the system asked for an equal sign.</p>
+      <p> Make-break  keeps track of the state of five different case shifts in software. These shifts are SHIFT, CTRL, ALT, CAPS LOCK, and NUM LOCK. The entries above 0200 in the tables are used to indicate that the key code is for one of these shifts. Because the code output for each key is completely determined by software, we have been able to use a more flexible approach than most keyboard drivers. The basic idea is simple: each key outputs a unique code, so, for example, the software can distinguish between the " + " in the numeric pad and the " + " in the top row of keys, if it so desires. All the values between 1 and 255 are used.</p>
+      <p> Getting back to  iit-char,  the tests on lines 3607 to 3653 check for the characters that are handled specially in cooked mode. The tests on lines 3655 to 3678 process those characters that are special in both cooked and cbreak mode. In raw mode, all of these characters are passed through to the user without any special processing. The actual queueing of characters is done at the end of  in-char.</p>
+      <p> When a key is struck, neither the hardware nor the interrupt routine puts the character just typed on the display. It is up to the terminal driver to display it. The last thing  iti-char  does before finishing up is call  echo  (line 3746) to print</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 179</p>
+      <p> the character on the screen. All  echo  does is check to see if ECHO mode is enabled and the character is displayable. If so, it calls  out-char  to have it copied to  tty-ramqueue,  and then it calls  flush  to have that queue actually copied to the screen.</p>
+      <p> The procedure  chuck  (line 3761) is used for the erase and kill local editing characters to remove characters already typed from the input queue. We have now finished the story of how input characters are processed.</p>
+      <p> The procedure  dosead  (line 3784), as we have already seen, is concerned with handling read requests from user programs. It stores the message parameters in  tty'..struct  because it may not be possible to satisfy the request now. When enough characters finally come in, the driver needs to have the information about the request so it can carry it out then.</p>
+      <p> The actual transfer of data from the driver to user space is done by  rdshars. It computes the physical address within user space where the data are to go, user-phys,  by calling  umap.  It also computes the physical address of the input buffer,  tty-phys.  Given these two addresses, the two nested loops starting on line 3841 perform the actual copying, one buffer at a time. The inner loop fills up one buffer, a character at a time, and copies it to user space. The outer loop repeats this process, copying as many buffer loads as necessary to satisfy the request. When it is finished,  rd^chars  returns  cum,  which is the number of characters actually transferred. Note that a read from a terminal never returns more than one line, no matter how many characters are requested, so it is important to report how many characters have been put in the user's buffer.</p>
+      <p> The next procedure,  finish  (line 3884), is used to terminate output and reply to the file system. It is used for normal output termination, but also when a DEL or CTRL-\ is typed, to stop all output immediately and tell the file system that output has been completed.</p>
+      <p> Terminal Output</p>
+      <p> Having finished looking at how input works, let us look at output. The procedure  dosvrite  is called from  tty-task,  just as  dosead  is, and like  do-read, does little more than store the message parameters in  tty struct.  It also computes the physical address within user space of the data to be printed.</p>
+      <p> On line 3934  do-\vrite  calls a device-dependent procedure to perform the output. For terminal 0, this procedure is  console  (line 4178), but if RS-232 terminals are added later, it will call a different procedure for them. The device-dependent code is listed at the end of  tty.c,  starting at line 4050.</p>
+      <p> The heart of  console  is the loop on lines 4196 to 4201. Each iteration of that loop uses the assembly code procedure  get-byte  to fetch one byte from the user's output buffer into the local variable c. The byte is then output by calling out-char,  specifying the terminal and the character. Finally, the pointer is advanced to the next character and the count of remaining bytes is decremented.</p>
+      <p> The output loop terminates either when the entire buffer has been printed, or</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> when  tty-dnhibited  comes on. Normally, this flag is off, but when CTRL-S is typed, the interrupt handler sets it (line 4147). This strategy has been chosen because once the driver starts doing output, it does not accept any more messages until it has finished its work. If the CTRL-S character were to be sent to the driver in a message, it would always have to wait until the current output was finished. With the implementation actually used, CTRL-S stops the output instantly. When CTRL-Q is typed,  console  is called (line 3676) to pick up where it left off.</p>
+      <p> Every character printed on the screen passes through  out-char,  including characters being echoed (line 3753). It contains a simple finite state machine to handle escape sequences, all of which are exactly three characters long, to keep things simple. The finite state machine, shown in Fig. 3-37, has three states, depending on whether the field  tty-escstate  is 0, 1, or 2.</p>
+      <p class="illus">
+        <img src="images/picture46.jpg" alt="picture46"/>
+      </p>
+      <p> Call escape</p>
+      <p> Fig. 3-37. Escape sequences are three characters long.</p>
+      <p> Normally,  tty-escstate  is 0. When an ASCII ESC character (033) is output, the state switches to 1. After another character arrives, the character is saved in tty-echar  and the state switches to 2. When the next character arrives,  escape (line 4362) is called with both characters to handle it, and the state is reset to 0.</p>
+      <p> If the character being output is not part of an escape sequence, a check is made on line 4241 to see if it is a printable character or something special. The bell (CTRL-G) is handled by  beep  (line 4427), which generates a tone by directing one of the clock channels to the built-in loudspeaker. The characters involving cursor motion, such as carriage return, backspace, and line feed, all call move_?o (line 4343) to update the current row, column, and position within the video RAM.</p>
+      <p> Printable characters are handled on lines 4291 to 4296. As discussed earlier, they are stored in the buffer  tty-ramqueue  along with their attribute byte so that the number of times the video RAM has to be accessed can be reduced. In this manner, each vertical retrace interval can be used to deposit perhaps tens of characters in the video RAM, instead of just a few.</p>
+      <p> Scroll-screen  (line 4304) can scroll the screen one line in either direction, depending on  dir.  Scrolling is accomplished by adding or subtracting 160 bytes from  tty-org  and then updating the 6845. The 6845's registers that are used by MINIX are shown in Fig. 3-38.</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 181</p>
+      <p> Registers Function</p>
+      <p> Fig. 3-38. Some of the 6845's registers.</p>
+      <p> Each register is 8 bits wide, but they work in pairs to form 16-bit registers. All of them address the video RAM in words, rather than bytes. For this reason, tty-.org  (which is in bytes) is shifted right to convert it to words on line 4319. The 6845 registers not shown in Fig. 3-38 control the sync pulses that determine the width, height, and offset of the displayable area on the screen. They are set by the ROM when the IBM PC is booted and not touched by MINIX.</p>
+      <p> Flush  (line 4326) calls  vid^copy  to copy the accumulated characters from the queue to the screen. Then it moves the cursor and clears the queue.</p>
+      <p> Move-to  (line 4343) updates the row, column, and video RAM position, and moves the cursor. It is called whenever the cursor is explicitly moved. Before doing its work it flushes the buffer, to prevent the queued characters from being eventually displayed in the wrong place.</p>
+      <p> Escape sequences are detected in  out-char  but processed by  escape  (line 4362). Each of the four possibilities of Fig. 3-36 is checked for and handled.</p>
+      <p> The 6845 registers shown in Fig. 3-38 are set by calls to  set-6845  (line 4403). A 16-bit value is output as two 8-bit values, to consecutive registers. A value is loaded into a register by first loading the register number into an I/O port, and then loading the value into another I/O port.</p>
+      <p> Ringing the bell for CTRL-G is done in  beep  (line 4427). It is accomplished by programming channel 2 of the timer chip. Interrupts are disabled on line 4438 because it sounds funny otherwise. The frequency and duration of the beep tone are completely programmable, and can be changed by modifying the constants  BEEP-FREQ  and  BJTIME.</p>
+      <p> When MINIX starts up, each task is called to give it the opportunity to initialize itself. On line 3507, the terminal task calls  tty-init  (line 4453) to do the initialization. First it sets up the default mode and special characters, such as erase, kill, and interrupt. Then it sets some of the 6845 display parameters, which differ for color and monochrome displays.</p>
+      <p> The global variable  color  used on line 4474 is set in  main.c  by calling the assembly language procedure  get-chrome,  which makes a BIOS call to find out. The BIOS finds out by reading an I/O port connected to the DIP switches on the PC's motherboard. This call is the only place in MINIX that the BIOS is used.</p>
+      <p> The cursor shape is set on line 4487. As you can see, the IBM PC is extremely flexible: the meaning of each key, the sound of the bell, the shape of the cursor, and many other things are all programmable. The keyboard type is set on line 4495 by looking at the number corresponding to the equals sign typed to start MINIX. It is different on the IBM PC and Olivetti M24.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> In a few places in the kernel, the procedure  printf  is called. The MINIX version of  printf  is part of the standard I/O library, which sends messages to the file system to print its strings. A simpler procedure is needed within the kernel, and is provided in the form of the procedure  printk,  which calls the kernel version of putc  directly. All occurrences of the string "printf" are changed into "printk" by the macro on line 0696.</p>
+      <p> The final procedure in the driver is temporary and used only for helping to debug MINIX. At the start of  in^char,  a check is made to see if the key is a function key. If it is,  func-key  (line 4519) is called to provide some debug information on the screen. This feature has been included to help people who plan to modify MINIX. It can be removed when this assistance is no longer needed. The dump procedures are in the file  dmp.c,  which is not really a permanent part of MINIX and is not shown in this book.</p>
+      <p> 3.9. THE SYSTEM TASK IN MINIX</p>
+      <p> One consequence of making the file system and memory manager user processes outside the kernel is that occasionally they have some piece of information that the kernel needs. This structure, however, forbids them from just writing it into a kernel table. For example, the FORK system call is handled by the memory manager. When a new process is created, the kernel must know about it, in order to schedule it. How can the memory manager tell the kernel?</p>
+      <p> The solution to this problem is to have a kernel task that communicates with the file system and memory manager via the standard message mechanism, and which also has access to all the kernel tables. This task, called the system task, is in layer 2 in Fig. 2-26, and functions like the other tasks we have studied in this chapter. The only difference is that it does not control any I/O device. Nevertheless, it makes more sense to study it here than in any other chapter.</p>
+      <p> The system task accepts nine kinds of messages, shown in Fig. 3-39. The main program of the system task,  sys^task  (line 4627), is structured the same way as the other tasks. It gets a message, dispatches to the appropriate service procedure, and then sends a reply. We will now look at each of these messages and its service procedure.</p>
+      <p> SYS-FORK  is used by the memory manager to tell the kernel that a new process has come into existence. The kernel needs to know this in order to schedule it. The message contains the slot numbers within the process table corresponding to the parent and child. The memory manager and file system also have process tables, with entry  k  referring to the same process in all three. In this manner, the memory manager can specify just the parent and child slot numbers, and the kernel will know which processes are meant.</p>
+      <p> The procedure  do-fork  (line 4658) copies the parent's process table entry to the child's slot and zeros the accounting information. The check on line 4674 to see if the memory manager is feeding the kernel garbage is pure paranoia, but a</p>
+      <p> SEC. 3.9 THE SYSTEM TASK IN MINIX 183</p>
+      <p> Fig. 3-39. The nine message types accepted by the system task.</p>
+      <p> little internal consistency checking does no harm. Similar checks are made in a number of other places in the system as well.</p>
+      <p> After a FORK, the memory manager allocates memory for the child. The kernel must know where the child is located in memory so it can set up the segment registers properly when running the child. The  SYS-NEWMAP  message allows the memory manager to give the kernel any process' memory map. This message can also be used after a  brk  system call changes the map.</p>
+      <p> The message is handled by  do-newmap  (line 4698), which must first copy the new map from the memory manager's address space. The map is not contained in the message itself because it is too big. In theory, the memory manager could tell the kernel that the map is at address  m,  where  m  is an illegal address. The memory manager is not supposed to do this, but the kernel checks anyway. The 18-byte map is copied directly into the process table's  p-tnap  field. Information from it is also extracted and loaded into the  p~reg  fields that hold the segment registers.</p>
+      <p> When a process does an EXEC system call, the memory manager sets up a new stack for it containing the arguments and environment. It passes the resulting stack pointer to the kernel using  SYS-EXEC,  which is handled by  do-exec (line 4746). In addition to setting the stack pointer,  do-exec  kills off the alarm timer, if any, by storing a zero on top of it. It is for this reason that the clock task always checks when a timer has run out to see if anybody is still interested.</p>
+      <p> The EXEC call causes a slight anomaly. The process invoking the call sends a message to the memory manager and blocks. With other system calls, the resulting reply unblocks it. With EXEC there is no reply, because the newly loaded core image is not expecting a reply. Therefore,  do-exec  unblocks the process itself on line 4762.</p>
+      <p> Processes can exit in MINIX either by doing an EXIT system call, which sends a message to the memory manager, or by being killed by a signal. In both cases, the memory manager tells the kernel by the  SYS—KIT  message. The work is done by  do-xit  (line 4771), which is more complicated than you might expect. Taking care of the accounting information is straightforward. The tricky part is that the</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> process might have been queued trying to send or receive at the time it was killed. The code on lines 4796 to 4816 checks for this possibility, and if found, carefully removes it from all the queues it is on.</p>
+      <p> In contrast to the previous message, which is slightly complicated, SYS-GETSP  is completely trivial. It is used by the memory manager to find out the value of the current stack pointer for some process. This value is needed for the BRK and SBRK system calls to see if the data segment and stack segment have collided. The code is in  do-getsp  (line 4825).</p>
+      <p> Now we come to the only message type used exclusively by the file system, SYSJTIMES,  It is needed to implement the TIMES system call, which returns the accounting times to the caller. All  do^times  (line 4844) does is put the requested times into the reply message.</p>
+      <p> It can happen that either the memory manager or the file system discovers an error that makes it impossible to continue operation. For example, if upon first starting up, the file system sees that the super-block on the root device has been corrupted, it panics and sends a  SYS.ABORT  message to the kernel. All do-abort  (line 4868) does is call  panic  to terminate MINIX immediately.</p>
+      <p> Most of the signal handling is done in the memory manager. It checks to see if the process to be signaled is enabled to catch or ignore the signal, if the sender of the signal is entitled to do so, and so on. The one thing the memory manager cannot do is actually cause the signal, that is, push the PSW, CS register, program counter, and signal number onto the stack of the signaled process. That work is done by sending the  SYSSIG  message to the system task.</p>
+      <p> The message is handled by  dosig  (line 4880). After extracting the parameters of the message,  dosig  calls the assembly language procedure  buildsig  to construct an 8-byte array containing the interrupt information. The array, sigstuff,  is copied onto the stack of the signaled process by  phys-copy  on line 4910. The process's stack pointer is then decremented by the size of the block of information just copied.</p>
+      <p> The final message,  SYS-COPY,  is the most heavily used one. It is needed to allow the file system and memory manager to copy information to and from user processes.</p>
+      <p> When a user does a READ call, the file system checks its cache to see if it has the block needed. If not, it sends a message to the appropriate disk task to load it into the cache. Then the file system sends a message to the system task telling it to copy the block to the user process. In the worst case, seven messages are needed to read a block; in the best case four messages are needed. Both cases are shown in Fig. 3-40. These messages are a significant source of overhead in MINIX, and are the price paid for the highly modular design.</p>
+      <p> As an aside, on the 8088, which has no protection, it would be easy enough to cheat and let the file system copy the data to the caller's address space, but this would violate the design principle. Anyone interested in improving the performance of MINIX should look carefully at this mechanism to see how much improper behavior one can tolerate for how much gain in performance. The</p>
+      <p> SEC. 3.9</p>
+      <p> THE SYSTEM TASK IN MINIX</p>
+      <p> 185</p>
+      <p class="illus">
+        <img src="images/picture47.jpg" alt="picture47"/>
+      </p>
+      <p> (b)</p>
+      <p> Fig. 3-40. (a) Worst case for reading a block requires six messages, (b) Best case for reading a block requires four messages.</p>
+      <p> implementation of this procedure is straightforward. It is done by  do-copy  (line 4922) and consists of little more than extracting the message parameters and calling  phys-copy.</p>
+      <p> At the end of  system.c  are three utility procedures used in various places throughout the kernel. When a task needs to cause a signal (e.g., the clock task needs to cause a SIGALRM signal, or the terminal task needs to cause a SIGINT signal), it calls  causesig  (line 4960). This procedure sets a bit in the  p^pending field of the process table entry for the process to be signaled, and then calls inform  to tell the memory manager to handle the signal.</p>
+      <p> Inform  (line 4987) checks to see if the memory manager is currently waiting for a message from  ANY,  that is, if it is idle and waiting for the next request to process. If it is idle,  inform  builds a message of type  KSIG  and sends it the message. The task calling  causesig  continues running as soon as the message has been copied into the memory manager's receive buffer. It does not wait for the memory manager to run.</p>
+      <p> When the signaling task finishes, the scheduler will be called. If the memory manager is the highest priority runnable process, it will run and process the signal.</p>
+      <p> The procedure  umap  (line 5021) is a generally useful procedure that maps a virtual address onto a physical address. Its parameters are a pointer to the process table entry for the process or task whose virtual address space is to be mapped, a flag specifying the text, data, or stack segment, the virtual address itself, and a byte count. The byte count is useful because  umap  checks to make</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> sure that the entire buffer starting at the virtual address is within the process's address space. For this reason, it must know how big the buffer is. The byte count is not used for the mapping itself, just this check. All the tasks that copy data to or from user space compute the physical address of the buffer using umap.</p>
+      <p> 3.10. SUMMARY</p>
+      <p> Input/Output is an often neglected, but important, topic. A substantial fraction of any operating system is concerned with I/O. We started out by looking at I/O hardware, and the relation of I/O devices to I/O controllers, which are what the software has to deal with. Then we looked at the four levels of I/O software: the interrupt routines, the device drivers, the device-independent I/O software, and the I/O libraries and spoolers that run in user space.</p>
+      <p> Next we studied the problem of deadlock and how it can be tackled. Deadlock occurs when a group of processes each have been granted exclusive access to some resources, and each one wants yet another resource that belongs to another process in the group. All of them are blocked and none will ever run again. Deadlock can be prevented by structuring the system so it can never occur, for example, by allowing a process to hold only one resource at any instant. It can also be avoided by examining each resource request to see if it leads to a situation in which deadlock is possible, and denying or delaying those that lead to trouble.</p>
+      <p> Device drivers in MINIX are implemented as processes embedded in the kernel. All of them are located in the same address space, but they are otherwise completely independent. We have looked at the RAM disk driver, floppy disk driver, clock driver, terminal driver, and system task, which is not a device driver but is structurally very similar to one. Each of these drivers has a main loop that gets requests and processes them, eventually sending back replies to report on what happened.</p>
+      <p> PROBLEMS</p>
+      <p> 1. Imagine that advances in chip technology make it possible to put an entire controller, including all the bus access logic, on an inexpensive chip. How will that affect the model of Fig. 3-1?</p>
+      <p> 2. If a disk controller writes the bytes it receives from the disk to memory as fast as it receives them, with no internal buffering, is interleaving conceivably useful? Discuss.</p>
+      <p> 3. A disk is double interleaved, as in Fig. 3-3(c). It has eight sectors of 512 bytes per track, and a rotation rate of 300 rpm. How long does it take to read all the sectors</p>
+      <p> CHAP. 3</p>
+      <p> PROBLEMS</p>
+      <p> 187</p>
+      <p> of a track in order, assuming the arm is already correctly positioned, and 1/2 rotation is needed to get sector 0 under the head? What is the data rate? Now repeat the problem for a noninterleaved disk with the same characteristics. How much does the data rate degrade due to interleaving?</p>
+      <p> 4. The DM-11 terminal multiplexer, which was used on the PDP-11 many, many years ago, sampled each (half-duplex) terminal line at seven times the baud rate to see if the incoming bit was a 0 or a 1. Sampling the line took 5.7 microsec. How many 1200 baud lines could the DM-11 support?</p>
+      <p> 5. A local network is used as follows. The user issues a system call to write to the network. The operating system then copies the data to a kernel buffer. Then it copies the data to the network controller board. When all the bytes are safely inside the controller, they are sent over the network at a rate of 10 megabits/sec. The receiving network controller stores each bit a microsecond after it is sent. When the last bit arrives, the destination CPU is interrupted, and the kernel copies the newly arrived packet to a kernel buffer to inspect it. Once it has figured out which user the packet is for, the kernel copies the data to the user space. If we assume that each interrupt and its associated processing takes 1 msec, that packets are 1024 bytes (ignore the headers), and that copying a byte takes 1 microsec, what is the maximum rate at which one process can pump data to another?</p>
+      <p> 6. What is "device independence"?</p>
+      <p> 7. In which of the four I/O software layers is each of the following done.</p>
+      <p> (a) Computing the track, sector, and head for a disk read.</p>
+      <p> (b) Maintaining a cache of recently used blocks.</p>
+      <p> (c) Writing commands to the device registers.</p>
+      <p> (d) Checking to see if the user is permitted to use the device.</p>
+      <p> (e) Converting binary integers to ASCII for printing.</p>
+      <p> 8. Why are output files for the printer normally spooled on disk before being printed?</p>
+      <p> 9. Consider Fig. 3-8. Suppose that in step (o)  C  requested  S  instead of requesting  R. Would this lead to deadlock? Suppose it requested both S and  Rl</p>
+      <p> 10. All the trajectories in Fig. 3-12 are horizontal or vertical. Can you envision any circumstances in which diagonal trajectories were also possible?</p>
+      <p> 11. Take a careful look at Fig. 3-11 (b). If Suzanne asks for one more unit, does this lead to a safe state or an unsafe one? What if the request came from Marvin instead of Suzanne?</p>
+      <p> 12. Suppose that process  A  in Fig. 3-13 requests the last tape drive. Does this action lead to a deadlock?</p>
+      <p> 13. A computer has six tape drives, with  n  processes competing for them. Each process may need two drives. For which values of  n  is the system deadlock free?</p>
+      <p> 14. Can a system be in a state that is neither deadlocked nor safe? If so, give an example. If not, prove that all states are either deadlocked or safe.</p>
+      <p> 15. A distributed system using mailboxes has two IPC primitives, SEND and RECEIVE. The latter primitive specifies a process to receive from, and blocks if no message</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> from that process is available, even though messages may be waiting from other processes. There are no shared resources, but processes need to communicate frequently about other matters. Is deadlock possible? Discuss.</p>
+      <p> 16. In an electronic funds transfer system, there are hundreds of identical processes that work as follows. Each process reads an input line specifying an amount of money, the account to be credited, and the account to be debited. Then it locks both accounts and transfers the money, releasing the locks when done. With many processes running in parallel, there is a very real danger that having locked account x  it will be unable to lock  y  because  y  has been locked by a process now waiting for  x.  Devise a scheme that avoids deadlocks. Do not release an account record until you have completed the transactions. (In other words, solutions that lock one account and then release it immediately if the other is locked, are not allowed.)</p>
+      <p> 17. The banker's algorithm is being run in a system with  m  resource classes and n processes. In the limit of large  m  and n, the number of operations that must be performed to check a state for safety is proportional to  m"n b .  What are the values of  a  and  b  ?</p>
+      <p> 18. Cinderella and the Prince are getting divorced. To divide their property, they have agreed on the following algorithm. Every morning, each one may send a letter to the other's lawyer requesting one item of property. Since it takes a day for letters to be delivered, they have agreed that if both discover that they have requested the same item on the same day, the next day they will send a letter canceling the request. Among their property is their dog, Woofer, Woofer's doghouse, their canary, Tweeter, and Tweeter's cage. The animals love their houses, so it has been agreed that any division of property separating an animal from its house is invalid, requiring the whole division to start over from scratch. Both Cinderella and the Prince desperately want Woofer. So they can go on (separate) vacations, each spouse has programmed a personal computer to handle the negotiation. When they come back from vacation, the computers are still negotiating. Why? Is deadlock possible? Is starvation possible? Discuss.</p>
+      <p> 19. The message format of Fig. 3-15 is used for sending request messages to drivers for block devices. Which fields, if any, could be omitted for messages to character devices?</p>
+      <p> 20. Disk requests come in to the disk driver for cylinders 10, 22, 20, 2, 40, 6, and 38, in that order. A seek takes 6 msec per cylinder moved. How much seek time is needed for</p>
+      <p> (a) First-come, first served.</p>
+      <p> (b) Closest cylinder next.</p>
+      <p> (c) Elevator algorithm (initially moving upwards). In all cases, the arm is initially at cylinder 20.</p>
+      <p> 21. A personal computer salesman visiting a university in South-West Amsterdam remarked during his sales pitch that his company had devoted substantial effort to making their version of UNIX very fast. As an example, he noted that their disk driver used the elevator algorithm and also queued multiple requests within a cylinder in sector order. A student, Harry Hacker, was impressed and bought one.</p>
+      <p> CHAP. 3</p>
+      <p> PROBLEMS</p>
+      <p> 189</p>
+      <p> He took it home and wrote a program to randomly read 10,000 blocks spread across the disk. To his amazement, the performance that he measured was identical to what would be expected from first-come, first-served. Was the salesman lying?</p>
+      <p> 22. A UNIX process has two parts—the user part and the kernel part. Is the kernel part like a subroutine or a coroutine?</p>
+      <p> 23. The clock interrupt handler on a certain computer requires 2 msec (including process switching overhead) per clock tick. The clock runs at 60 Hz. What fraction of the CPU is devoted to the clock?</p>
+      <p> 24. Two examples of watchdog timers were given in the text: timing the start-up of the floppy disk motor and allowing for carriage return on hard copy terminals. Give a third example.</p>
+      <p> 25. Why are RS232 terminals interrupt driven, but memory mapped terminals not interrupt driven?</p>
+      <p> 26. Consider how a terminal works. The driver outputs one character and then blocks. When the character has been printed, an interrupt occurs and a message is sent to the blocked driver, which outputs the next character and then blocks again. If the time to pass a message, output a character, and block is 4 msec, does this method work well on 110 baud lines? How about 4800 baud lines?</p>
+      <p> 27. A bit map terminal contains 1200 by 800 pixels. To scroll a window, the CPU (or controller) must move all the lines of text upwards by copying their bits from one part of the video RAM to another. If a particular window is 66 lines high by 80 characters wide (5280 characters, total), and a character's box is 8 pixels wide by 12 pixels high, how long does it take to scroll the whole window at a copying rate of 500 nsec per byte? If all lines are 80 characters long, what is the equivalent baud rate of the terminal? Putting a character on the screen takes 50 microsec. Now compute the baud rate for the same terminal in color, with 4 bits/pixel. (Putting a character on the screen now takes 200 microsec.)</p>
+      <p> 28. Why do operating systems provide escape characters, such as \ in MINIX?</p>
+      <p> 29. After receiving a DEL (SIGINT) character, the MINIX driver discards all output currently queued for that terminal. Why?</p>
+      <p> 30. Many RS232 terminals have escape sequences for deleting the current line and moving all the lines below it up one line. How do you think this feature is implemented inside the terminal?</p>
+      <p> 31. On the IBM PC's color display, writing to the video RAM at any time other than during the CRT beam's vertical retrace causes ugly spots to appear all over the screen. A screen image is 25 by 80 characters, each of which fits in a box 8 pixels by 8 pixels. Each row of 640 pixels is drawn on a single horizontal scan of the beam, which takes 63.6 microsec, including the horizontal retrace. The screen is redrawn 60 times a second, each of which requires a vertical retrace period to get the beam back to the top. What fraction of the time is the video RAM available for writing in?</p>
+      <p> 32. Write an RS232 driver for MINIX.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> 33. Write a graphics driver for the IBM color display, or some other suitable bit map display. The driver should accept commands to set and clear individual pixels, move rectangles around the screen, and any other features you think are interesting. User programs interface to the driver by opening  Idevlgraphics  and writing commands to it.</p>
+      <p> 34. Modify the MINIX floppy disk driver to do track-at-a-time caching.</p>
+      <p> 35. Implement a floppy disk driver that works as a character, rather than a block device, to bypass the file system's buffer cache. In this way, users can read large chunks of data from the disk, which are DMA'ed directly to user space, greatly improving performance. This driver would primarily be of interest to programs that need to read the raw bits on the disk, without regard to the file system. File system checkers fall into this category.</p>
+      <p> 36. Implement the UNIX PROFIL system call, which is missing from MINIX.</p>
+      <p> 37. Modify the terminal driver so that in addition to a having a special key to erase the previous character, there is a key to erase the previous word.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> Memory is an important resource that must be carefully managed. While the average home computer nowadays has ten times as much memory as the IBM 7094, the largest computer in the world in the early 1960s, programs are getting bigger just as fast as memories. To paraphrase Parkinson's law, "Programs expand to fill the memory available to hold them." In this chapter we will study how operating systems manage their memory.</p>
+      <p> The part of the operating system that manages memory is called the memory manager. Its job is to keep track of which parts of memory are in use and which parts are not in use, to allocate memory to processes when they need it and deallocate it when they are done, and to manage swapping between main memory and disk when main memory is not big enough to hold all the processes.</p>
+      <p> In this chapter we will investigate a number of different memory management schemes, ranging from very simple to highly sophisticated. We will start at the beginning and look first at the simplest possible memory management system, and then gradually progress to more and more elaborate ones.</p>
+      <p> 4.1. MEMORY MANAGEMENT WITHOUT SWAPPING OR PAGING</p>
+      <p> Memory management systems can be divided into two classes: those that move processes back and forth between main memory and disk during execution (swapping and paging), and those that do not. The latter are simpler, so we will</p>
+      <p> 191</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> study them first. Later in the chapter we will examine swapping and paging. Throughout this chapter the reader should keep in mind that swapping and paging are largely artifacts caused by the lack of sufficient main memory to hold all the programs at once. As main memory gets cheaper, the arguments in favor of one kind of memory management scheme or another may become obsolete.</p>
+      <p> 4.1.1. Monoprogramming without Swapping or Paging</p>
+      <p> The simplest possible memory management scheme is to have just one process in memory at a time, and to allow that process to use all of memory. The user loads the entire memory with a program from disk or tape, and it takes over the whole machine. Although this approach was common up until about 1960, it is not used any more, not even on inexpensive home computers, mostly because it implies that every process must contain within it a device driver for each I/O device it uses.</p>
+      <p> The usual technique used on simple microcomputers is shown in Fig. 4-1. The memory is divided up between the operating system and a single user process. The operating system may be at the bottom of memory in RAM (Random Access Memory), as shown in Fig. 4-l(a), or it may be in ROM (Read Only Memory) at the top of memory, as shown in Fig. 4-l(b), or the device drivers may be at the top of memory in a ROM and the rest of the operating system in RAM at the bottom of memory, as shown in Fig. 4-1(c). The IBM PC, for example, uses the model of Fig. 4-l(c), with the device driver ROM located in the highest 8K block of the 1M address space. The program in the ROM is called the BIOS (Basic Input Output System).</p>
+      <p> (a) (b) (0</p>
+      <p> Fig. 4-1. Three ways of organizing memory with an operating system and one user process.</p>
+      <p> When the system is organized in this way, only one process at a time can be running. The user types a command on the terminal, and the operating system loads the requested program from disk into memory and executes it. When the process finishes, the operating system types a prompt character on the terminal</p>
+      <p> SEC. 4.1     MEMORY MANAGEMENT WITHOUT SWAPPING OR PAGING 193</p>
+      <p> and then waits for a command from the terminal to load another process, overwriting the first one.</p>
+      <p> 4.1.2. Multiprogramming and Memory Usage</p>
+      <p> Although monoprogramming is sometimes used on small computers, on larger computers with multiple users it is rarely used. In Chap. 2 we already saw one reason for multiprogramming—to make it easier to program an application by splitting it up into two or more processes. Another motivation is that large computers often provide interactive service to several people simultaneously, which requires the ability to have more than one process in memory at once in order to get reasonable performance. Loading a process, running it for 100 msec, and then spending a few hundred milliseconds swapping it to disk is inefficient. But if the quantum is set too much above 100 msec, the response time will be poor.</p>
+      <p> Another reason for multiprogramming a computer (also applicable to batch systems), is that most processes spend a substantial fraction of their time waiting for disk I/O to complete. It is common for a process to sit in a loop reading data blocks from a disk file and then doing some computation on the contents of the blocks read. If it takes 40 msec to read a block, and the computation takes 10 msec, with monoprogramming the CPU will be idle waiting for the disk 80 percent of the time.</p>
+      <p> Modeling Multiprogramming</p>
+      <p> When multiprogramming is used, the CPU utilization can be improved. Crudely put, if the average process computes only 20 percent of the time it is sitting in memory, with five processes in memory at once, the CPU should be busy all the time. This model is unrealistically optimistic, however, since it assumes that all five processes will never be waiting for I/O at the same time.</p>
+      <p> A better model is to look at CPU usage from a probabilistic viewpoint. Suppose that a process spends a fraction  p  of its time in I/O wait state. With  n processes in memory at once, the probability that all  n  processes are waiting for I/O (in which case the CPU will be idle) is  p n .  The CPU utilization is then 1  — p n ■  Figure 4-2 shows the CPU utilization as a function of  n,  called the degree of multiprogramming.</p>
+      <p> From the figure it is clear that if processes spend 80 percent of their time waiting for I/O, at least 10 processes must be in memory at once to get the CPU waste below 10 percent. When you realize that an interactive process waiting for a user to type something at a terminal is in I/O wait state, it should be clear that I/O wait times of 80 percent and more are not unusual. But even in batch systems, processes doing a lot of disk or tape I/O will often have this percentage or more.</p>
+      <p> For the sake of complete accuracy, it should be pointed out that the</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> 20% I/O wait</p>
+      <p class="illus">
+        <img src="images/picture48.jpg" alt="picture48"/>
+      </p>
+      <p> 0123456789 10 Degree of multiprogramming</p>
+      <p> Fig. 4-2. CPU utilization as a function of the number of processes in memory.</p>
+      <p> probabilistic model just described is only an approximation. It implicitly assumes that all  n  processes are independent, meaning that it is quite acceptable for a system with five processes in memory to have three running and two waiting. But with a single CPU, we cannot have three processes running at once, so a process becoming ready while the CPU is busy will have to wait. Thus the processes are not independent. A more accurate model can be constructed using queueing theory, but the point we are making—multiprogramming lets processes use the CPU when it would be otherwise idle—is, of course, still valid, even if the true curves of Fig. 4-2 are slightly different.</p>
+      <p> Even though the model of Fig. 4-2 is simple-minded, it can still be used to make specific, although approximate, predictions about CPU performance. Suppose, for example, that a computer has 1M of memory, with the operating system taking up 200K and each user program also taking up 200K. With an 80 percent average I/O wait, we have a CPU utilization (ignoring operating system overhead) of about 60 percent. Adding another megabyte of memory allows the system to go from four-way multiprogramming to nine-way multiprogramming, thus raising the CPU utilization to 87 percent. In other words, the second megabyte will raise the throughput by 45 percent.</p>
+      <p> Adding a third megabyte would only increase CPU utilization from 87 percent to 96 percent, thus raising the throughput by only another 10 percent. Using this model the computer's owner might decide that a second megabyte was a good investment, but that a third megabyte was not.</p>
+      <p> Analysis of Multiprogramming System Performance</p>
+      <p> This model can also be used to analyze batch systems. Consider, for example, a computer center whose jobs average 80 percent I/O wait time. On a particular morning, four jobs are submitted as shown in Fig. 4-3(a). The first job, arriving at 10:00 A.M., requires 4 minutes of CPU time.  With 80 percent I/O</p>
+      <p> SEC. 4.1     MEMORY MANAGEMENT WITHOUT SWAPPING OR PAGING</p>
+      <p> 195</p>
+      <p> wait, the job uses only 12 seconds of CPU time for each minute it is sitting in memory, even if no other jobs are competing with it for the CPU. The other 48 seconds are spent waiting for I/O to complete. Thus the job will have to sit in memory for at least 20 minutes in order to get 4 minutes of CPU work done, even in the absence of competition for the CPU.</p>
+      <p> in minutes, each job gets in each interval.</p>
+      <p> From 10:00 A.M. to 10:10 A.M., job 1 is all by itself in memory and gets 2 minutes of work done. When job 2 arrives at 10:10 A.M., the CPU utilization increases from 0.20 to 0.36, due to the higher degree of multiprogramming (see Fig. 4-2). However, with round robin scheduling, each job gets half of the CPU, so each job gets 0.18 minutes of CPU work done for each minute it is in memory. Notice that the addition of a second job costs the first job only 10 percent of its performance (from 0.20 to 0.18 minutes of CPU per minute of real time).</p>
+      <p> At 10:15 A.M. the third job arrives. At this point job 1 has received 2.9 minutes of CPU and job 2 has had 0.9 minutes of CPU. With three-way multiprogramming, each job gets 0.16 minutes of CPU time per minute of real time, as shown in Fig. 4-3(b). From 10:15 A.M. to 10:20 A.M. each of the three jobs gets 0.8 minutes of CPU time. At 10:20 A.M. a fourth job arrives. Fig. 4-3(c) shows the complete sequence of events.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> 4.1.3. Multiprogramming with Fixed Partitions</p>
+      <p> By now it should be clear that it is often useful to have more than one process in memory at once. The question is then: "How should memory be organized to achieve this goal? " The easiest way is simply to divide memory up into  n (possibly unequal) partitions. This partitioning can, for example, be done manually by the operator when the system is started up.</p>
+      <p> When a job arrives, it can be put into the input queue for the smallest partition large enough to hold it. Since the partitions are fixed in this scheme, any space in a partition not used by a job is lost. In Fig. 4-4(a) we see how this system of fixed partitions and separate input queues looks.</p>
+      <p> Multiple Input queues</p>
+      <p> |    [\    |  Partition 4</p>
+      <p> Q-</p>
+      <p> OOO—</p>
+      <p> Partition 3</p>
+      <p> Partition 2</p>
+      <p> Partition 1</p>
+      <p> Operating system</p>
+      <p> 700 K</p>
+      <p> 400 K</p>
+      <p> 200 K</p>
+      <p> 100 K 0</p>
+      <p class="illus">
+        <img src="images/picture49.jpg" alt="picture49"/>
+      </p>
+      <p> Fig. 4-4. (a) Fixed memory partitions with separate input queues for each partition, (b) Fixed memory partitions with a single input queue.</p>
+      <p> The disadvantage of sorting the incoming jobs into separate queues becomes apparent when the queue for a large partition is empty but the queue for a small partition is full, as is the case for partitions 1 and 4 in Fig. 4-4(a). An alternative organization is to maintain a single queue as in Fig. 4-4(b). Whenever a partition becomes free, the job closest to the front of the queue that fits in it could be loaded into the empty partition and run. Since it is undesirable to waste a large partition on a small job, a different strategy is to search the whole input queue whenever a partition becomes free and pick the largest job that fits. Note that the latter algorithm discriminates against small jobs as being unworthy of having a whole partition, whereas usually it is desirable to give the smallest jobs the best service, not the worst.</p>
+      <p> This system, with fixed partitions set up by the operator in the morning and not changed thereafter, was used by OS/360 on large IBM mainframes for many</p>
+      <p> SEC. 4.1     MEMORY MANAGEMENT WITHOUT SWAPPING OR PAGING</p>
+      <p> 197</p>
+      <p> years. It was called MFT (Multiprogramming with a Fixed number of Tasks or OS/MFT). It is simple to understand and equally simple to implement: incoming jobs are queued until a suitable partition is available, at which time the job is loaded into that partition and run until it terminates.</p>
+      <p> Relocation and Protection</p>
+      <p> Multiprogramming introduces two essential problems that must be solved— relocation and protection. Look at Fig. 4-4. From the figure it is clear that different jobs will be run at different addresses. When a program is linked (i.e., the main program, user-written procedures, and library procedures are combined into a single address space), the linker must know at what address the program will begin in memory.</p>
+      <p> For example, suppose that the first instruction is a call to a procedure at relative address 100 within the binary file produced by the linker. If this program is loaded in partition 1, that instruction will jump to absolute address 100, which is inside the operating system. What is needed is a call to 100K + 100. If the program is loaded into partition 2, it must be carried out as a call to 200K + 100, and so on. This problem is known as the relocation problem.</p>
+      <p> One possible solution is to actually modify the instructions as the program is loaded into memory. Programs loaded into partition 1 have 100K added to each address, programs loaded into partition 2 have 200K added to addresses, and so forth. To perform relocation during loading like this, the linker must include in the binary program a list or bit map telling which program words are addresses to be relocated and which are opcodes, constants, or other items that must not be relocated. OS/MFT worked this way. Some microcomputers also work like this.</p>
+      <p> Relocation during loading does not solve the protection problem. A malicious program can always construct a new instruction and jump to it. Because programs in this system use absolute memory addresses rather than addresses relative to a register, there is no way to stop a program from building an instruction that reads or writes any word in memory. In multiuser systems, it is undesirable to let processes read and write memory belonging to other users.</p>
+      <p> The solution that IBM chose for protecting the 360 was to divide memory into blocks of 2K bytes and assign a 4-bit protection code to each block. The PSW contained a 4-bit key. The 360 hardware trapped any attempt by a running process to access memory whose protection code differed from the PSW key. Since only the operating system could change the protection codes and key, user processes were prevented from interfering with one another and with the operating system itself.</p>
+      <p> An alternative solution to both the relocation and protection problems is to equip the machine with two special hardware registers, called the base and limit registers. When a process is scheduled, the base register is loaded with the address of the start of its partition, and the limit register is loaded with the length of the partition.   Every memory address generated automatically has the base</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> register contents added to it before being sent to memory. Thus if the base register is 100K, a CALL 100 instruction is effectively turned into a CALL 100K + 100 instruction, without the instruction itself being modified. Addresses are also checked against the limit register to make sure that they do not attempt to address memory outside the current partition. The hardware protects the base and limit registers to prevent user programs from modifying them. The IBM PC uses a weaker version of this scheme—it has base registers (the segment registers), but no limit registers (see Appendix B).</p>
+      <p> An additional advantage of using a base register for relocation is that a program can be moved in memory after it has started execution. After it has been moved, all that needs to be done to make it ready to run is change the value of the base register. When the relocation is done by modifying the program as it is loaded, it cannot be moved without going through the entire modification process again.</p>
+      <p> 4.2.  SWAPPING</p>
+      <p> With a batch system, organizing memory into fixed partitions is simple and effective. As long as enough jobs can be kept in memory to keep the CPU busy all the time, there is no reason to use anything more complicated. With timesharing, the situation is different: there are normally more users than there is memory to hold all their processes, so it is necessary to keep excess processes on disk. To run these processes, they must be brought into main memory, of course. Moving processes from main memory to disk and back is called swapping, and is the subject of the following sections.</p>
+      <p> 4.2.1. Multiprogramming wit;. Variable Partitions</p>
+      <p> In principle, a swapping system could be based on fixed partitions. Whenever a process blocked, it could be moved to the disk and another process brought into its partition from the disk. In practice, fixed partitions are unattractive when memory is scarce because too much of it is wasted by programs that are smaller than their partitions. A different memory management algorithm is used instead. It is known as variable partitions.</p>
+      <p> When variable partitions are used, the number and size of the processes in memory vary dynamically throughout the day. Figure 4-5 shows how variable partitions work. Initially only process  A  is in memoiy. Then processes  B  and  C are created or swapped in from disk. In Fig. 4 5(d)  A  terminates or is swapped out to disk. Then  D  comes in and  B  goes out. Finally  E  comes in.</p>
+      <p> The main difference between the fixed partitions of Fig. 4-4 and the variable partitions of Fig. 4-5 is that the number, location, and size of the partitions vary dynamically in the latter as processes come and go, whereas they are fixed in the former. The flexibility of not being tied to a fixed number of partitions that may</p>
+      <p> SEC. 4.2</p>
+      <p> SWAPPING Time   *-</p>
+      <p> 199</p>
+      <p class="illus">
+        <img src="images/picture50.jpg" alt="picture50"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture51.jpg" alt="picture51"/>
+      </p>
+      <p> Operating system</p>
+      <p> Operating system</p>
+      <p class="illus">
+        <img src="images/picture52.jpg" alt="picture52"/>
+      </p>
+      <p> Operating system</p>
+      <p class="illus">
+        <img src="images/picture53.jpg" alt="picture53"/>
+      </p>
+      <p> Operating system</p>
+      <p> Operating system</p>
+      <p> (d)</p>
+      <p> (e)</p>
+      <p> (f)</p>
+      <p> (9)</p>
+      <p> Fig. 4-5. Memory allocation changes as processes come into memory and leave it. The gray regions are unused memory.</p>
+      <p> be too large or too small improves memory utilization but it also complicates allocating and deallocating memory, as well as keeping track of it.</p>
+      <p> It is possible to combine all the holes into one big one by moving all the processes downward as far as possible. This technique is known as memory compaction. It is usually not done because it requires a lot of CPU time. For example, on a 1M micro that can copy 1 byte per microsec (1 megabyte/sec), it takes 1 sec to compact all of memory. It is, however, done on the large CDC Cyber mainframes because they have special hardware that can compact at a rate of 40 megabytes/sec.</p>
+      <p> A point that is worth making concerns how much memory should be allocated for a process when it is created or swapped in. If processes are created with a fixed size that never changes, then the allocation is simple: you allocate exactly what is needed, no more and no less.</p>
+      <p> If, however, processes' data segments can grow, for example, by dynamically allocating memory from a heap, as in many programming languages, a problem occurs whenever a process tries to grow. If a hole is adjacent to the process, it can be allocated and the process allowed to grow into the hole. On the other hand, if the process is adjacent to another process, the growing process will either have to be moved to a hole in memory large enough for it, or one or more processes will have to be swapped out to create a large enough hole. If a process cannot grow in memory and the swap area on the disk is full, the process will have to be killed.</p>
+      <p> If it is expected that most processes will grow as they run, it is probably a good idea to allocate a little extra memory whenever a process is swapped in or moved, to reduce the overhead associated with moving or swapping processes that no longer fit in their allocated memory. However, when swapping processes to disk, only the memory actually in use should be swapped; it is wasteful to</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> swap the extra memory as well. In Fig. 4 6(a) we see a memory configuration in which space for growth has been allocated to two processes.</p>
+      <p class="illus">
+        <img src="images/picture54.jpg" alt="picture54"/>
+      </p>
+      <p> Room for growth</p>
+      <p> Actually in use</p>
+      <p> Room for growth</p>
+      <p> Actually in use</p>
+      <p> (a)</p>
+      <p> B-Stack</p>
+      <p> I i |</p>
+      <p> B-Data</p>
+      <p> Program</p>
+      <p class="illus">
+        <img src="images/picture55.jpg" alt="picture55"/>
+      </p>
+      <p> A-Data</p>
+      <p> A-Program</p>
+      <p> Operating system</p>
+      <p> Room for growth</p>
+      <p> - Room for growth</p>
+      <p> (b)</p>
+      <p> Fig. 4-6. (a) Allocating space for a growing data segment, (b) Allocating space for a growing stack and a growing data segment.</p>
+      <p> If processes can have two growing segments, for example, the data segment being used as a heap and the stack, an alternative arrangement suggests itself, namely that of Fig. 4-6(b). In this figure we see that each process has a stack at the top of its allocated memory growing downward, and a data segment just beyond the program text, growing upward. The memory between them can be used for either segment. If it runs out, either the process will have to be moved to a hole with enough space, swapped out of memory until a large enough hole can be created, or killed.</p>
+      <p> In general terms, there are three ways of keeping track of memory usage: bit maps, lists, and buddy systems. In the following sections we will look at each of these in turn.</p>
+      <p> 4.2.2. Memory Management with Bit Maps</p>
+      <p> With a bit map, memory is divided up into allocation units, perhaps as small as a few words and perhaps as large as several kilobytes. Corresponding to each allocation unit is a bit in the bit map, which is 0 if the unit is free and 1 if it is occupied (or vice versa). Figure 4-7 shows part of memory and the corresponding bit map.</p>
+      <p> The size of the allocation unit is an important design issue. The smaller the allocation unit, the larger the bit map. However, even with an allocation unit as small as 4 bytes, 32 bits of memory will require only 1 bit of the map. A</p>
+      <p> SEC. 4.2</p>
+      <p> SWAPPING</p>
+      <p> 201</p>
+      <p class="illus">
+        <img src="images/picture56.jpg" alt="picture56"/>
+      </p>
+      <p> A  I I I I L.</p>
+      <p> E</p>
+      <p> _1 l_</p>
+      <p> ■ih</p>
+      <p> 16</p>
+      <p> 24</p>
+      <p> (a)</p>
+      <p> Hole    Starts Length at 18 2</p>
+      <p> Process</p>
+      <p> (b)</p>
+      <p> (0</p>
+      <p> Fig. 4-7. (a) A part of memory with five processes and 3 holes. The tick marks show the memory allocation units. The shaded regions (0 in the bit map) are free, (b) The corresponding bit map. (c) The same information as a linked list.</p>
+      <p> memory of 32n bits will use  n  map bits, so the bit map will take up only 3 percent of memory. If the allocation unit is chosen large, the bit map will be small, but appreciable memory may be wasted in the last unit if the process size is not an exact multiple of the allocation unit.</p>
+      <p> A bit map provides a simple way to keep track of memory words in a fixed amount of memory because the size of the bit map depends only on the size of memory and the size of the allocation unit. The main problem with it is that when it has been decided to bring a  k  word process into memory, the memory manager must search the bit map to find a run of  k  consecutive 0 bits in the map. Searching a bit map for a run of a given length is a slow operation, so in practice, bit maps are not often used.</p>
+      <p> 4.2.3. Memory Management with Linked Lists</p>
+      <p> Another way of keeping track of memory is maintaining a linked list of allocated and free memory segments, where a segment is either a process or a hole between two processes. The memory of Fig. 4-7(a) is represented in Fig. 4-7(c) as a linked list of segments. Each entry in the list specifies a hole (H) or process (P), the address at which it starts, the length, and a pointer to the next entry.</p>
+      <p> In this example, the segment list is kept sorted by address. Sorting this way has the advantage that when a process terminates or is swapped out, updating the list is straightforward. A terminating process normally has two neighbors (except when it is at the very top or bottom of memory). These may be either processes or holes, leading to the four combinations of Fig. 4-8. In Fig. 4-8(a) updating the list requires replacing a P by an H. In Fig. 4-8(b) and Fig. 4-8(c), two entries are coalesced into one, and the list becomes one entry shorter. In Fig. 4-8(d), three entries are merged and two items are removed from the list. Since the process table slot for the terminating process will normally point to the</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> list entry for the process itself, it may be more convenient to have the list as a double-linked list, rather than the single-linked list of Fig. 4-7(c). This is done to find the previous entry and to see if a merge is possible.</p>
+      <p> Before X terminates</p>
+      <p> After X terminates</p>
+      <p> (a) (b)</p>
+      <p> X</p>
+      <p> becomes</p>
+      <p> X    r\\\\\\\\l  °&lt;"°™ S becomes</p>
+      <p> becomes</p>
+      <p> B</p>
+      <p> X</p>
+      <p> B</p>
+      <p> Fig. 4-8. Four neighbor combinations for the terminating process,  X.</p>
+      <p> When the processes and holes are kept on a list sorted by address, several algorithms can be used to allocate memory for a newly created or swapped in process. We assume that the memory manager knows how much memory to allocate. The simplest algorithm is first fit. The memory manager scans along the list of segments until it finds a hole that is big enough. The hole is then broken up into two pieces, one for the process and one for the unused memory, except in the unlikely case of an exact fit. First fit is a fast algorithm because it searches as little as possible.</p>
+      <p> A minor variation of first fit is next fit. It works the same way as first fit, except that it keeps track of where it is when it finds a suitable hole. The next time it is called, it starts searching from where it left off, instead of always at the beginning, as first fit does. Simulations by Bays (1977) show that next fit gives slightly worse performance than first fit.</p>
+      <p> Another well-known algorithm is best fit. Best fit searches the entire list and takes the smallest hole that is adequate. Rather than breaking up a big hole that might be needed later, best fit tries to find a hole that is close to the actual size needed.</p>
+      <p> As an example of first fit and best fit, consider Fig. 4-7 again. If a block of size 2 is needed, first fit will allocate the hole at 5, but best fit will allocate the hole at 18.</p>
+      <p> Best fit is slower than first fit because it must search the entire list every time it is called. Somewhat surprisingly, it also results in more wasted memory than first fit or next fit because it tends to fill up memory with tiny, useless holes. First fit generates larger holes on the average.</p>
+      <p> To get around the problem of breaking up nearly exact matches into a process and a tiny hole, one could think about worst fit, that is, always take the largest available hole, so that the hole broken off will be big enough to be useful. Simulation has shown that worst fit is not a very good idea.</p>
+      <p> All four algorithms can be speeded up by maintaining separate lists for processes and holes. In this way, all of them devote their full energy to inspecting holes, not processes.  The price paid for this speedup on allocation is the</p>
+      <p> SEC. 4.2</p>
+      <p> SWAPPING</p>
+      <p> 203</p>
+      <p> additional complexity and slowdown when deallocating memory, since a freed segment has to be removed from the process list and inserted into the hole list.</p>
+      <p> If distinct lists are maintained for processes and holes, the hole list may be kept sorted on size, to make best fit faster. When best fit searches a list of holes from smallest to largest, as soon as it finds a hole that fits, it knows that the hole is the smallest one that will do the job, hence the best fit. With a hole list sorted by size, first fit and best fit are equally fast, and next fit is pointless.</p>
+      <p> When the holes are kept on separate lists from the processes, a small optimization is possible. Instead of having a separate set of data structures for maintaining the hole list, as is done in Fig. 4 7(c), the holes themselves can be used. The first word of each hole could be the hole size, and the second word a pointer to the following entry. The nodes of the list of Fig. 4-7(c), which require three words and one bit (P/H), are no longer needed.</p>
+      <p> Yet another allocation algorithm is quick fit, which maintains separate lists for some of the more common sizes requested. For example, it might have a table with  n  entries, in which the first entry was a pointer to the head of a list of 4K holes, the second entry was a pointer to a list of 8K holes, the third entry a pointer to 12K holes, and so on. Holes of say, 2IK, could either be put on the 20K list or on a special list of odd-sized holes. With quick fit, finding a hole of the required size is extremely fast, but it has the same disadvantage as all schemes that sort by hole size, namely, when a process terminates or is swapped out, finding its neighbors to see if a merge is possible is expensive. If merging is not done, memory will quickly fragment into a large number of small, useless holes.</p>
+      <p> If we drop our implicit assumption that nothing is known in advance about the probability distribution of requested sizes and process lifetimes, then various other algorithms become applicable. The work of Oldehoeft and Allan (1985), Stephenson (1983), and Beck (1982) describes some of the possibilities.</p>
+      <p> 4.2.4. Memory Management with the Buddy System</p>
+      <p> We saw in the previous section that keeping all the holes on one or more lists sorted by hole size made allocation very fast, but deallocation slow because all the hole lists had to be searched to find the deallocated segment's neighbors. The buddy system (Knuth 1973; Knowlton 1965) is a memory management algorithm that takes advantage of the fact that computers use binary numbers for addressing in order to speed up the merging of adjacent holes when a process terminates or is swapped out.</p>
+      <p> It works like this. The memory manager maintains a list of free blocks of size 1, 2, 4, 8, 16, etc., bytes, up to the size of memory. With a 1M memory, for example, 21 such lists are needed, ranging from 1 byte to 1 megabyte. Initially, all of memory is free, and the 1M list has a single entry containing a single 1M hole. The other lists are empty. The initial memory configuration is shown in Fig. 4-9 in the top row.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> (— Memory .—►]</p>
+      <p> 0 128 K      256 K      384 K       512 K      640 K      768 K      896 K     1 M Holes</p>
+      <p> Fig. 4-9. The buddy system. The horizontal axis represents memory addresses. The numbers are the sizes of unallocated blocks of memory in K. The letters represent allocated blocks of memory.</p>
+      <p> Now let us see how the buddy system works when a 70K process is swapped into an empty 1M memory. As the hole lists are only for powers of 2, 128K will be requested, that being the smallest power of 2 that is big enough. No 128K block is available, nor are blocks for 256K or 512K. Thus the 1M block is split into two 512K blocks, called buddies, one at memory address 0 and the other at memory address 512K. One of these, the one at 0, is then split into two 256K buddy blocks, one at 0 and one at 256K. The lower of these is then split into two 128K blocks, and the one at address 0 (marked  A  in Fig. 4-9) is allocated to the process.</p>
+      <p> Next, a 35K process is swapped in. This time we round 35K up to a power of 2 and discover that no 64K blocks are available, so we split the 128K block into two 64K buddies, one at 128K and one at 192K. The block at 128K is allocated to the process, marked as  B  in Fig. 4-9. The third request is for 80K.</p>
+      <p> Now let us see what happens when a block is returned. Imagine that 128K block  A  (of which only 70K is used) is freed at this point. It just goes on the free list for 128K blocks at this point. Now a 60K block is needed, so a check is made to see if any sufficiently large blocks are available. The 64K block located at address 192K will do so it is allocated.</p>
+      <p> Now block  B  is returned. At this point we have a 128K block at 0 and a 64K block at 128K that are free. No merging is possible yet. Note that even if the 128K block at 0 had been split into a 64K block at 0 that was in use and a free block at 64K, no merging could occur. When block  D  is returned, we can reconstruct the 256K block at address 0. Finally, when block  C  is returned, we return to the initial configuration of a single hole of 1M.</p>
+      <p> Buddy systems have an advantage over algorithms that sort blocks by size but not necessarily at addresses that are multiples of the block size. The advantage is that when a block of size  2 k   bytes is freed, the memory manager has to search only the list of 2* holes to see if a merge is possible.  With other algorithms that</p>
+      <p> SEC. 4.2</p>
+      <p> SWAPPING</p>
+      <p> 205</p>
+      <p> allow memory blocks to be split in arbitrary ways, all the hole lists must be searched. The result is that the buddy system is fast.</p>
+      <p> Unfortunately, it is also extremely inefficient in terms of memory utilization. The problem comes from the fact that all requests must be rounded up to a power of 2. A 35K process must be allocated 64K. The extra 29K is just wasted. This form of overhead is known as internal fragmentation because the wasted memory is internal to the allocated segments. In Fig. 4-5 we have holes between  the segments, but no wasted space  within  the segments. This form of waste is called external fragmentation or checkerboarding.</p>
+      <p> Various authors (e.g., Peterson and Norman, 1977; Kaufman, 1984) have modified the buddy system in various ways to try to get around some of its problems.</p>
+      <p> 4.2.5. Allocation of Swap Space</p>
+      <p> The algorithms presented above are for keeping track of main memory so that when processes are swapped in, the system can find space for them. In some systems, when a process is in memory, no disk space is allocated to it. When it must be swapped out, space must be allocated in the disk swap area for it. On each swap, it may be placed somewhere else on disk. The algorithms for managing swap space are the same ones used for managing main memory.</p>
+      <p> In other systems, when a process is created, swap space is allocated for it on disk (using one of the algorithms we have studied). Whenever the process is swapped out, it is always swapped to its allocated space, rather than going to a different place each time. When the process exits, the swap space is deallocated.</p>
+      <p> The only difference is that disk space for a process must be allocated as an integral number of disk blocks. Therefore, a process of size 13.5K using a disk with IK blocks will be rounded up to 14K before the free disk space data structures are searched.</p>
+      <p> 4.2.6. Analysis of Swapping Systems</p>
+      <p> The free list and bit map algorithms lead to a form of external fragmentation that is easy to analyze. Imagine a simulation run to determine how much memory is wasted in holes at any instant. The simulator might start at 0, generating segment sizes at random, and marking them as process or hole, also at random. This simulation would lead to as many holes as processes. However, if adjacent holes were then merged, the number of holes would become smaller than the number of segments.</p>
+      <p> The ratio of holes to processes can be found by the following analysis (Knuth, 1973). Consider an average process in the middle of memory after the system has come to equilibrium. During its stay in memory, half of the operations on the segment just above it will be process allocations and half will be process deallocations. Thus, half the time it has another process as upper neighbor,</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> and half the time it has a hole as upper neighbor. Averaged over time, there must be half as many holes as processes. In other words, if the mean number of processes in memory is  n,  the mean number of holes is  n/2.  This result is known as the fifty percent rule.</p>
+      <p> The fifty percent rule has its origin in a fundamental asymmetry between processes and holes. When two holes are adjacent in memory, they are merged into a single hole. Adjacent processes are not merged. This mechanism systematically reduces the number of holes.</p>
+      <p> Another useful result is the unused memory rule. Let / be the fraction of memory occupied by holes,  s  be the average size of the  n  processes, and  ks  be the average hole size for some  k  &gt; 0. With a total memory of  m  bytes, the  n/2 holes occupy  m — ns  bytes. Algebraically,</p>
+      <p> (n/2) X  ks  =  m  —  ns</p>
+      <p> Solving this equation for  m,  we get</p>
+      <p> m = ns(\ + k/2)</p>
+      <p> The fraction of memory in holes is just the number of holes,  n/2,  times the average hole size,  ks , divided by the total memory,  m,  or</p>
+      <p> nks!2 nks/2 k</p>
+      <p> f  =       m     =   ns(l  +  k/2)  =   k + 2</p>
+      <p> As an example, if the average hole is 1/2 as large as the average process, k  = 1/2, and 20 percent of the memory will be wasted in holes. If we reduce the average hole size to 1/4 of the average process size, for example, by using best fit instead of first fit, the wastage will drop to about 11 percent. As long as the average hole size is an appreciable fraction of the average process size, a substantial amount of memory will be wasted.</p>
+      <p> 4.3. VIRTUAL MEMORY</p>
+      <p> Many years ago people were first confronted with programs that were too big to fit in the available memory. The solution usually adopted was to split the program into pieces, called overlays. Overlay 0 would start running first. When it was done, it would call another overlay. Some overlay systems were highly complex, allowing multiple overlays in memory at once. The overlays were kept on the disk and swapped in and out of memory by the operating system.</p>
+      <p> Although the actual work of swapping overlays in and out was done by the system, the work of splitting the program into pieces had to be done by the programmer. Splitting up large programs into small, modular pieces was time consuming and boring. It did not take long before someone thought of a way to turn the whole job over to the computer.</p>
+      <p> SEC. 4.3</p>
+      <p> VIRTUAL MEMORY</p>
+      <p> 207</p>
+      <p> The method that was devised (Fotheringham, 1961) has come to be known as virtual memory. The basic idea behind virtual memory is that the combined size of the program, data, and stack may exceed the amount of physical memory available for it. The operating system keeps those parts of the program currently in use in main memory, and the rest on the disk. For example, a 1M program can run on a 256K machine by carefully choosing which 256K to keep in memory at each instant, with pieces of the program being swapped between disk and memory as needed.</p>
+      <p> Virtual memory can also work in a multiprogramming system. For example, eight 1M programs can each be allocated a 256K partition in a 2M memory, with each program operating as though it had its own, private 256K machine. In fact, virtual memory and multiprogramming fit together very well. While a program is waiting for part of itself to be swapped in, it is waiting for I/O and cannot run, so the CPU can be given to another process.</p>
+      <p> 4.3.1. Paging</p>
+      <p> Most virtual memory systems use a technique called paging, which we will now describe. On any computer, there exists a set of memory addresses that programs can produce. When a program uses an instruction like MOVE REG, 1000, it is moving the contents of memory address 1000 to REG (or vice versa, depending on the computer). Addresses can be generated using indexing, base registers, segment registers, and other ways.</p>
+      <p> These program-generated addresses are called virtual addresses and form the virtual address space. On computers without virtual memory, the virtual address is put directly onto the memory bus and causes the physical memory word with the same address to be read or written. When virtual memory is used, the virtual addresses do not go directly to the memory bus. Instead, they go to a memory management unit (MMU), a chip or collection of chips that maps the virtual addresses onto the physical memory addresses as illustrated in Fig. 4-10.</p>
+      <p> The CPU sends virtual addresses to the MMU</p>
+      <p class="illus">
+        <img src="images/picture57.jpg" alt="picture57"/>
+      </p>
+      <p> Bus</p>
+      <p> The MMU sends physical addresses to the memory</p>
+      <p> Fig. 4-10. The position and function of the MMU.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> An example of how this mapping works is shown in Fig. 4-11. In this example, we have a computer that can generate 16-bit addresses, from 0 up to 64K. These are the virtual addresses. This computer, however, has only 32K of physical memory, so although 64K programs can be written, they cannot be loaded into memory in their entirety and run. A complete copy of a program's core image, up to 64K, must be present on the disk, however, so that pieces can be brought in by the system as needed.</p>
+      <p> The virtual address space is divided up into units called pages. The corresponding units in the physical memory are called page frames. The pages and page frames are always the same size. In this example they are 4K, but page sizes of 512 bytes, IK, and 2K are also commonly used. With 64K of virtual address space and 32K of physical memory, we have 16 virtual pages and 8 page frames. Transfers between memory and disk are always in units of a page.</p>
+      <p> Virtual address space</p>
+      <p> 0-4K 4K-8K 8K-12K 12K-16K 16K-20K 20K-24K 24K-28K 28K-32K 32K-36K 36K-40K 40K-44K 44K-48K 48K-52K 52K-56K 56K-60K 60K-64K</p>
+      <p> Fig. 4-11. The relation between virtual addresses and physical memory addresses is given by the page table.</p>
+      <p> When the program tries to access address 0, for example, using the instruction MOVE REG,0, the virtual address 0 is sent to the MMU. The MMU sees that this virtual address falls in page 0 (0 to 4095), which according to its mapping is page frame 2 (8192 to 12287). It thus transforms the address to 8192 and outputs address 8192 onto the bus. The memory board knows nothing at all about the MMU, and just sees a request for reading or writing address 8192, which it honors. Thus, the MMU has effectively mapped all virtual addresses between 0 and 4095 onto physical addresses 8192 to 12287.</p>
+      <p> Similarly, an instruction MOVE REG,8192 is effectively transformed into</p>
+      <p> Physical memory addresses</p>
+      <p class="illus">
+        <img src="images/picture58.jpg" alt="picture58"/>
+      </p>
+      <p> SEC. 4.3</p>
+      <p> VIRTUAL MEMORY</p>
+      <p> 209</p>
+      <p> MOVE REG,24576 because virtual address 8192 is in virtual page 2 and this page is mapped onto physical page frame 6 (physical addresses 24576 to 28671). As a third example, virtual address 21500 is 20 bytes from the start of virtual page 5 (virtual addresses 20480 to 24575) and maps onto physical address 12288 + 20 = 12308.</p>
+      <p> By itself, this ability to map the 16 virtual pages onto any of the eight page frames by setting the MMU's map appropriately does not solve the problem that the virtual address space is larger than the physical memory. Since we have only eight physical page frames, only eight of the virtual pages in Fig. 4-11 are mapped onto physical memory. The others, shown as a cross in the figure, are not mapped. In the actual hardware, a present/absent bit in each entry keeps track of whether the page is mapped or not.</p>
+      <p> What happens if the program tries to use an unmapped page, for example, by using the instruction MOVE REG,32780, which is byte 12 within virtual page 8 (starting at 32768)? The MMU notices that the page is unmapped (indicated by a cross in the figure), and causes the CPU to trap to the operating system. This trap is called a page fault. The operating system picks a little-used page frame and writes its contents back to the disk. It then fetches the page just referenced into the page frame just freed, changes the map, and restarts the trapped instruction.</p>
+      <p> For example, if the operating system decided to evict page frame 1, it would load virtual page 8 at physical address 4K and make two changes to the MMU map. First, it would mark virtual page l's entry as unmapped, to trap any future accesses to virtual addresses between 4K and 8K. Then it would replace the cross in virtual page 8's entry with a 1, so that when the trapped instruction is re-executed, it will map virtual address 32780 onto physical address 4108.</p>
+      <p> Now let us look inside the MMU to see how it works and why we have chosen to use a page size that is a power of 2. In Fig. 4-12 we see an example of a virtual address, 8196 (0010000000000100 in binary), being mapped using the MMU map of Fig. 4-11. The incoming 16-bit virtual address is split up into a 4-bit page number and a 12-bit offset within the page. With 4 bits for the page number, we can represent 16 pages, and with 12 bits for the offset, we can address all 4096 bytes within a page.</p>
+      <p> The page number is used as an index into the page table, yielding the page frame corresponding to that virtual page. If the present/absent bit is 0, a trap is caused. If it is 1, the page frame number found in the page table is copied to the high-order 3 bits of the output register, along with the 12-bit offset, which is copied unmodified from the incoming virtual address. The output register is then put onto the memory bus as the physical memory address.</p>
+      <p> 4.3.2. Segmentation</p>
+      <p> Paging provides a technique for implementing a large linear address space in a limited physical memory.  For some applications, a two-dimensional address</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> Virtual page = 2</p>
+      <p> Page J</p>
+      <p> table</p>
+      <p> ^Present/ absent bit</p>
+      <p> 110</p>
+      <p> 12-bit offset copied directly from input to output</p>
+      <p> 0 0</p>
+      <p> 0 0</p>
+      <p> Incoming virtual address (8196)</p>
+      <p> Outgoing physical address (24580)</p>
+      <p> Fig. 4-12. The internal operation of the MMU with 16 4K pages.</p>
+      <p> space is more convenient. Ideally, each program should have a very large number of segments (e.g., 2 32 ), each consisting of a large number of bytes (e.g., also 2 32 ). The first, say, 64K segments could be reserved for procedures, data, stacks, and heaps, belonging to the running program. The remaining segments could each contain one file per segment, so that processes could directly address all their files, without having to open them and use special I/O primitives to read and write them. Each file could grow and shrink completely independently of the others in this arrangement, with each byte of memory addressed by a (segment, offset) pair.</p>
+      <p> The MULTICS system designers (Corbato and Vyssotsky, 1965; Daley and Neumann, 1965; Organick, 1972) attempted to build a segmented system of this type, with moderate success. MULTICS had only 36 bits of addressing, which eventually proved to be inadequate. No major system since that time has attempted anything quite so grand, although the idea of using a very large segmented memory to eliminate file I/O is still as attractive as ever.</p>
+      <p> In the MULTICS design, the idea was that each segment should support a logical entity, such as a file, procedure, or array. Thus, unlike paging, where the</p>
+      <p> SEC. 4.3</p>
+      <p> VIRTUAL MEMORY</p>
+      <p> 211</p>
+      <p> programmer is generally unaware of the page boundaries, with segmentation the programmer (or the compiler) made a definite attempt to put different objects in different segments. This strategy facilitated the sharing of objects among multiple processes.</p>
+      <p> The idea of a segmented memory has survived to this date. In a much watered-down form, it is common in many 68000-based microcomputers. A typical implementation provides hardware support for up to 16 processes, each with 1024 2K or 4K pages. If we stick to 4K pages for this example, each process has a 4M virtual address space, consisting of 1024 pages of 4K each.</p>
+      <p> This scheme  could  be implemented by giving each process its own page table with 1024 page frame numbers, but it is generally not implemented that way. Instead, the MMU hardware contains a table with 16 sections, one for each of up to 16 processes. Each section has 64 segment descriptors, so the address space of each 4M process is divided up into 64 segments, each containing 16 pages. The segment and page tables are depicted in Fig. 4-13(a).</p>
+      <p> 64 Segment descriptors for process 0</p>
+      <p> 64 Segment descriptors for process 15</p>
+      <p> Segment table</p>
+      <p> 1 Segment descriptor</p>
+      <p> Length</p>
+      <p> Protection</p>
+      <p> Page table pointer</p>
+      <p> Page table</p>
+      <p> 1</p>
+      <p> Segment (up to 16 pages)</p>
+      <p> Pointers to 16 pages</p>
+      <p> Used to index into segment table</p>
+      <p> Used to index into page table</p>
+      <p> Distance from start of page</p>
+      <p> Fig. 4-13. (a) MMU used in many 68000-based microcomputer systems, (b) Virtual address for a 4M system.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> Each of the segment descriptors contains the segment length (0 to 16 pages), protection bits telling whether the segment can be read or written, and a pointer to the page table itself. The page tables each contain up to 16 entries, with each entry pointing to a page frame in memory (actually, holding the page frame number).</p>
+      <p> When the operating system starts up a process, it loads a 4-bit process number into a special hardware register. Whenever that process references memory, the MMU translates the virtual address as follows. It takes the 4 bit process number and the 6 high-order bits of the 22-bit virtual address (needed to address 4M) and combines them into a 10-bit number used to index into the segment table and locate the relevant segment descriptor.</p>
+      <p> It then checks the protection bits in the segment descriptor to see if the access is allowed. If access is allowed, the MMU then checks the page number extracted from the virtual address against the segment length field in the segment descriptor, to see if the segment is long enough. If it is long enough, the page number is used as an index into the page table, whose address is provided in the segment descriptor. (All the page tables are kept in a special fast memory inside the MMU.) Once the page frame number is found, it is combined with the offset field of the virtual address to form the physical memory address, which is then put out onto the bus.</p>
+      <p> One of the key features of this MMU design is that when the operating system does a process switch, all it has to do is change the 4-bit process number register. It does not have to reload all the segment or page tables. Two or more processes can share a segment by just having their segment descriptors point to the same page table. Any changes made to the pages of that segment by any process are automatically visible to the other ones.</p>
+      <p> While the design of Fig. 4-13 provides each of 16 processes with only 64 segments of 64K each, the idea can easily be extended to larger address spaces at the price of requiring more table space within the MMU. Most of the table space is for the page tables. If we had four times as much page table memory inside the MMU and were content with 4 processes instead of 16, the MMU could support 64 1M segments per process.</p>
+      <p> While this address space is clearly not enough to hold all the files a single user owns, it is beginning to get closer to at least holding all the files that a given process needs while it is running. After all, not many programs need more than, say, 50 files, and most files are well below 1M.</p>
+      <p> It is worth pointing out that the segmentation scheme of Fig. 4-13 is not the only one possible. In the MULTICS system, for example, each process had a segment table stored in main memory. Each table entry pointed to a page table, also stored in main memory The segment and page tables could be so large that they themselves were paged. Special hardware was present to avoid having to reference the segment and page tables for pages that were heavily used. This hardware stored the 16 most recently used (segment, page) entries in an associative memory for fast lookup.</p>
+      <p> SEC. 4.4</p>
+      <p> PAGE REPLACEMENT ALGORITHMS</p>
+      <p> 213</p>
+      <p> 4.4. PAGE REPLACEMENT ALGORITHMS</p>
+      <p> When a page fault occurs, the operating system has to choose a page to remove from memory to make room for the page that has to be brought in. If the page to be removed has been modified while in memory, it must be rewritten to the disk to bring the disk copy up to date. If, however, the page has not been changed (e.g., a page contains program text), the disk copy is already up to date, so no rewrite is needed. The page to be read in just overwrites the page being evicted.</p>
+      <p> While it would be possible to pick a random page to replace at each page fault, system performance is much better if a page that is not heavily used is chosen. If a heavily used page is removed, it will probably have to be brought back in quickly, resulting in extra overhead. Much work has been done on the subject of page replacement algorithms, both theoretical and experimental. The bibliography by Smith (1978) lists over 300 papers on the subject. In the following sections we will describe some of the more interesting algorithms that have been found.</p>
+      <p> 4.4.1. Optimal Page Replacement</p>
+      <p> The best possible page replacement algorithm is easy to describe but impossible to implement. The algorithm goes like this. At the moment that a page fault occurs, some set of pages is in memory. One of these pages will be referenced on the very next instruction (the page containing that instruction). Other pages may not be referenced until 10, 100, or perhaps 1000 instructions later. Each page can be labeled with the number of instructions that will be executed before that page is first referenced.</p>
+      <p> The optimal page algorithm simply says that the page with the highest label should be removed. If one page will not be used for 8 million instructions and another page will not be used for 6 million instructions, removing the former pushes the page fault that will fetch it back as far into the future as possible. Computers, like people, try to put off unpleasant events for as long as they can.</p>
+      <p> The only problem with this algorithm is that it is unrealizable. At the time of the page fault, the operating system has no way of knowing when each of the pages will be referenced next. (We saw a similar situation earlier with the shortest job first scheduling algorithm—how can the system tell which job is shortest?) Still, by running a program on a simulator and keeping track of all page references, it is possible to implement optimal page replacement on the  second run by using the page reference information collected on the  first  run.</p>
+      <p> In this way it is possible to compare the performance of realizable algorithms with the best possible one. If an operating system achieves a performance of, say, only 1 percent worse than the optimal algorithm, effort spent in looking for a better algorithm will yield at most a 1 percent improvement.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> 4.4.2. Not-Recently-Used Page Replacement</p>
+      <p> In order to allow the operating system to collect useful statistics about which pages are being used and which ones are not, most computers with virtual memory have two bits associated with each page. One bit, the R or referenced bit, is set by the hardware on any read or write to the page. The other bit, the M or Modified bit, is set by the hardware when a page is written (i.e., a byte on it is stored into). It is important to realize that these bits must be updated on every memory reference, so it is essential that they be set by the hardware. Once a bit has been set to 1, it stays a 1 until the operating system resets it to 0 in software.</p>
+      <p> If the hardware does not have  R  and  M  bits, they can be simulated as follows. When a process is started up, all of its page table entries are marked as not in memory. As soon as any page is referenced, a page fault will occur. The operating system then sets the  R  bit (in its internal tables), changes the page table entry to point to the correct page, with mode READ ONLY, and restarts the instruction. If the page is subsequently written on, another page fault will occur, allowing the operating system to set the  M  bit and change the page's mode to READ/WRITE.</p>
+      <p> The  R  and  M  bits can be used to build a simple paging algorithm as follows. When a process is started up, both page bits for all its pages are set to 0 by the operating system. Periodically (e.g., on each clock interrupt), the  R  bit is cleared, to distinguish pages that have not been referenced recently from those that have been.</p>
+      <p> When a page fault occurs, the operating system inspects all the pages and divides them into four categories based on the current values of their  R  and  M bits:</p>
+      <p> Class 0: not referenced, not modified. Class 1: not referenced, modified. Class 2: referenced, not modified. Class 3: referenced, modified.</p>
+      <p> Although class 1 pages seem, at first glance, impossible, they occur when a class 3 page has its  R  bit cleared by a clock interrupt. Clock interrupts do not clear the  M  bit because this information is needed to know whether the page has to be rewritten to disk or not.</p>
+      <p> The not recently used or NRU algorithm removes a page at random from the lowest numbered nonempty class. Implicit in this algorithm is that it is better to remove a modified page that has not been referenced in at least one clock tick (typically 20 msec) than a clean page that is in heavy use. The main attraction of NRU is that it is easy to understand, efficient to implement, and gives a performance that, while certainly not optimal, is often adequate.</p>
+      <p> SEC. 4.4</p>
+      <p> PAGE REPLACEMENT ALGORITHMS</p>
+      <p> 215</p>
+      <p> 4.4.3. First-In, First-Out Page Replacement</p>
+      <p> Another low-overhead paging algorithm is first-in, first-out or FIFO. To illustrate how this works, consider a supermarket that has enough shelves to display exactly  k  different products. One day, some company introduces a new convenience food—instant, freeze-dried, organic yogurt that can be reconstituted in a microwave oven. It is an immediate success, so our finite supermarket has to get rid of one old product in order to stock it.</p>
+      <p> One possibility is to find the product that the supermarket has been stocking the longest (i.e., something it began selling 120 years ago), and get rid of it on the grounds that no one is interested any more. In effect, the supermarket maintains a linked list of all the products it currently sells in the order they were introduced. The new one goes on the back of the list, and the one at the front of the list is dropped.</p>
+      <p> As a page replacement algorithm, the same idea is applicable. The operating system maintains a list of all pages currently in memory, with the page at the head of the list the oldest one and the page at the tail the most recent arrival. On a page fault, the page at the head is removed and the new page added to the tail of the list. When applied to stores, FIFO might remove mustache wax, but it might also remove flour, salt, or butter. When applied to computers the same problem arises.</p>
+      <p> A simple modification to FIFO that avoids the problem of throwing out a heavily used page is to inspect the  R  and  M  bits of the oldest page. If the page belongs to class 0 (not referenced, not modified), it is evicted, otherwise, the next oldest page is inspected, and so forth. If no class 0 pages are present in memory, then the algorithm is repeated up to three more times looking for class 1, 2, and 3 pages.</p>
+      <p> Another variation on FIFO is second chance. The idea here is to first inspect the oldest page as a potential victim. If its  R  bit is 0, the page is replaced immediately. If the  R  bit is 1, the bit is cleared and the page is put onto the end of the list of pages, as though it had just arrived in memory. Then the search continues. What second chance is doing is looking for an old page that has not been referenced in the previous clock interval. If all the pages have been referenced, second chance degenerates into pure FIFO.</p>
+      <p> A minor technical variation of second chance is to keep all the pages on a circular list. Instead of putting pages at the end of the list to give them a second chance, the pointer to the "front" of the list is just advanced one page, giving the same effect. This variation is often called clock.</p>
+      <p> Intuitively, it might seem that the more page frames the memory has, the fewer page faults a program will get. Belady et al. (1969) discovered a counter example, in which FIFO caused more page faults with four page frames than with three. This strange situation has become known as Belady's anomaly. It is illustrated in Fig. 4-14 for a program with five virtual pages, numbered from 0 to 4. The pages are referenced in the order</p>
+      <p> 216 MEMORY MANAGEMENT CHAP. 4</p>
+      <p> 012301401234</p>
+      <p> In Fig. 4-14(a) we see how with three page frames a total of nine page faults are caused. In Fig. 414(b) we get ten page faults with four page frames.</p>
+      <p> All page frames initially empty /q     1     2    3    01    4    01    2    3 4</p>
+      <p> 9 Page faults</p>
+      <p> (a)</p>
+      <p> Youngest page</p>
+      <p> Oldest page</p>
+      <p> 10 Page faults</p>
+      <p> (b)</p>
+      <p> Fig. 4-14. Belady's anomaly, (a) FIFO with three page frames, (b) FIFO with four page frames. The P's show which page references cause page faults.</p>
+      <p> 4.4.4. Least Recently Used Page Replacement</p>
+      <p> A good approximation to the optimal algorithm is based on the common observation that pages that have been heavily used in the last few instructions will probably be heavily used again in the next few. Conversely, pages that have not been used for a long time will probably remain unused for a long time. This observation suggests a realizable algorithm: when a page fault occurs, throw out the page that has been unused for the longest time. This strategy is called least recently used or LRU paging.</p>
+      <p> Although LRU is theoretically realizable, it is not cheap. To fully implement LRU, it is necessary to maintain a linked list of all pages in memory, with the most recently used page at the front and the least recently used page at the rear. The difficulty is mat the list must be updated on every memory reference. Finding a page in the list, deleting it, and then moving it to the front is a very time consuming operation. Either (expensive) special hardware is needed, or we will have to find a cheaper approximation in software.</p>
+      <p> Searching and manipulating a linked list on every instruction is prohibitively slow, even in hardware. However, there are other ways to implement LRU with special hardware. Let us consider the simplest way first. This method requires equipping  the  hardware  with  a  64-bit  counter,  C,  that  is automatically</p>
+      <p> SEC. 4.4</p>
+      <p> PAGE REPLACEMENT ALGORITHMS</p>
+      <p> 217</p>
+      <p> incremented after each instruction. Furthermore, each page table entry must also have a field large enough to contain the counter. After each memory reference, the current value of C is stored in the page table entry for the page just referenced. When a page fault occurs, the operating system examines all the counters in the page table to find the lowest one. That page is the least recently used.</p>
+      <p> Now let us look at a second hardware LRU algorithm. For a machine with  n page frames, the LRU hardware must maintain a matrix of  n  X  n  bits, initially all zero. Whenever page frame  k  is referenced, the hardware first sets all the bits of row  k  to 1, then sets all the bits of column  k  to 0. At any instant, the row whose binary value is lowest is the least recently used, the row whose value is next lowest is next least recently used, and so forth. The workings of this algorithm are given in Fig. 4-15 for four page frames and the page reference string</p>
+      <p> 0123210323</p>
+      <p> After page 0 is referenced we have the situation of Fig. 415(a), and so on.</p>
+      <p> Page</p>
+      <p> Page</p>
+      <p> Page 0   1 2</p>
+      <p> Page</p>
+      <p> (a)</p>
+      <p> (b)</p>
+      <p> (0</p>
+      <p> (d)</p>
+      <p> (f)</p>
+      <p> (g)</p>
+      <p> (h)</p>
+      <p> (i)</p>
+      <p> (j)</p>
+      <p> Fig. 4-15. LRU using a matrix.</p>
+      <p> 4.4.5. Simulating LRU in Software</p>
+      <p> Although both of the previous algorithms are realizable, they are dependent on special hardware, and are of little use to the operating system designer who is making a system for a machine that does not have this hardware. Instead, a solution that can be implemented in software is needed. One possibility is called the not frequently used or NFU algorithm. It requires a software counter associated with each page, initially zero. At each clock interrupt, the operating system scans all the pages in memory. For each page, the  R  bit, which is 0 or 1, is added to the counter. In effect, the counters are an attempt to keep track of how often each page has been referenced. When a page fault occurs, the page with the lowest counter is chosen for replacement.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> The main problem with NFU is that it never forgets anything. For example, in a multipass compiler, pages that were heavily used during pass 1 may still have a high count well into later passes. In fact, if pass 1 happens to have the longest execution time of all the passes, the pages containing the code for subsequent passes will always have lower counts than the pass 1 pages. Consequently, the operating system will remove useful pages instead of pages that are no longer in use.</p>
+      <p> Fortunately, a small modification to NFU makes it able to simulate LRU quite well. The modification has two parts. First, the counters are each shifted right 1 bit before the  R  bit is added in. Second, the  R  bit is added to the leftmost, rather than the rightmost bit.</p>
+      <p> Figure 4-16 illustrates how the modified algorithm, known as aging, works. Suppose that after the first clock tick the  R  bits for pages 0 to 5 have the values 1,0, 1,0, 1, and 1 respectively (page 0 is 1, page 1 is 0, page 2 is 1, etc.). In other words, between tick 0 and tick 1, pages 0, 2, 4, and 5 were referenced, setting their  R  bits to 1, while the other ones remain 0. After the six corresponding counters have been shifted and the  R  bit inserted at the left, they have the values shown in Fig. 4-16(a). The four remaining columns show the six counters after the next four clock ticks.</p>
+      <p> R bits for pages 0-5, clock tick 0</p>
+      <p> Page</p>
+      <p> R bits for pages 0-5, clock tick 1</p>
+      <p> R bits for pages 0-5, clock tick 2</p>
+      <p> R bits for pages 0-5, clock tick 3</p>
+      <p> R bits for pages 0-5, clock tick 4</p>
+      <p> pages for five clock ticks. The five clock ticks are represented by (a) to (e).</p>
+      <p> When a page fault occurs, the page whose counter is the lowest is removed. It is clear that a page that has not been referenced for, say, four clock ticks will have four leading zeros in its counter, and thus will have a lower value than a counter that has not been referenced for three clock ticks.</p>
+      <p> This algorithm differs from LRU in two ways. Consider pages 3 and 5 in</p>
+      <p> SEC. 4.4</p>
+      <p> PAGE REPLACEMENT ALGORITHMS</p>
+      <p> 219</p>
+      <p> Fig. 4-16(e). Neither has been referenced for two clock ticks; both were referenced in the tick prior to that. According to LRU, if a page must be replaced, we should choose one of these two. The trouble is, we do not know which of these two was referenced last in the interval between tick 1 and tick 2. By recording only one bit per time interval, we have lost the ability to distinguish references early in the clock interval from those occurring later. All we can do is remove page 3, because page 5 was also referenced two ticks earlier and page 3 was not.</p>
+      <p> The second difference between LRU and aging is that in aging the counters have a finite number of bits, 8 bits in this example. Suppose two pages each have a counter value of 0. All we can do is pick one of them at random. In reality, it may well be that one of the pages was last referenced 9 ticks ago and the other was last referenced 1000 ticks ago. We have no way of seeing that. In practice, however, 8 bits is generally enough if a clock tick is around 20 msec. If a page has not been referenced in 160 msec, it probably is not that important.</p>
+      <p> 4.5. DESIGN ISSUES FOR PAGING SYSTEMS</p>
+      <p> In the previous sections we have explained how paging works and have given a few of the basic page replacement algorithms. But knowing the bare mechanics is not enough. To design a system, you have to know a lot more to make it work well. It is like the difference between knowing how to move the rook, knight, bishop, and other pieces in chess, and being a good player. In the following sections, we will look at other issues that operating system designers must consider carefully in order to get good performance from a paging system.</p>
+      <p> 4.5.1. The Working Set Model</p>
+      <p> In the purest form of paging, processes are started up with none of their pages in memory. As soon as the CPU tries to fetch the first instruction, it gets a page fault, causing the operating system to bring in the page containing the first instruction. Other page faults for global variables and the stack usually follow quickly. After a while, the process has most of the pages it needs and settles down to run with relatively few page faults. This strategy is called demand paging because pages are loaded only on demand, not in advance.</p>
+      <p> Of course, it is easy enough to write a test program that systematically reads all the pages in a large address space, causing so many page faults that there is not enough memory to hold them all. Fortunately, most processes do not work this way. They exhibit a locality of reference, meaning that during any phase of execution, the process references only a relatively small fraction of its pages. Each pass of a multipass compiler, for example, references only a fraction of all the pages, and a different fraction at that.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> The set of pages that a process is currently using is called its working set (Denning, 1968a; Denning, 1980). If the entire working set is in memory, the process will run without causing many faults until it moves into another execution phase (e.g., the next pass of the compiler). If the available memory is too small to hold the entire working set, the process will cause many page faults and run very slowly since executing an instruction typically takes a microsecond and reading in a page from the disk typically takes tens of milliseconds. At a rate of one or two instructions per 30 milliseconds, it will take a long time to finish. A program causing page faults every few instructions is said to be thrashing (Denning, 1968b).</p>
+      <p> In a time-sharing system, processes are frequently moved to disk (i.e., all their pages are removed from memory) to let other processes have a turn at the CPU. The question arises of what to do when a process is brought back in again. Technically, nothing need be done. The process will just cause page faults until its working set has been loaded. The problem is that having 20, 50, or even 100 page faults every time a process is loaded is slow, and it also wastes considerable CPU time, since it takes the operating system a few milliseconds of CPU time to process a page fault.</p>
+      <p> Therefore, many paging systems try to keep track of each process' working set, and make sure that it is in memory before letting the process run. This approach is called the working set model (Denning, 1970). It is designed to greatly reduce the page fault rate. Loading the pages  before  letting processes run is also called prepaging.</p>
+      <p> The most important property of the working set is its size. If the total size of the working sets of all the processes "in memory" exceeds the available memory, thrashing will occur. Note that the whole concept of being "in memory" is pretty fuzzy in a paging system. What is usually meant is that the system normally has a set of processes that it regards as runnable, regardless of which pages are actually in memory. The scheduler restricts its choices to processes in this set.</p>
+      <p> From time to time, this set is changed, and if the working set model is being used, the pages comprising the working sets of the newly runnable processes will be brought into memory. It is up to the operating system to make sure that the sum of the working sets of the runnable processes fits in memory, if need be, by reducing the degree of multiprogramming (i.e., having fewer runnable processes).</p>
+      <p> To implement the working set model, it is necessary for the operating system to keep track of which pages are in the working set. One way to monitor this information is to use the aging algorithm discussed above. Any page containing a 1 bit among the high order  n  bits of the counter is considered to be a member of the working set. If a page has not been referenced in  n  consecutive clock ticks, it is dropped from the working set. The parameter  n  has to be determined experimentally for each system, but the system performance is usually not especially sensitive to the exact value.</p>
+      <p> SEC. 4.5</p>
+      <p> DESIGN ISSUES FOR PAGING SYSTEMS</p>
+      <p> 221</p>
+      <p> 4.5.2. Local versus Global Allocation Policies</p>
+      <p> In the preceding sections we have discussed several algorithms for choosing a page to replace when a fault occurs. A major issue associated with this choice (which we have carefully swept under the rug until now) is how memory should be allocated among the competing runnable processes.</p>
+      <p> Take a look at Fig. 4-17(a). In this figure, three processes,  A, B,  and C, make up the set of runnable processes. Suppose  A  gets a page fault. Should the page replacement algorithm try to find the least recently used page considering only the six pages currently allocated to  A,  or should it consider all the pages in memory? If it looks only at  A's  pages, the page with the lowest age value is  A5, so we get the situation of Fig. 417(b).</p>
+      <p> Fig. 4-17. Local versus global page replacement, (a) Original configuration, (b) Local page replacement, (c) Global page replacement.</p>
+      <p> On the other hand, if the page with the lowest age value is removed without regard to whose page it is, page  B3  will be chosen and we will get the situation of Fig. 4-17(c). The algorithm of Fig. 4-17(b) is said to be a local page replacement algorithm, whereas Fig. 4-17(c) is said to be a global algorithm. Local algorithms correspond to assigning each process a fixed amount of memory. Global algorithms dynamically allocate page frames among the runnable processes.</p>
+      <p> In general, global algorithms work better, especially when the working set size can vary over the lifetime of a process. If a local algorithm is used and the working set grows, thrashing will result, even if there are plenty of free page frames. If the working set shrinks, local algorithms waste memory. If a global algorithm is used, the system must continually decide how many page frames to assign to each process. One way is to monitor the working set size as indicated</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> by the aging bits, but this approach does not necessarily prevent thrashing. The working set may change size in microseconds, whereas the aging bits are a crude measure spread over a number of clock ticks.</p>
+      <p> A more direct way to control thrashing and allocate memory globally is to use the page fault frequency or PFF allocation algorithm. For a large class of page replacement algorithms, including LRU, it is known that the fault rate decreases as more pages are assigned. (Belady's anomaly occurred with FIFO, which does not have this property.) This property is illustrated in Fig. 4-18.</p>
+      <p class="illus">
+        <img src="images/picture59.jpg" alt="picture59"/>
+      </p>
+      <p> Number of page frames assigned</p>
+      <p> Fig. 4-18. Page fault rate as a function of the number of page frames assigned.</p>
+      <p> The dotted line marked  A  corresponds to a page fault rate that is unacceptably high, so the faulting process is given more page frames to reduce the fault rate. The dotted line marked  B  corresponds to a page fault rate so low that it can be concluded that the process has too much memory. In this case page frames are taken away from it. Thus, PFF tries to keep the paging rate within acceptable bounds. If it discovers that there are so many processes in memory that it is not possible to keep all of them below  A,  then some process is removed from memory, and its page frames are divided up among the remaining processes or put into a pool of available pages that can be used on subsequent page faults.</p>
+      <p> 4.5.3. Page Size</p>
+      <p> The page size is often a parameter that can be chosen by the operating system designers. Even if the hardware has been designed with, for example, 512-byte pages, the operating system can easily regard pages 0 and 1, 2 and 3, 4 and 5, and so on, as IK pages by always allocating two consecutive 512-byte page frames for them.</p>
+      <p> Determining the optimum page size requires balancing several competing factors. To start with, a randomly chosen text, data, or stack segment will not fill an integral number of pages. On the average, half of the final page will be empty. The extra space in that page is wasted (internal fragmentation). With  n segments in memory and a page size of  p  bytes,  np 12  bytes will be wasted on internal fragmentation. This reasoning argues for a small page size.</p>
+      <p> SEC. 4.5</p>
+      <p> DESIGN ISSUES FOR PAGING SYSTEMS</p>
+      <p> 223</p>
+      <p> Another argument for a small page size becomes apparent if we think about a compiler consisting of 8 passes of 4K each. With a 32K page size, the program must be allocated 32K all the time. With a 16K page size, it needs only 16K. With a page size of 4K or smaller, it requires only 4K at any instant. In general, a large page size will cause more unused program to be in memory than a small page size.</p>
+      <p> On the other hand, small pages mean that programs will need many pages, hence a large page table. A 32K program needs only four 8K pages, but 64 512-byte pages. Transfers to and from the disk are generally a page at a time, with most of the time being for the seek and rotational delay, so that transferring a small page takes almost as much time as transferring a large page. It might take 64 X 15 msec to load 64 512-byte pages, but only 4 X 25 msec to load four 8K pages.</p>
+      <p> On some machines, the page table must be loaded into hardware registers every time the CPU switches from one process to another. On these machines having a small page size means that the time required to load the page registers gets longer as the page size gets smaller. Furthermore, the space occupied by the page table increases as the page size decreases.</p>
+      <p> This last point can be analyzed mathematically. Let the average process size be  s  bytes and the page size be  p  bytes. Furthermore, assume that each page entry requires  e  bytes. The approximate number of pages needed per process is then  sip,  occupying  selp  bytes of page table space. The wasted memory in the last page of the process due to internal fragmentation is  p/2.  Thus, the total overhead due to the page table and the internal fragmentation loss is given by</p>
+      <p> overhead  = selp + p/2</p>
+      <p> The first term (page table size) is large when the page size is small. The</p>
+      <p> second term (internal fragmentation) is large when the page size is large. The</p>
+      <p> optimum must lie somewhere in between. By taking the first derivative with respect to  p  and equating it to zero, we get the equation</p>
+      <p> -selp 2   +1/2 = 0</p>
+      <p> From this equation we find that the optimum page size (considering only memory wasted in fragmentation and page table size) can be given by</p>
+      <p> p  =  ^2se</p>
+      <p> For 5 = 32K and  e —  8 bytes per page table entry, the optimum page size is 724 bytes. In practice 512 bytes or IK would be used, depending on the other factors (e.g., disk speed). Most commercially available computers use page sizes of 512 bytes, IK, 2K, or 4K.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> 4.5.4. Implementation Issues</p>
+      <p> Implementers of virtual memory systems have to make choices among the major theoretical algorithms such as second chance versus aging, local versus global page allocation, and demand paging versus prepaging. But they also have to be aware of a number of practical implementation issues as well. In this section we will take a look at a few of the more common problems and their solutions.</p>
+      <p> Instruction Backup</p>
+      <p> When a program references a page that is not in memory, the instruction causing the fault is stopped part way through and a trap to the operating system occurs. After the operating system has fetched the page needed, it must restart the instruction causing the trap. This is easier said than done.</p>
+      <p> For one thing, most instructions consist of several bytes. The Motorola 68000 instruction MOVE.L #6(A1),2(A0) is 6 bytes, for example (see Fig. 4-19). In order to restart the instruction, the operating system must determine where the first byte of the instruction is. The value of the program counter at the time of the trap depends on which operand faulted and how the CPU's microcode has been implemented.</p>
+      <p> MOVE.L #6(A1),2(A0)</p>
+      <p> 1000 1002 1004</p>
+      <p> -16 Bits-</p>
+      <p> MOVE</p>
+      <p> Op code First operand Second operand</p>
+      <p> Fig. 4-19. An instruction causing a page fault</p>
+      <p> In Fig. 4-19, we have an instruction starting at address 1000 that makes three memory references: the instruction word, and two offsets for the operands. Depending on which of these three memory references caused the page fault, the program counter might be 1000, 1002, or 1004 at the time of the fault. It is frequently impossible for the operating system to determine unambiguously where the instruction began. If the program counter is 1002 at the time of the fault, the operating system has no way of telling whether the word in 1002 is a memory address associated with an instruction at 1000, or an instruction opcode.</p>
+      <p> Bad as this problem may be, it could have been worse. Instructions that use autoincrement mode can also fault. Depending on the details of the microcode, the increment may be done before the memory reference, in which case the operating system must decrement the register in software before restarting the instruction. Or, the autoincrement may be done after the memory reference, in</p>
+      <p> SEC. 4.5</p>
+      <p> DESIGN ISSUES FOR PAGING SYSTEMS</p>
+      <p> 225</p>
+      <p> which case it will not have been done at the time of the trap and must not be undone by the operating system. Autodecrement causes the same problem.</p>
+      <p> The precise details of whether autoincrements and autodecrements have or have not been done before the corresponding memory references may differ from instruction to instruction and from CPU model to CPU model. (In the DEC PDP-11 series, no two models worked the same way.) As a result, paging on the 68000 is not possible, at least not without enormous contortions on the part of the operating system.</p>
+      <p> Fortunately, on some machines the CPU designers provided a solution, usually in the form of a register into which the program counter is copied just before each instruction is executed. These machines generally also have a second register telling which registers have already been autoincremented or autodecre-mented, and by how much. Given this information, the operating system can unambiguously undo all the effects of the faulting instruction so it can be started all over again. The Motorola 68010, for example, contains these features; in fact, they are the principal difference between the 68000 and 68010, making paging possible on the latter and impossible on the former.</p>
+      <p> Locking Pages in Memory</p>
+      <p> Although we have not discussed I/O much in this chapter, the fact that a computer has virtual memory does not mean that I/O (especially terminal I/O) is absent. Virtual memory and I/O interact in subtle ways. Consider a process that has just issued a system call to read from some file or device into a buffer within its address space. While waiting for the I/O to complete, the process is suspended and another process is allowed to run. This other process gets a page fault.</p>
+      <p> If the paging algorithm is global, there is a small, but nonzero, chance that the page containing the I/O buffer will be chosen to be removed from memory. If an I/O device is currently in the process of doing a DMA transfer to that page, removing it will cause part of the data to be written in the buffer where it belongs, and part of the data to be written over the newly loaded page. One solution to this problem is to lock pages engaged in I/O in memory so that they will not be removed. Another solution is to do all I/O to kernel buffers and then copy the data to user pages later.</p>
+      <p> Shared Pages</p>
+      <p> Another implementation issue is sharing. In a large time-sharing system, it is common for several users to be running the same program (e.g., the editor, a compiler) at the same time. It is clearly more efficient to share the pages, to avoid having two copies of the same page in memory at the same time. One problem is that not all pages are sharable. In particular, pages that are readonly, such as program text, can be shared, but data pages cannot.</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> Even with this restriction, another problem occurs with shared pages. Suppose processes  A  and  B  are both running the editor and sharing its pages. If the scheduler decides to remove  A  from memory, evicting all its pages and filling the empty page frames with some other program will cause  B  to generate a large number of page faults to bring them back in again.</p>
+      <p> Similarly, when  A  terminates, it is essential to be able to discover that the pages are still in use so that their disk space will not be freed by accident. Searching all the page tables to see if a page is shared is too expensive, so special data structures are needed to keep track of shared pages.</p>
+      <p> 4.6. OVERVIEW OF MEMORY MANAGEMENT IN MINIX</p>
+      <p> Memory management in MINIX is simple: neither paging nor swapping is used. The memory manager maintains a list of holes sorted in memory address order. When memory is needed, due either to a FORK or an EXEC system call, the hole list is searched using first fit for a piece that is big enough to hold the new process. Once a process has been placed in memory, it remains in exactly the same place until it terminates. It is never swapped out and also never moved to another place in memory. Nor does the allocated area ever grow or shrink.</p>
+      <p> This strategy deserves some explanation. It derives from three factors: (1) the idea that MINIX is for personal computers, rather than for large time-sharing systems, (2) the desire to have MINIX work on the IBM PC, and (3) an attempt to make the system straightforward to implement on other small, personal computers in the future.</p>
+      <p> The first factor means that, on the average, the number of running processes will be small, so that typically enough memory will be available to hold all the processes with room left over. Swapping will generally not be needed. Since it adds considerable complexity to the system, not swapping makes the code much smaller. Furthermore, many personal computers do not have a hard disk, and a floppy disk is not exactly the ideal swapping device.</p>
+      <p> The desire to have MINIX run on the IBM PC also had substantial impact on the memory management design. The 8088's memory management architecture is very primitive. It does not support virtual memory in any form and does not even detect stack overflow, a defect that has major implications for the way processes are laid out in memory.</p>
+      <p> The portability issue argues for as simple a memory management scheme as possible. If MINIX used paging or segmentation, it would be difficult, if not impossible to port it to machines not having these features. By making a minimal number of assumptions about what the hardware can do, the number of machines to which  minix  can be ported is increased.</p>
+      <p> Another unusual aspect of  minix  is the way the memory management is implemented. It is not part of the kernel. Instead, it is handled by the memory manager process, which runs in user space and communicates with the kernel by</p>
+      <p> SEC. 4.6</p>
+      <p> OVERVIEW OF MEMORY MANAGEMENT IN MINIX</p>
+      <p> 227</p>
+      <p> the standard message mechanism. The position of the memory manager is shown in Fig. 4-20.</p>
+      <p> User space</p>
+      <p> Kernel</p>
+      <p> (All tasks linked together in one object program)</p>
+      <p> Fig. 4-20. The memory manager runs outside the kernel, in user space.</p>
+      <p> Moving the memory manager out of the kernel is an example of the separation of policy and mechanism. The decisions about which process will be placed where in memory (policy) are made by the memory manager. The actual setting of memory maps for processes (mechanism) is done by the system task within the kernel. This split makes it relatively easy to change the memory management policy (algorithms, etc.) without having to modify the lowest layers of the operating system.</p>
+      <p> Most of the memory manager code is devoted to handling the MINIX system calls that involve memory management, primarily FORK and EXEC, rather than just manipulating lists of processes and holes. In the next section we will look at the memory layout, and then in the ones following it we will take a bird's-eye view of how the memory management system calls are processed.</p>
+      <p> 4.6.1. Memory Layout</p>
+      <p> Memory is allocated in MINIX on two occasions. First, when a process forks, an amount of memory equal in size to what the parent has is allocated for the child. Second, when a process changes its memory image via the EXEC system call, the old image is returned to the free list as a hole, and memory is allocated for the new one. Memory is released whenever a process terminates, either by exiting or by being killed by a signal.</p>
+      <p> Figure 4-21 shows both ways of allocating memory. In Fig. 4-21(a) we see two processes,  A  and  B,  in memory. If  A  forks, we get the situation of Fig. 4-21(b). If the child now executes the file C, the memory looks like Fig. 4-21(c).</p>
+      <p> Note that the old memory for the child is released before the new memory for C is allocated, so that C can use the child's memory. In this way, a series of FORK and EXEC pairs (such as the shell setting up a pipeline) results in all the processes being adjacent, with no holes between them, as would have been the case had the new memory been allocated before the old memory had been released.</p>
+      <p> When memory is allocated, either by the FORK or EXEC system calls, a</p>
+      <p> MEMORY MANAGEMENT</p>
+      <p> CHAP. 4</p>
+      <p> 640 K</p>
+      <p> Fig. 4-21. Memory allocation, (a) Originally, (b) After a  fork, (c)  After the child does an  exec.  The shaded regions are unused memory.</p>
+      <p> certain amount of it is taken for the new process. In the former case, the amount taken is identical to what the parent process has. In the latter case, the memory manager takes the amount specified in the header of the file executed. Once this allocation has been made, under no conditions is the process ever allocated any more total memory.</p>
+      <p> Figure 4-22 shows the internal memory layout used for a single MINIX process. For a program not using separate I and D space, the total amount of memory allocated is specified by a field in the header. If, for example, a program has 4K of text, 2K of data, and IK of stack, and the header says to allocate 40K total, the gap of unused memory between the data segment and the stack segment will be 33K.</p>
+      <p> | Stack segment grows downward</p>
+      <p> f Data segment grows upward (or downward) when BRK calls are made.</p>
+      <p> Fig. 4-22. Internal memory layout for a single process.</p>
+      <p> If the programmer knows that the total memory needed for the combined growth of the data and stack segments for the file  a.out  is at most 10K, he can give the command</p>
+      <p> chmem =10240 a.out</p>
+      <p> which changes the header field so that upon EXEC the memory manager allocates a space 10240 bytes more than the sum of the initial text and data segments. For</p>
+      <p> Stack</p>
+      <p> Total</p>
+      <p class="illus">
+        <img src="images/picture60.jpg" alt="picture60"/>
+      </p>
+      <p> Data</p>
+      <p> Text</p>
+      <p> SEC. 4.6</p>
+      <p> OVERVIEW OF MEMORY MANAGEMENT IN MINIX</p>
+      <p> 229</p>
+      <p> the above example, a total of 16K would be allocated on all subsequent EXECs of the file. Of this amount, the topmost IK would be used for the stack.</p>
+      <p> For a program using separate I and D space (indicated by a bit in the header that is set by the linker), the total field in the header applies to the data space only. A program with 4K of text, 2K of data, IK of stack, and a total size of 64K would be allocated 68K (4K instruction space, 64K data space), leaving 61K for the data segment and stack to consume during execution. The boundary of the data segment can be moved only by the BRK system call. All BRK does is check to see if the new data segment bumps into the current stack pointer, and if not, note the change in some internal tables. No memory is allocated. If the new data segment bumps into the stack, the call fails.</p>
+      <p> This strategy has been chosen to make it possible to run MINIX on the IBM PC, which does not check for stack overflow in hardware. A user program can push as many words as it wants to on the stack without the operating system being aware of it. On computers with more sophisticated memory management hardware, the stack is allocated a certain amount of memory initially. If it attempts to grow beyond this amount, a trap to the operating system occurs, and the system allocates another piece of memory to the stack, if possible. This trap does not exist on the 8088, making it dangerous to have the stack adjacent to anything except a large chunk of unused memory, since the stack can grow quickly and without warning. MINIX has been designed so that if it is moved to a computer with better memory management, the better memory management can be used.</p>
+      <p> 4.6.2. Message Handling</p>
+      <p> Like all the other components of MINIX, the memory manager is message driven. After the system has been initialized, the memory manager enters its main loop, which consists of waiting for a message, carrying out the request contained in the message, and sending a reply. Figure 4-23 gives the list of legal message types, their input parameters, and the value sent back in the reply message. FORK, EXIT, WAIT, BRK, and EXEC are clearly closely related to memory allocation and deallocation. The four signal calls, SIGNAL, KILL, ALARM, and PAUSE, also can affect what is in memory, because a signal that kills a process also causes its memory to be deallocated. The five GET/SET calls have nothing to do with memory management at all. They also have nothing to do with the file system. But they had to go either in the file system or the memory manager, since each system call is handled by one or the other. They were put here simply because the file system was large enough already.</p>
+      <p> The final two messages, KSIG and BRK2 are not system calls. KSIG is the message type used by the kernel to inform the memory manager of a signal originating in the kernel, such as SIGINT, SIGQUIT, or SIGALRM. BRK2 is used during system initialization to tell the memory manager how big the system is.</p>
+      <p> Although there is a library routine  sbrk,  there is no system call SBRK. The</p>
+      <p> 230 MEMORY MANAGEMENT CHAP. 4</p>
+      <p> Fig. 4-23. The message types, input parameters, and reply values used for communicating with the memory manager.</p>
+      <p> library routine computes the amount of memory needed by adding the increment or decrement specified as parameter to the current size, and makes a BRK call to set the size. Similarly, there are no separate system calls for  geteuid  and  getegid. The calls GETUID and GETGID return both the effective and real identifiers.</p>
+      <p> A key data structure used for message processing is the table  mm-callvec declared in  table, c  (line 7400). It contains pointers to the procedures that handle the various message types. When a message comes in to the memory manager, the main loop extracts the message type and puts it in the global variable mm-call.  This value is then used to index into  mm-callvec  to find the pointer to the procedure that handles the newly arrived message. That procedure is then called to execute the system call. The value that it returns is sent back to the caller in the reply message to report on the success or failure of the call. This mechanism is similar to that of Fig. 1-18, only in user space rather than in the kernel.</p>
+    </div>
+  </body>
+</html>

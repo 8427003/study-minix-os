@@ -1,0 +1,1002 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>part0005</title>
+    <meta content="abbyy to epub tool, v0.2" name="generator"/>
+    <link href="stylesheet.css" type="text/css" rel="stylesheet"/>
+    <meta content="application/xhtml+xml; charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <div class="body">
+      <p> 5.5. PROTECTION MECHANISMS</p>
+      <p> In the previous sections we have looked at many potential problems, some of them technical and some of them not. In the following sections we will concentrate on some of the detailed technical ways that are used in operating systems to protect files and other things. All of these techniques make a clear distinction between policy (whose data are to be protected from whom) and mechanism (how the system enforces the policy). The separation of policy and mechanism is discussed in (Levin et al., 1975). Our emphasis will be on the mechanism, not the policy.</p>
+      <p> 5.5.1. Protection Domains</p>
+      <p> A computer system contains many objects that need to be protected. These objects can be hardware, such as CPUs, memory segments, terminals, disk drives, or printers, or they can be software, such as processes, files, data bases, or semaphores.</p>
+      <p> Each object has a unique name by which it is referenced, and a set of operations that can be carried out on it. READ and WRITE are operations appropriate to a file; UP and DOWN make sense on a semaphore. Objects are the operating system equivalent of what in programming languages are called abstract data types.</p>
+      <p> It is obvious that a way is needed to prohibit processes from accessing objects that they are not authorized to access.  Furthermore, this mechanism must also</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> make it possible to restrict processes to a subset of the legal operations when that is needed. For example, process  A  may be entitled to read, but not write, file  F.</p>
+      <p> To provide a way to discuss different protection mechanisms, it is convenient to introduce the concept of a domain. A domain is a set of (object, rights) pairs. Each pair specifies an object and some subset of the operations that can be performed on it. A right in this context means permission to perform one of the operations.</p>
+      <p> Figure 5-22 depicts three domains, showing the objects in each domain and the rights [Read, Write, eXecute] available on each object. Note that  Printer!  is in two domains at the same time. Although not shown in this example, it is possible for the same object to be in multiple domains, with  different  rights in each domain.</p>
+      <p> Domain 1 Domain 2 Domain 3</p>
+      <p class="illus">
+        <img src="images/picture74.jpg" alt="picture74"/>
+      </p>
+      <p> Fig. 5-22. Three protection domains.</p>
+      <p> At every instant of time, each process runs in some protection domain. In other words, there is some collection of objects it can access, and for each object it has some set of rights. Processes can also switch from domain to domain during execution. The rules for domain switching are highly system dependent.</p>
+      <p> To make the idea of a protection domain more concrete, let us look at UNIX. In UNIX, the domain of a process is defined by its uid and gid. Given any (uid, gid) combination, it is possible to make a complete list of all objects (files, including I/O devices represented by special files) that can be accessed, and whether they can be accessed for reading, writing, or executing. Two processes with the same (uid, gid) combination will have access to exactly the same set of objects. Processes with different (uid, gid) values will have access to a different set of files, although there will be considerable overlap in most cases.</p>
+      <p> Furthermore, each process in UNIX has two halves: the user part and the kernel part. When the process does a system call, it switches from the user part to the kernel part (see Fig. 3-14). The kernel part has access to a different set of objects from the user part. For example, the kernel can access all the pages in physical memory, the entire disk, and all the other protected resources. Thus, a system call causes a domain switch.</p>
+      <p> When a process does an EXEC on a file with the SETUID or SETGID bit on, it acquires a new effective uid or gid. With a different (uid, gid) combination, it has a different set of files and operations available. Running a program with SETUID or SETGID is also a domain switch.</p>
+      <p> The division of a UNIX process into a kernel part and a user part is a remnant</p>
+      <p> SEC. 5.5</p>
+      <p> PROTECTION MECHANISMS</p>
+      <p> 291</p>
+      <p> of a much more powerful domain switching mechanism that was used in MUL-TICS. In that system, the hardware supported not two domains (kernel and user) per process, but up to 64. A MULTICS process could consist of a collection of procedures, each one running in some domain, which were called rings (Schroeder and Saltzer, 1972). Procedures could also be linked dynamically to a running process during execution.</p>
+      <p> Figure 5-23 shows four rings. The innermost ring, the operating system kernel, had the most power. Moving outward from the kernel, the rings became successively less powerful. Ring 1, for example, might contain the code for functions that in UNIX are handled by SETUID programs owned by the root, such as  mkdir.  Ring 2 might contain the grading program used to evaluate student programs, and ring 3 might contain the student programs.</p>
+      <p class="illus">
+        <img src="images/picture75.jpg" alt="picture75"/>
+      </p>
+      <p> lent procedures</p>
+      <p> utilities</p>
+      <p> Fig. 5-23. A process in MULTICS occupying four rings. Each ring is a separate protection domain.</p>
+      <p> When a procedure in one ring called a procedure in another ring, a trap occurred, giving the system the opportunity to change the protection domain of the process. Thus, a MULTICS process could operate in as many as 64 different domains during its lifetime. (Actually, the situation was more complicated than we have sketched above; procedures could live in multiple consecutive rings, and parameter passing between rings was carefully controlled.) For a detailed description of MULTICS, see Organick (1972).</p>
+      <p> An important question is how the system keeps track of which object belongs to which domain. Conceptually, at least, one can envision a large matrix, with the rows being the domains and the columns being the objects. Each box lists the rights, if any, that the domain contains for the object. The matrix for Fig. 5-22 is shown in Fig. 5-24. Given this matrix and the current domain number, the system can always tell if an attempt to access a given object in a particular way from a specified domain is allowed.</p>
+      <p> Domain switching itself, as in MULTICS, can be easily included in the matrix model by realizing that a domain is itself an object, with the operation ENTER. Figure 5-25 shows the matrix of Fig. 5-24 again, only now with the three domains as objects themselves. Processes in domain 1 can switch to domain 2,</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> Object</p>
+      <p> Filel       File2       File3       File4      File5       File6     Printerl Plotter2</p>
+      <p> Fig. 5-24. A protection matrix.</p>
+      <p> but once there, they cannot go back. This situation models executing a SETUID program in UNIX. No other domain switches are permitted in this example.</p>
+      <p> Object</p>
+      <p> Filel       File2       File3        Fiie4       F'ile5       File6     Printerl    Plotter2   Domainl     Domain2   Domain 3</p>
+      <p> 2</p>
+      <p> 3</p>
+      <p> Fig. 5-25. A protection matrix with domains as objects.</p>
+      <p> 5.5.2. Access Control Lists</p>
+      <p> In practice, actually storing the matrix of Fig. 5-25 is rarely done because it is large and sparse. Most domains have no access at all to most objects, so storing a big, empty matrix is a waste of disk space. Two methods that are practical, however, are storing the matrix by rows or by columns, and then storing only the nonempty elements. The two approaches are surprisingly different. In this section we will look at storing it by column; in the next one we will study storing it by row.</p>
+      <p> The first technique consists of associating with each object an (ordered) list containing all the domains that may access the object, and how. This list is called the access control list or ACL. If it were to be implemented in UNIX, the easiest way would be to put the ACL for each file in a separate disk block, and include the block number in the file's i-node. As only the nonempty entries of the matrix are stored, the total storage required for all the ACLs combined is much less than what would be needed for the whole matrix.</p>
+      <p> As an example of how ACLs work, let us continue to imagine that they were used in UNIX, where a domain is specified by a (uid, gid) pair. Actually, ACLs</p>
+      <p> PROTECTION MECHANISMS</p>
+      <p> 293</p>
+      <p> were used in UNIX's predecessor, MULTICS, more or less in the way we will describe, so the example is not so hypothetical.</p>
+      <p> Let us now assume that we have four users (i.e., uids) Jan, Els, Jelle, and Maaike, who belong to groups system, staff, student, and student, respectively. Suppose some files have the following ACLs:</p>
+      <p> FileO: (Jan, *, RWX) Filel: (Jan, system, RWX)</p>
+      <p> File2: (Jan, *, RW-), (Els, staff, R--), (Maaike, *, R--)</p>
+      <p> File3: (*, student, R--)</p>
+      <p> File4: (Jelle, *, ), (*, student, R--)</p>
+      <p> Each ACL entry, in parentheses, specifies a uid, a gid, and the allowed accesses (Read, Write, eXecute). An asterisk means all uids or gids.  FileO  can be read, written, or executed by any process with uid = Jan, and any gid.  Filel  can be accessed only by processes with uid — Jan and gid = system. A process with uid = Jan and gid = staff can access  FileO  but not  Filel. Filel  can be read or written by processes with uid = Jan and any gid, read by processes with uid = Els and gid = staff, or by processes with uid = Maaike and any gid.  File3  can be read by any student.  File4  is especially interesting. It says that anyone with uid = Jelle, in any group, has no access at all, but all other students can read it. By using ACL's it is possible to prohibit specific uids or gids from accessing an object, while allowing everyone else in the same class.</p>
+      <p> So much for what UNIX does not do. Now let us look at what it  does  do. It provides three bits,  rwx,  per file for the owner, the owner's group, and others. This scheme is just the ACL again, but compressed to 9 bits. It is a list associated with the object saying who may access it and how. While the 9-bit UNIX scheme is clearly less general than a full-blown ACL system, in practice it is adequate, and its implementation is much simpler and cheaper.</p>
+      <p> The owner of an object can change its ACL at any time, thus making it easy to prohibit accesses that were previously allowed. The only problem is that changing the ACL will probably not affect any users who are currently using the object (e.g., have the file open).</p>
+      <p> 5.5.3. Capabilities</p>
+      <p> The other way of slicing up the matrix of Fig. 5-25 is by rows. When this method is used, associated with each process is a list of objects that may be accessed, along with an indication of which operations are permitted on each, in other words, its domain. This list is called a capability list, and the individual items on it are called capabilities (Dennis and Van Horn, 1966; Fabry, 1974).</p>
+      <p> A typical capability list is shown in Fig. 5-26. Each capability has a  type field, which tells what kind of an object it is, a  rights  field, which is a bit map indicating which of the legal operations on this type of object are permitted, and an  object  field, which is a pointer to the object itself (e.g., its i-node number). Capability lists are themselves objects, and may be pointed to from other</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> capability lists, thus facilitating sharing of subdomains. Capabilities are often referred to by their position in the capability list. A process might say. "Read IK from the file pointed to by capability  2."  This form of addressing is similar to using file descriptors in UNIX.</p>
+      <p> Fig. 5-26. The capability list for domain 2 in Fig. 5-24.</p>
+      <p> It is fairly obvious that capability lists, or C-lists as they are often called, must be protected from user tampering. Three methods have been proposed to protect them. The first way requires a tagged architecture, a hardware design in which each memory word has an extra (or tag) bit that tells whether the word contains a capability or not. The tag bit is not used by arithmetic, comparison, or similar ordinary instructions, and it can be modified only by programs running in kernel mode (i.e., the operating system).</p>
+      <p> The second way is to keep the C-list inside the operating system, and just have processes refer to capabilities by their slot number, as mentioned above. Hydra (Wulf, 1974) worked this way. The third way is to keep the C-list in user space, but encrypt each capability with a secret key unknown to the user. This approach is particularly suited to distributed systems, and is used by Amoeba (Tanenbaum et al., 1986).</p>
+      <p> In addition to the specific object-dependent rights, such as read and execute, capabilities usually have generic rights which are applicable to all objects. Examples of generic rights are</p>
+      <p> 1. Copy capability: create a new capability for the same object.</p>
+      <p> 2. Copy object: create a duplicate object with a new capability.</p>
+      <p> 3. Remove capability: delete an entry from the C list; object unaffected.</p>
+      <p> 4. Destroy object: permanently remove an object and a capability.</p>
+      <p> Many capability systems are organized as a collection of modules, with type manager modules for each type of object. Requests to perform operations on a file are sent to the file manager, whereas requests to do something with a mailbox go to the mailbox manager. These requests are accompanied by the relevant capability. A problem arises here, because the type manager module is just an ordinary program, after all. The owner of a file capability can perform only some of the operations on the file, but cannot get at its internal representation (e.g., its i-node). It is essential that the type manager module be able to do more with the capability than an ordinary process.</p>
+      <p> SEC. 5.5</p>
+      <p> PROTECTION MECHANISMS</p>
+      <p> 295</p>
+      <p> This problem was solved in Hydra by a technique called rights amplification, in which type managers were given a rights template that gave them more rights to an object than the capability itself allowed. Other capability systems that have strong typing of objects also need something like this.</p>
+      <p> A last remark worth making about capability systems is that revoking access to an object is quite difficult. It is hard for the system to find all the outstanding capabilities for any object to take them back, since they may be stored in C-lists all over the disk. One approach is to have each capability point to an indirect object, rather than to the object itself. By having the indirect object point to the real object, the system can always break that connection, thus invalidating the capabilities. (When a capability to the indirect object is later presented to the system, the user will discover that the indirect object is now pointing to a null object.)</p>
+      <p> Another way to achieve revocation is the scheme used in Amoeba. Each object contains a long random number, which is also present in the capability. When a capability is presented for use, the two are compared. Only if they agree is the operation allowed. The owner of an object can request that the random number in the object be changed, thus invalidating existing capabilities. Neither of these schemes allows selective revocation, that is, taking back, say, John's permission, but nobody else's.</p>
+      <p> 5.5.4. Protection Models</p>
+      <p> Protection matrices, such as that of Fig. 5-24, are not static. They frequently change as new objects are created, old objects are destroyed, and owners decide to increase or restrict the set of users for their objects. A considerable amount of attention has been paid to modeling protection systems in which the protection matrix is constantly changing. In the remainder of this section, we will touch briefly upon some of this work.</p>
+      <p> Harrison et al. (1976) identified six primitive operations on the protection matrix that can be used as a base to model any protection system. These operations are: CREATE OBJECT, DELETE OBJECT, CREATE DOMAIN, DELETE DOMAIN, INSERT RIGHT, and REMOVE RIGHT. The two latter primitives insert and remove rights from specific matrix elements, such as granting domain 1 permission to read  Fiie6.</p>
+      <p> These six primitives can be combined into protection commands. It is these protection commands that user programs can execute to change the matrix. They may not execute the primitives directly. For example, the system might have a command to create a new file, which would test to see if the file already existed, and if not, create a new object and give the owner all rights to it. There might also be a command to allow the owner to grant permission to read the file to everyone in the system, in effect, inserting the "read" right in the new file's entry in every domain.</p>
+      <p> At any instant, the matrix determines what a process in any domain can do,</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> not what it is authorized to do. The matrix is what is enforced by the system; authorization has to do with management policy. As an example of this distinction, let us consider the simple system of Fig. 5-27 in which domains correspond to users (similar to the UNIX model). In Fig. 5-27(a) we see the intended protection policy:  Henry  can read and write  mailbox 7, Robert  can read and write secret,  and all three users can read and execute  compiler.</p>
+      <p> Objects</p>
+      <p> Objects</p>
+      <p> (a)</p>
+      <p> (b)</p>
+      <p> Fig. 5-27. (a) An authorized state, (b) An unauthorized state.</p>
+      <p> Now imagine that  Robert  is very clever and has found a way to issue commands to have the matrix changed to Fig. 5-27(b). He has now gained access to mailboxJ,  something he is not authorized to have. If he tries to read it, the operating system will carry out his request because it does not know that the state of Fig. 5-27(b) is unauthorized.</p>
+      <p> It should now be clear that the set of all possible matrices can be partitioned into two disjoint sets: the set of all authorized states and the set of all unauthorized states. A question around which much theoretical research has revolved is this: "Given an initial authorized state and a set of commands, can it be proven that the system can never reach an unauthorized state? "</p>
+      <p> In effect, we are asking if the available mechanism (the protection commands) is adequate to enforce some protection policy. As a simple example of a policy, consider the security scheme used by the military. Each object is unclassified, confidential, secret, or top secret. Each domain (and thus each process) also belongs to one of these four security levels. The security policy has two rules:</p>
+      <p> 1. No process may read any object whose level is higher than its own, but it may freely read objects at a lower level or at its own level. A secret process may read confidential objects, but not top secret ones.</p>
+      <p> 2. No process may write information into any object whose level is lower than its own. A secret process may write in a top secret file but not in a confidential one.</p>
+      <p> In military terms, if we assume that privates operate at confidential level, lieutenants at secret level, and generals at top secret level, then a lieutenant may look at a private's papers, but not at a general's. Similarly, a lieutenant may tell a</p>
+      <p> SEC. 5.5</p>
+      <p> PROTECTION MECHANISMS</p>
+      <p> 297</p>
+      <p> general anything he knows, but he may not tell a private anything, because privates cannot be trusted.</p>
+      <p> Given this policy, some initial state of the matrix (including some way of telling which object is at which level), and the set of commands for modifying the matrix, what we would like is a way to prove that the system is secure. Such a proof turns out quite difficult to acquire; many general purpose systems are not theoretically secure. For more information about this subject see Landwehr (1981) and Denning (1982).</p>
+      <p> 5.5.5. Covert Channels</p>
+      <p> In the previous section we saw how it is possible to make formal models for protection systems. In this section we will see how futile it is to make such models. In particular, we will show that even in a system that has been rigorously proven to be absolutely secure, leaking information between processes that in theory cannot communicate at all is relatively straightforward. These ideas are due to Lampson (1973).</p>
+      <p> Lampson's model involves three processes, and is primarily applicable to large time-sharing systems. The first process is the client, which wants some work performed by the second one, the server. The client and the server do not entirely trust each other. For example, the server's job is to help clients with filling out their tax forms. The clients are worried that the server will secretly record their financial data, for example, maintaining a secret list of who earns how much, and then selling the list. The server is worried that the clients will try to steal the valuable tax program.</p>
+      <p> The third process is the collaborator, which is conspiring with the server to indeed steal the client's confidential data. The collaborator and server are typically owned by the same person. These three processes are shown in Fig. 5-28. The object of this exercise is to design a system in which it is impossible for the server to leak to the collaborator the information that it has legitimately received from the client. Lampson called this the confinement problem.</p>
+      <p> Client</p>
+      <p class="illus">
+        <img src="images/picture76.jpg" alt="picture76"/>
+      </p>
+      <p> Server</p>
+      <p> / Collaborator</p>
+      <p> Encapsulated server</p>
+      <p> - Covert channe</p>
+      <p> (a)</p>
+      <p> (b)</p>
+      <p> Fig. 5-28. (a) The client, server and collaborator processes, (b) The encapsulated server can still leak to the collaborator via covert channels.</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> From the system designer's point of view, the goal is to encapsulate or confine the server in such a way that it cannot pass information to the collaborator. Using a protection matrix scheme we can easily guarantee that the server cannot communicate with the collaborator by writing into a file to which the collaborator has read access. We can probably also ensure that the server cannot communicate with the collaborator by using the system's interprocess communication mechanism.</p>
+      <p> Unfortunately, more subtle communication channels may be available. For example, the server can try to communicate a binary bit stream as follows. To send a 1 bit, it computes as hard as it can for a fixed interval of time. To send a 0 bit, it goes to sleep for the same length of time.</p>
+      <p> The collaborator can try to detect the bit stream by carefully monitoring its response time. In general, it will get better response when the server is sending a 0 than when the server is sending a 1. This communication channel is known as a covert channel, and is illustrated in Fig. 5-28(b).</p>
+      <p> Of course the covert channel is a noisy channel, containing a lot of extraneous information, but information can be reliably sent over a noisy channel by using an error-correcting code (e.g., a Hamming code, or even something more sophisticated). The use of an error-correcting code reduces the already low bandwidth of the covert channel even more, but it still may be enough to leak substantial information. It is fairly obvious that no protection model based on a matrix of objects and domains is going to prevent this kind of leakage.</p>
+      <p> Modulating the CPU usage is not the only covert channel. The paging rate can also be modulated (many page faults for a 1, no page faults for a 0). In fact, almost any way of degrading system performance in a clocked way is a candidate. If the system provides a way of locking files, then the server can lock some file to indicate a 1, and unlock it to indicate a 0. It may be possible to detect the status of a lock even on a file that you cannot access.</p>
+      <p> Acquiring and releasing dedicated resources (tape drives, plotters, etc.) can also be used for signaling. The server acquires the resource to send a 1 and releases it to send a 0. In UNIX, the server could create a file to indicate a 1 and remove it to indicate a 0; the collaborator could use the ACCESS system call to see if the file exists. This call works even though the collaborator has no permission to use the file. Unfortunately, many other covert channels exist.</p>
+      <p> Lampson also mentions a way of leaking information to the (human) owner of the server process. Presumably the server process will be entitled to tell its owner how much work it did on behalf of the client, so the client can be billed. If the actual computing bill is, say, 100 dollars and the client's income is 53K dollars, the server could report the bill as 100.53 to its owner.</p>
+      <p> Just finding all the covert channels, let alone blocking them, is extremely difficult. In practice, there is little that can be done about them. Introducing a process that causes page faults at random, or otherwise spends its time degrading system performance in order to reduce the bandwidth of the covert channels is not an attractive proposition.</p>
+      <p> SEC. 5.6</p>
+      <p> OVERVIEW OF THE MINIX FILE SYSTEM</p>
+      <p> 299</p>
+      <p> 5.6. OVERVIEW OF THE MINIX FILE SYSTEM</p>
+      <p> Like all file systems, the MINIX file system must deal with all the issues we have just studied. It must allocate and deallocate space for files, keep track of disk blocks and free space, provide some way to protect files against unauthorized usage, an so on. In the remainder of this chapter we will look closely at MINIX to see how it accomplishes these goals.</p>
+      <p> In the first part of this chapter, we have repeatedly referred to UNIX rather than to MINIX for the sake of generality, although the external interface of the two is virtually identical. Now we will concentrate on the internal design of MINIX. For information about the UNIX internals, see Thompson (1978) and Bach (1986). The MINIX file system is just a big C program that runs in user space (see Fig. 4-20). To read and write files, user processes send messages to the file system telling what they want done. The file system does the work and then sends back a reply. The file system is, in fact, a network file server that happens to be running on the same machine as the caller.</p>
+      <p> This design has some important implications. For one thing, the file system can be modified, experimented with, and tested almost completely independently of the rest of MINIX. For another, it is very easy to move the whole file system to any computer that has a C compiler, compile it there, and use it as a freestanding UNIX-like remote file server. The only changes that need to be made are in the area of how messages are sent and received, which differs from system to system.</p>
+      <p> In the following sections, we will present an overview of many of the key areas of the file system design. Specifically, we will look at messages, the file system layout, i-nodes, the block cache, the bit maps, directories and path names, the process table, and special files (plus pipes). After studying all of these topics, we will show a simple example of how the pieces fit together by tracing what happens when a user process executes the READ system call.</p>
+      <p> 5.6.1. Messages</p>
+      <p> The file system, accepts 29 types of messages requesting work. All but two are for MINIX system calls. The two exceptions are for messages generated by other parts of MINIX. All the messages, their parameters, and results are shown in Fig. 5-29. The file system also gets messages from the memory manager telling about work that the latter has done on behalf of a few other system calls, such as FORK and EXIT. These are not listed in the figure since they are primarily handled by the memory manager.</p>
+      <p> The structure of the file system is basically the same as that of the memory manager and all the I/O tasks. It has a main loop that waits for a message to arrive. When a message arrives, its type is extracted and used as an index into a table containing pointers to the procedures within the file system that handle all the types. Then the appropriate procedure is called, it does its work and returns</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> Fig. 5-29. The principal message types accepted by the file system. File name parameters are always pointers to the name. The code  status  as reply value means OK or ERROR.</p>
+      <p> a status value. The file system then sends a reply back to the caller and goes back to the top of the loop to wait for the next message.</p>
+      <p> 5.6.2. File System Layout</p>
+      <p> A MINIX file system is a logical, self-contained entity with i-nodes, directories, and data blocks. It can be stored on any block device, such as a floppy disk or a (portion of a) hard disk. In all cases, the layout of the file system has the same structure. Figure 5-30 shows this layout for a 360K floppy disk with 127 i-nodes and a IK block size. Larger file systems, or those with more or fewer i-nodes or a different block size, will have the same six components in the same order, but their relative sizes may be different.</p>
+      <p> Each file system begins with a boot block. When the computer is turned on, the hardware reads the boot block into memory and jumps to it. Not every disk drive can be used as a boot device, but to keep the structure uniform, every</p>
+      <p> SEC. 5.6</p>
+      <p> OVERVIEW OF THE MINIX FILE SYSTEM</p>
+      <p> 301</p>
+      <p> Boot Super block block</p>
+      <p> One disk block</p>
+      <p> 2</p>
+      <p> Data</p>
+      <p> l-node Zone bit map     bit map</p>
+      <p> Fig. 5-30. Disk layout for a typical 360K floppy disk, with 127 i-nodes and a IK block size (i.e., two consecutive 512-byte sectors are treated as a single block).</p>
+      <p> device has a boot block. Once the system has been booted, the boot block is not used any more.</p>
+      <p> The super-block contains information describing the layout of the file system. It is illustrated in Fig. 5-31.</p>
+      <p> The main function of the super-block is to tell the file system how big the various pieces of Fig. 5-30 are. Given the block size and the number of i-nodes, it is easy to calculate the size of the i-node bit map and the number of blocks of i-nodes. For example, for a IK block, each block of the bit map has IK bytes (8K bits), and thus can keep track of the status of up to 8191 i-nodes (i-node 0 always contains zeros and is effectively unused). For 10,000 i-nodes, two bit map blocks are needed. Since i-nodes are 32 bytes, a IK block holds up to 32 i-nodes. With 127 usable i-nodes, 4 disk blocks are needed to contain them all.</p>
+      <p> Present on disk and in memory</p>
+      <p> Present in memory but no : on disk</p>
+      <p> Number of nodes</p>
+      <p> Number of zones</p>
+      <p> Number of i-node bit map blocks</p>
+      <p> Number of zone bit map blocks</p>
+      <p> First data zone</p>
+      <p> Log 2 (zone size/block size)</p>
+      <p> Maximum file size</p>
+      <p> Magic number</p>
+      <p> Pointer to i-node bit map block</p>
+      <p> Pointer to zone bit map block</p>
+      <p> Super-block's device number</p>
+      <p> I-node of mounted file system</p>
+      <p> I-node mounted on</p>
+      <p> Time of last update</p>
+      <p> Read-only flag/Dirty flag</p>
+      <p> I-node bit map</p>
+      <p> 01011011 10110111 00110110 11101110</p>
+      <p> Zone bit map</p>
+      <p> 10110111 11111011 10110111 01010111 11111011</p>
+      <p> Fig. 5-31. The MINIX super-block.</p>
+      <p> We will explain the difference between zones and blocks in detail later, but for the time being it is sufficient to say that disk storage can be allocated in units</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> (zones) of 1, 2, 4, 8, or in general  2 n   blocks. The zone bit map keeps track of free storage in zones, not blocks. For the standard 360K floppy disk MINIX distribution, the zone and block sizes are the same (IK), so for a first approximation a zone is the same as a block on these devices. Until we come to the details of storage allocation later in the chapter, it is adequate to think "block" whenever you see "zone."</p>
+      <p> Note that the number of blocks per zone is not stored in the super-block, as it is never needed. All that is needed is the base 2 logarithm of the zone to block ratio, which is used as the shift count to convert zones to blocks and vice versa. For example, with 8 blocks per zone, log 2 8 = 3, so to find the zone containing block 128 we shift 128 right 3 bits to get zone 16. Zone 0 is the boot block, but the zone bit map includes only the data zones.</p>
+      <p> The information in the super-block is redundant because sometimes it is needed in one form and sometimes in another. With IK devoted to the super-block, it makes sense to compute this information in all the forms it is needed, rather than having to recompute it frequently during execution. The zone number of the first data zone on the disk, for example, can be calculated from the block size, zone size, number of i-nodes, and number of zones, but it is faster just to keep it in the super-block. The rest of the super-block is wasted anyhow, so using up another word of it costs nothing.</p>
+      <p> When MINIX is booted, the super-block for the root device is read into a table in memory. Similarly, as other file systems are mounted, their super-blocks are also brought into memory. The super-block table holds a few fields not present on the disk, such as the device from which it came, a field telling whether it has been mounted read-only or not, and a field that is set whenever the memory version is modified.</p>
+      <p> Before a disk can be used as a MINIX file system, it must be given the structure of Fig. 5-30. The utility program  mkfs  has been provided to build file systems. This program can be called either by a command like</p>
+      <p> mkfs /dev/fdl 360</p>
+      <p> to build an empty 360 block file system on the floppy disk in drive 1, or it can be given a prototype file listing directories and files to include in the new file system. Attempts to mount a file system not in MINIX format, such as an MS-DOS diskette will be rejected by the MOUNT system call, which checks the super-block for the magic number and other things.</p>
+      <p> 5.6.3. Bit Maps</p>
+      <p> MINIX keeps tracks of which i-nodes and zones are free by using two bit maps (see Fig. 5-31). When the system is booted, the super-block and bit maps for the root device are loaded into memory. As mentioned, the super-block table in memory holds some fields not present on the disk. One of these fields is an array whose  k-th  entry is a pointer to the  k-th  i-node bit map block (in memory).</p>
+      <p> SEC. 5.6</p>
+      <p> OVERVIEW OF THE MINIX FILE SYSTEM</p>
+      <p> 303</p>
+      <p> When a file is removed, it is then a simple matter to calculate which block of the bit map contains the bit for the i-node being freed, and to find it via a pointer array. Once the block is found, the bit corresponding to the freed i-node is set to 0. A similar set of pointers is used for the zone bit map.</p>
+      <p> When a file is created, the file system searches through the bit map blocks, one at a time, until it finds a free i-node. This i-node is then allocated for the new file. If every i-node slot on the disk is full, the search routine returns a 0, which is why i-node 0 is not used. (When  mkfs  creates a new file system, it zeros i-node 0 and sets the lowest bit in the bit map to 1, so the file system will never attempt to allocate it.)</p>
+      <p> With this background, we can now explain the difference between zones and blocks. The idea behind zones is to help ensure that disk blocks that belong to the same file are located on the same cylinder, to improve performance when the file is read sequentially. The approach chosen is to make it possible to allocate several blocks at a time. If, for example, the block size is IK and the zone size is 4K, the zone bit map keeps track of zones, not blocks. A 20M disk has 5K zones of 4K, hence 5K bits in its zone map.</p>
+      <p> Most of the file system works with blocks. Disk transfers are always a block at a time, and the buffer cache also works with individual blocks. Only a few parts of the system that keep track of physical disk addresses (e.g., the zone bit map and the i-nodes) know about zones.</p>
+      <p> Another reason for having zones has to do with the desire to keep disk addresses to 16 bits, primarily to be able to store lots of them in the indirect blocks. However, with a 16-bit zone number and a IK zone, only 64K zones can be addressed, limiting disks to 64M. As disks get larger, it is easy to switch to 2K or 4K zones, without changing the block size. Most files are smaller than IK, so increasing the block size means wasting disk bandwidth reading and writing mostly empty blocks, and wastes precious main memory storing them in the buffer cache. Of course, a larger zone size means more wasted disk space, but since large zones are needed only with large disks, the problem of disk space efficiency is not so acute.</p>
+      <p> Zones also introduce an unexpected problem, best illustrated by a simple example, again with 4K zones and IK blocks. Suppose a file is of length IK, meaning that 1 zone has been allocated for it. The blocks between IK and 4K contain garbage (residue from the previous owner), but no harm is done because the file size is clearly marked in the i-node as IK. Reads beyond the end of a file always return a count of 0 and no data.</p>
+      <p> Now someone seeks to address 32768 and writes 1 byte. The file size is now changed to 32769. Subsequent seeks to IK followed by attempts to read the data will now be able to read the previous contents of the block, which is a serious security breach.</p>
+      <p> The solution is to check for this situation when a write is done beyond the end of a file, and explicitly zero all the not-yet-allocated blocks in the zone that was previously the last one. Although this situation rarely occurs, the code has</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> to deal with it, making the system slightly more complex. In retrospect, it is not clear whether having zones is worth the extra trouble. In the standard distribution of MINIX the zone size and block size are both set to IK, so the problem does not arise.</p>
+      <p> 5.6.4. I-nodes</p>
+      <p> The layout of the MINIX i-node is given in Fig. 5-32. It differs from the UNIX i-node in several ways. First, shorter disk pointers are used (2 bytes vs. 3 bytes). Second, fewer pointers are stored (9 vs. 13). Third, MINIX only records one time, whereas UNIX records three of them. Finally, the  links  and  gid  fields have been reduced to 1 byte in MINIX. These changes reduce the size from 64 bytes to 32 bytes, to reduce the disk and memory space needed to store i-nodes.</p>
+      <p> -16 bits-</p>
+      <p> Mode</p>
+      <p> Uid</p>
+      <p> File size</p>
+      <p> Time of last modification</p>
+      <p> Links Gid</p>
+      <p> -— File type and RWX bits</p>
+      <p> - Identifies the user who owns the file</p>
+      <p> -Number of bytes in the file</p>
+      <p> -In seconds, since Jan. 1, 1970 -Directories listing this i-node/owner's group</p>
+      <p> Zone 0 number</p>
+      <p> Zone 1 number</p>
+      <p> Zone 2 number</p>
+      <p> Zone 3 number</p>
+      <p> Zone 4 number</p>
+      <p> Zone 5 number</p>
+      <p> Zone 6 number</p>
+      <p> Indirect</p>
+      <p> Double indirect</p>
+      <p> Zone numbers for )~  the first 7 data zones in the file</p>
+      <p> Only used for files larger than 7 zone</p>
+      <p> Fig. 5-32. The MINIX i-node.</p>
+      <p> When a file is opened, its i-node is located and brought into the  mode  table in memory, where it remains until the file is closed. The  mode  table has a few additional fields not present on the disk, such as the i-node's device and number, so the file system knows where to rewrite it if it is modified while in memory. It also has a counter per i-node. If the same file is opened more than once, only one copy of the i-node is kept in memory, but the counter is incremented each time the file is opened and decremented each time it is closed. Only when the counter goes to zero is the i-node removed from the table (and rewritten to the disk, if it has been modified).</p>
+      <p> The main function of a file's i-node is to tell where the data blocks are. The first seven zone numbers are given right in the i-node itself. For the standard distribution, with zones and blocks both IK, files up to 7K do not need indirect blocks. Beyond 7K, indirect zones are needed, using the scheme of Fig. 5-7, except that only single and double are present.  With IK blocks and zones and</p>
+      <p> SEC. 5.6</p>
+      <p> OVERVIEW OF THE MINIX FILE SYSTEM</p>
+      <p> 305</p>
+      <p> 16-bit zone numbers, a single indirect block holds 512 entries, representing half a megabyte of storage. A double indirect block points to 512 single indirect blocks, giving up to 256 megabytes. (Actually this limit is not reachable, because with 16-bit zone numbers and IK zones, we can address only 64K zones, which is 64 megabytes; for a larger disk we would have to go to a 2K zone.)</p>
+      <p> The i-node also holds the mode information, which tells what kind of a file it is (regular, directory, block special, character special, or pipe), and gives the protection and SETUID and SETGID bits. The  link  field in the i-node records how many directory entries point to the i-node, so the file system knows when to release the file's storage. This field should not be confused with the counter (present only in the  inode  table in memory, not on the disk) that tells how many times the file is currently open.</p>
+      <p> 5.6.5. The Block Cache</p>
+      <p> MINIX uses a block cache to improve its performance. The cache is implemented as an array of buffers, each consisting of a header containing pointers, counters, and flags, and a body with room for one disk block. All the blocks are chained together in a double-linked list, from most recently used (MRU) to least recently used (LRU) as shown in Fig. 5-33.</p>
+      <p> Hash table</p>
+      <p class="illus">
+        <img src="images/picture77.jpg" alt="picture77"/>
+      </p>
+      <p> Fig. 5-33. The linked lists used by the block cache.</p>
+      <p> In addition, to be able to quickly determine if a given block is in the cache or not, a hash table is used. All the blocks that have hash code  k  are linked together on a single-linked list pointed to by entry  k  in the hash table. At present, the hash function just extracts the low-order  n  bits from the block number, so blocks from different devices appear on the same hash chain.</p>
+      <p> When the file system needs a block, it calls a procedure,  getJblock,  which computes the hash code for that block and searches the appropriate list. If the block is found, a counter in the block's header is incremented to show that the block is in use, and a pointer to it is returned. If the block is not found, the LRU list is searched to find a block to evict from the cache. If the block at the front (the least recently used block) has count 0, it is chosen, otherwise the next</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> block is inspected, and so on. It is important to check the counter because some blocks, such as the bit maps, must never be evicted while they are still in use, no matter how infrequently they are used.</p>
+      <p> Once a block has been chosen for eviction, another flag in its header is checked to see if the block has been modified since being read in. If so, it is rewritten to the disk. At this point the block needed is read in by sending a message to the disk task. The file system is suspended until the block arrives, at which time it continues and a pointer to the block is returned to the caller.</p>
+      <p> When the procedure that requested the block has done its job, it calls another procedure,  put-block,  to free the block. One of the parameters to  put-block  tells what class of block (e.g., i-nodes, directory, data) is being freed. Depending on the class, two key decisions are made:</p>
+      <p> 1. Whether to put the block on the front or rear of the LRU list.</p>
+      <p> 2. Whether to write the block (if modified) to disk immediately or not.</p>
+      <p> Blocks that are not likely to be needed again soon, such as double indirect blocks, go on the front of the list so they will be claimed the next time a free buffer is needed. Blocks that are likely to be needed again soon go on the rear of the list in true LRU fashion.</p>
+      <p> When a directory has been modified, it is written to disk immediately, to reduce the chance of corrupting the file system in the event of a crash. An ordinary data block that has been modified is not rewritten until either one of two events occurs: (1) it reaches the front of the LRU chain and is evicted, or (2) a SYNC system call is executed.</p>
+      <p> Note that the header flag indicating that a block has been modified is set by the procedure within the file system that requested and used the block. The procedures  get-block  and  put-block  are concerned just with manipulating all the linked lists. They have no idea which file system procedure wants which block or why.</p>
+      <p> 5.6.6. Directories and Paths</p>
+      <p> Another important subsystem within the file system is the management of directories and path names. Many system calls, such as OPEN, have a file name as a parameter. What is really needed is the i-node for that file, so it is up to the file system to look up the file in the directory tree and locate its i-node.</p>
+      <p> A MINIX directory consists of a file containing 16-byte entries. The first 2 bytes form a 16-bit i-node number, and the remaining 14 bytes are the file name. To look up the path  luserlastlmbox  the system first looks up  user  in the root directory, then it looks up  ast  in  I user,  and finally it looks up  mbox  in  I user last. The actual lookup proceeds one path component at a time, as illustrated in Fig. 5-11.</p>
+      <p> SEC. 5.6</p>
+      <p> OVERVIEW OF THE MINIX FILE SYSTEM</p>
+      <p> 307</p>
+      <p> As an aside, the standard MINIX configuration uses  lusr  for floppy disk 0 (system files) and  /user  for floppy disk 1 (user files). Most UNIX systems have the whole file tree under  lusr.  In the following examples, we will use  /user/ast as an example of a typical user directory.</p>
+      <p> The only complication is what happens when a mounted file system is encountered. To see how that works, we must look at how mounting is done. When the user types the command</p>
+      <p> /etc/mount /dev/fdl /user</p>
+      <p> on the terminal, the file system contained on floppy disk 1 is mounted on top of /user  in the root file system. The file systems before and after mounting are shown in Fig. 5-34.</p>
+      <p> After mounting</p>
+      <p class="illus">
+        <img src="images/picture78.jpg" alt="picture78"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture79.jpg" alt="picture79"/>
+      </p>
+      <p> /ast/f2</p>
+      <p class="illus">
+        <img src="images/picture80.jpg" alt="picture80"/>
+      </p>
+      <p> /user/ba</p>
+      <p> /user/ast</p>
+      <p> /ast/f2</p>
+      <p> (a)</p>
+      <p> (b)</p>
+      <p> (0</p>
+      <p> Fig. 5-34. (a) Root file system, (b) An unmounted file system, (c) The result of mounting the file system of (b) on  I user.</p>
+      <p> The key to the whole mount business is a flag set in the i-node of  /user  after a successful mount. This flag indicates that the i-node is mounted on. The MOUNT call also loads the super-block for the newly mounted file system into the super-block  table and sets two pointers in it. Furthermore, it puts the root i-node of the mounted file system in the  inode  table.</p>
+      <p> In Fig. 5-31 we see that super-blocks in memory contain two fields related to mounted file systems. The first of these, the  i-node-of-the-mounted-file-system,  is set to point to the root i-node of the newly mounted file system. The second, the i-node-mounted-on,  is set to point to the i-node mounted on, in this case, the i-node for  /user.  These two pointers serve to connect the mounted file system to the root, and, represent the "glue" that holds the mounted file system to the root [shown as the dots in Fig. 5-34(c)].</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> When a path such as  I user last If2  is being looked up, the file system will see a flag in the i-node for  /user  and realize that it must continue searching at the root i-node of the file system mounted on  /user.  The question is: "How does it find this root i-node? "</p>
+      <p> The answer is straightforward. The system searches all the super-blocks in memory until it finds the one whose  i-node mounted on  field points to  /user. This must be the super-block for the file system mounted on  /user.  Once it has the super-block, it is easy to follow the other pointer to find the root i-node for the mounted file system. Now the file system can continue searching. In this example, it looks for  ast  in the root directory of floppy disk 1.</p>
+      <p> 5.6.7. File Descriptors</p>
+      <p> Once a file has been opened, a file descriptor is returned to the user process for use in subsequent READ and WRITE calls. In this section we will look at how file descriptors are managed within the file system.</p>
+      <p> Like the kernel and the memory manager, the file system maintains part of the process table within its address space. Three of its fields are of particular interest. The first two are pointers to the i-nodes for the root directory and the working directory. Path searches, such as that of Fig. 5-11, always begin at one or the other, depending on whether the path is absolute or relative. These pointers are changed by the CHROOT and CHDIR system calls to point to the new root or new working directory, respectively.</p>
+      <p> The third interesting field in the process table is an array indexed by file descriptor number. It is used to locate the proper file when a file descriptor is presented. At first glance, it might seem sufficient to have the  k-th  entry in this array just point to the i-node for the file belonging to file descriptor  k.  After all, the i-node is fetched into memory when the file is opened and kept there until it is closed, so it is sure to be available.</p>
+      <p> Unfortunately, this simple plan fails because files can be shared in subtle ways in MINIX (as well as in UNIX). The trouble arises because associated with each file is a 32-bit number that indicates the next byte to be read or written. It is this number, called the file position, that is changed by the LSEEK system call. The problem can be stated easily: "Where should the file pointer be stored?"</p>
+      <p> The first possibility is to put it in the i-node. Unfortunately, if two or more processes have the same file open at once, they must all have their own file pointers, since it would hardly do to have an LSEEK by one process affect the next read of a different process. Conclusion: the file position cannot go in the i-node.</p>
+      <p> What about putting it in the process table? Why not have a second array, paralleling the file descriptor array, giving the current position of each file? This idea does not work either, but the reasoning is more subtle. Basically, the trouble comes from the semantics of the FORK system call.  When a process forks,</p>
+      <p> SEC. 5.6</p>
+      <p> OVERVIEW OF THE MINIX FILE SYSTEM</p>
+      <p> 309</p>
+      <p> both the parent and the child are required to share a single pointer giving the current position of each open file.</p>
+      <p> To understand the problem better, consider the case of a shell script whose output has been redirected to a file. When the shell forks off the first program, its file position for standard output is 0. This position is then inherited by the child, which writes, say, IK of output. When the child terminates, the shared file position must now be IK.</p>
+      <p> Now the shell reads some more of the shell script and forks off another child. It is essential that the second child inherit a file position of IK from the shell, so it will begin writing at the place where the first program left off. If the shell did not share the file position with its children, the second program would overwrite the output from the first one, instead of appending to it.</p>
+      <p> As a result, it is not possible to put the file position in the process table. It really must be shared. The solution used in MINIX is to introduce a new, shared table,  filp,  which contains all the file positions. Its use is illustrated in Fig. 5-35. By having the file position truly shared, the semantics of  fork  can be implemented correctly, and shell scripts work properly.</p>
+      <p> Filp table</p>
+      <p> Process table</p>
+      <p class="illus">
+        <img src="images/picture81.jpg" alt="picture81"/>
+      </p>
+      <p> Fig. 5-35. How file positions are shared between a parent and a child.</p>
+      <p> Although the only thing that the  filp  table really must contain is the shared file position, it is convenient to put the i-node pointer there as well. In this way, all that the file descriptor array in the process table contains is a pointer to  &amp; filp entry. The  filp  entry also contains a count of the number of processes using it, so the file system can tell when the last process using the entry has terminated, in order to reclaim the slot.</p>
+      <p> 5.6.8. Pipes and Special Files</p>
+      <p> Pipes and special files differ from ordinary files in an important way When a process tries to read or write from a disk file, it is certain that the operation will complete within a few hundred milliseconds at most. In the worst case, two or three disk accesses might be needed. When reading from a pipe, the situation</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> is different: if the pipe is empty, the reader will have to wait until some other process puts data in the pipe, which might take hours. Similarly, when reading from a terminal, a process will have to wait until somebody types something.</p>
+      <p> As a consequence, the file system's normal rule of handling a request until it is finished does not work. It is necessary to suspend these requests and restart them later. When a process tries to read or write from a pipe, the file system can check the state of the pipe immediately to see if the operation can be completed. If it can be, it is, but if it cannot be, the file system records the parameters of the system call in the process table, so it can restart the process when the time comes.</p>
+      <p> Note that the file system need not take any action to have the caller suspended. All it has to do is refrain from sending a reply, leaving the caller blocked waiting for the reply. Thus, after suspending a process, the file system goes back to its main loop to wait for the next system call. As soon as another process modifies the pipe's state so that the suspended process can complete, the file system sets a flag so that next time through the main loop it extracts the suspended process' parameters from the process table and executes the call.</p>
+      <p> The situation with terminals and other character special files is slightly different. The i-node for each special file contains two numbers, the major device and the minor device. The major device number indicates the device class (e.g., RAM disk, floppy disk, hard disk, terminal). It is used as an index into a file system table that maps it onto the number of the corresponding task (i.e., I/O driver). In effect, the major device determines which I/O driver to call. The minor device number is passed to the driver as a parameter. It specifies which device is to be used, for example, terminal 2 or drive 1.</p>
+      <p> When a process reads from a special file, the file system extracts the major and minor device numbers from the file's i-node, and uses the major device number as an index in a file system table to map it onto the corresponding task number. Once it has the task number, the file system sends the task a message, including as parameters the minor device, the operation to be performed, the caller's process number and buffer address, and the number of bytes to be transferred. The format is the same as in Fig. 3-15, except that  POSITION  is not used.</p>
+      <p> If the driver is able to carry out the work immediately (e.g., a line of input has already been typed on the terminal), it copies the data from its own internal buffers to the user and sends the file system a reply message saying that the work is done. The file system then sends a reply message to the user, and the call is finished. Note that the driver does not copy the data to the file system. Data from block devices go through the block cache, but data from character special files do not.</p>
+      <p> On the other hand, if the driver is not able to carry out the work, it records the message parameters in its internal tables, and immediately sends a reply to the file system saying that the call could not be completed. At this point, the file system is in the same situation as having discovered that someone is trying to</p>
+      <p> SEC. 5.6</p>
+      <p> OVERVIEW OF THE MINIX FILE SYSTEM</p>
+      <p> 311</p>
+      <p> read from an empty pipe. It records the fact that the process is suspended, and waits for the next message.</p>
+      <p> When the driver has acquired enough data to complete the call, it transfers it to the buffer of the still-blocked user, and then sends the file system a message reporting what it has done. All the file system has to do is send a reply message to the user to unblock it and report the number of bytes transferred.</p>
+      <p> 5.6.9. An Example: The READ System Call</p>
+      <p> As we shall see shortly, most of the code of the file system is devoted to carrying out system calls. Therefore, it is appropriate that we conclude this overview with a brief sketch of how the most important call,  read,  works.</p>
+      <p> When a user program executes the statement</p>
+      <p> n = read(fd, buffer, nbytes);</p>
+      <p> to read an ordinary file, the library procedure  read  is called with three parameters. It builds a message containing these parameters, along with the code for READ as the message type, sends the message to the file system, and blocks waiting for the reply. When the message arrives, the file system uses the message type as an index into its tables to call the procedure that handles reading.</p>
+      <p> This procedure extracts the file descriptor from the message, and uses it to locate the  filp  entry and then the i-node for the file to be read (see Fig. 5-35). The request is then broken up into pieces such that each piece fits within a block. For example, if the current file position is 600 and IK bytes have been requested, the request is split into two parts, for 600 to 1023, and for 1024 to 1623 (assuming IK blocks).</p>
+      <p> For each of these pieces in turn, a check is made to see if the relevant block is in the cache. If it is not, the file system picks the least recently used buffer not currently in use and claims it, sending a message to the disk task to rewrite it if it is dirty. Then the disk task is asked to fetch the block to be read.</p>
+      <p> Once the block is in the cache, the file system sends a message to the system task asking it to copy the data to the appropriate place in the user's buffer (i.e., bytes 600 to 1023 to the start of the buffer, and bytes 1024 to 1623 to offset 424 within the buffer) . After the copy has been done, the file system sends a reply message to the user specifying how many bytes have been copied.</p>
+      <p> When the reply comes back to the user, the library function  read  extracts the reply code and returns it as the function value to the caller.</p>
+      <p> 5.7. IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> The MINIX file system is relatively large (more than 100 pages of C) but quite straightforward. Requests to carry out system calls come in, are carried out, and replies are sent. In the following sections we will go through it a file at a time,</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> pointing out the highlights. The code itself contains many comments to aid the reader.</p>
+      <p> 5.7.1. The Header Files</p>
+      <p> Like the kernel and memory manager, the file system has some header files that define various data structures and tables. Let us begin our study of the file system with them.</p>
+      <p> The file  const.h  (line 7500) defines some constants, such as table sizes and flags, that are used throughout the file system. Some of them, such as  NR-BUFS and  NR-BUF-HASH,  can be changed to tune the system's performance. Others, such as  BOOT-BLOCK  and  SUPER-BLOCK,  do not affect the performance.</p>
+      <p> The next file,  buf.h  (line 7550), defines the block cache. The array few/holds all the buffers, each of which contains a block,  b,  and a header full of pointers, flags, and counters. The data part is declared as a union of 5 types (line 7565) because sometimes it is convenient to refer to the block as a character array, sometimes as a directory, and so on.</p>
+      <p> The proper way to refer to the data part of buffer 3 as a character array is buf[3].b.b — data  because  buf[3].b  refers to the union as a whole, from which the b — data  field is selected. Although this syntax is correct, it is a little cumbersome, so on line 7588 we define a macro  b-data,  which allows us to write</p>
+      <p> buf[3].b-data  instead.  Note that  b data  (the field of the union) contains two</p>
+      <p> underscores, whereas  b-data  (the macro) contains just one, to distinguish them. Macros for other ways of accessing the block are contained in lines 7588 to 7592.</p>
+      <p> Another interesting aspect of this file is the use of  EXTERN  for all the arrays and variables. When this file is included in code files,  EXTERN  has the value extern,  as defined on line 0009. However, in the file  table.c,  it is defined as the null string, to cause storage to be allocated. The rules of C (Kernighan and Ritchie, 1978, p. 206) clearly specify that global variables must be declared as extern  in all files except one, although some compilers and many programmers do not understand this point. We saw the same issue in the kernel and memory manager.</p>
+      <p> The macros at the end of the file (lines 7601 to 7610) define different block types. When a block is returned to the buffer cache after use, one of these values is supplied to tell the cache manager whether to put the block on the front or rear of the LRU list, and whether to write it to disk immediately or not.</p>
+      <p> The file  dev.h  (line 7650) provides the definition of the  dmap  table. The table itself is declared in  table.c  with initial values, so that version cannot be included in several files. This is why  dev.h  is needed. The table provides the mapping between the major device number and the corresponding task.</p>
+      <p> The file  file.h  (line 7700) contains the intermediate table used to hold the current file position and i-node pointer (see Fig. 5-35). It also tells whether the file was opened for reading, writing, or both, and how many file descriptors are currently pointing to the entry.</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 313</p>
+      <p> The file system's part of the process table is contained in  fproc.h  (line 7750). It holds the mode mask, pointers to the i-nodes for the current root directory and working directory, the file descriptor array, uid, gid, and terminal number. The remaining fields are used to store the parameters of system calls that are suspended part way through, such as reading from an empty pipe. The fields fpsusp ended  and  Jp^revived  actually require only single bits, but nearly all compilers generate better code for characters than bit fields.</p>
+      <p> Next comes the file with the global variables,  glo.h.  The message buffers for the incoming and reply messages are also here, as is the file system's stack. When the file system starts up for the first time after MINIX is booted, a tiny assembly code procedure sets the stack pointer to the top of  fstack.</p>
+      <p> Now we come to the i-node table in  inode.h  (line 7850). As we have said several times, when a file is opened, its i-node is read into memory and kept there until the file is closed. These i-nodes are kept in this table. Most of the fields should be self-explanatory at this point. However,  i^seek  deserves some comment. As an optimization, when the file system notices that a file is being read sequentially, it tries to read blocks into the cache even before they are asked for. For randomly accessed files there is no read ahead. When an  lseek  call is made, the field  iseek  is set to inhibit read ahead.</p>
+      <p> The file  param.h  (line 7900) is analogous to the file of the same name in the memory manager. It defines names for message fields containing parameters, so the code can refer to, for example,  buffer,  instead of  rn.ml-.pl,  which selects one of the fields of the message buffer  m.</p>
+      <p> In  super.h  (line 7950), we have the declaration of the super-block table. When the system is booted, the super-block for the root device is loaded here. As file systems are mounted, their super-blocks go here as well.</p>
+      <p> Finally, we come to the type declarations, in  type.h  (line 8000). Two types are defined, the directory entry and the disk i-node.</p>
+      <p> 5.7.2. Table Management</p>
+      <p> Associated with each of the main tables—blocks, i-nodes, super-blocks, and so forth—is a file that contains procedures that manage the table. These procedures are heavily used by the rest of the file system, and form the principal interface between tables and the file system. For this reason, it is appropriate to begin our study of the file system code with them.</p>
+      <p> Block Management</p>
+      <p> The block cache is managed by the procedures in the file  cache, c.  This file contains six procedures, which are listed in Fig. 5-36. The first one,  getJjlock (line 8079), is the standard way the file system acquires data blocks. When a file system procedure needs to read a user data block, a directory block, a super-</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> block, or any other kind of block, it calls  get-block,  specifying the device and block number desired.</p>
+      <p> Fig. 5-36. Procedures used for block management.</p>
+      <p> When  get-block  is called, it first looks in the block cache to see if the requested block is present. If so, it returns a pointer to it. Otherwise, it has to read the block in. The blocks in the cache are linked together on NRSUF-HASH  (32) linked lists. All the blocks on each list have block numbers that end with the same string of 5 bits, that is 00000, 00001, or 11111.</p>
+      <p> The statement on line 8099 sets  bp  to point to the start of the list on which the requested block would be, if it were in the cache. The loop on line 8101 searches this list to see if the block can be found. If so, the pointer to it is returned to the caller on line 8106.</p>
+      <p> If the block is not on the list, it is not in the cache, so the least recently used block that is not currently in use is taken. Bit maps and similar blocks that are still in use are never chosen for eviction. The buffer chosen is removed from its hash chain, since it is about to acquire a new block number and hence belongs on a different hash chain. If it is dirty, it is rewritten to the disk on line 8139.</p>
+      <p> As soon as the buffer is available, the new parameters are filled in and the block is read in from the disk, with one exception. If the file system needs a block just to rewrite all of it, it is wasteful to first read the old version in. In this case, the disk read is omitted (line 8149). When the new block has been read in,  get-block  returns to its caller with a pointer to it.</p>
+      <p> Suppose that the file system needs a directory block temporarily, to look up a file name. It calls  get-block  to acquire the directory block. When it has looked up its file name, it calls  put-block  (line 8157) to return the block to the cache, thus making the buffer available in case it is needed later for a different block.</p>
+      <p> The procedure  put-block  takes care of putting the newly returned block on the LRU list, and in some cases, rewriting it to the disk. First (lines 8179 to 8189), it removes the block from its current position on the LRU list. Next it puts it on the front or rear of the LRU list, depending on  block-type,  a flag provided by the caller telling what kind of a block it is. Blocks that are not likely to be needed again soon are put on the front, where they will be reused quickly. Blocks that may be needed again soon go on the rear, so they will stay around for a while.</p>
+      <p> After the block has been repositioned on the LRU list, another check is made</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 315</p>
+      <p> (lines 8224 and 8225) to see if the block should be rewritten to disk immediately. I-nodes, directory blocks, and other blocks that are essential for the correct functioning of the file system itself fall into this category and are rewritten on the spot.</p>
+      <p> As a file grows, from time to time a new zone must be allocated to hold the new data. The procedure  alloc_zone  (line 8235) takes care of allocating new zones. It does this by causing the zone bit map to be searched for a free zone. An attempt is made to find a zone close to zone 0 of the current file, in order to keep the zones of a file together. The mapping between bit number in the bit map and zone number is handled on line 8268, with bit 1 corresponding to the first data zone.</p>
+      <p> When a file is removed, its zones must be returned to the bit map.  Free-zone (line 8275) is responsible for returning these zones. All it does is call  free-bit, passing the zone map and the bit number as parameters.  Free-bit  is also used to return free i-nodes, but then with the i-node map as the first parameter, of course.</p>
+      <p> Managing the cache requires reading and writing blocks. To provide a simple interface to the disk, the procedure  rw-block  (line 8295) has been provided. It reads or writes a single block. Similar procedures  rw-inode  and  rwsuper exist to read and write i-nodes and super-blocks as well.</p>
+      <p> The last procedure in the file is  invalidate  (line 8326). It is called when a disk is unmounted, for example, to remove from the cache all the blocks belonging to the file system just unmounted. If this were not done, then when the device were reused (with a different floppy disk), the file system might find the old blocks instead of the new ones.</p>
+      <p> I-node Management</p>
+      <p> The block cache is not the only table that needs support procedures. The i-node table does too. Many of the procedures are similar in function to the block management procedures. They are listed in Fig. 5-37.</p>
+      <p> Fig. 5-37. Procedures used for i-node management.</p>
+      <p> The procedure  get-inode  (line 8379) is analogous to  get-block.  When any part of the file system needs an i-node, it calls  get-inode  to acquire it.  Get-inode  first searches the  inode  table to see if the i-node is already present. If so, it increments the usage counter and returns a pointer to it. This search is contained on</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> lines 8389 to 8406. If the i-node is not present in memory, the i-node is loaded by calling  rw-inode.</p>
+      <p> When the procedure that needed the i-node is finished with it, the i-node is returned by calling the procedure  put-inode  (line 8421), which decrements the usage count  i-count.  If the count is then zero, the file is no longer in use, and the i-node can be removed from the table. If it is dirty, it is rewritten to disk.</p>
+      <p> If the  i-link  field is zero, no directory entry is pointing to the file, so all its zones can be freed. Note that the usage count going to zero and the number of links going to zero are quite different events, with different causes and different consequences.</p>
+      <p> When a new file is created, an i-node must be allocated for it. This work is done by  alloc-inode  (line 8446). Unlike zones, where an attempt is made to keep the zones of a file close together, any i-node will do.</p>
+      <p> After the i-node has been acquired,  get-inode  is called to fetch the i-node into the table in memory. Then its fields are initialized, partly in-line (lines 8482 to 8486) and partly using  wipe-inode  (line 8503). This split has been made because  wipe-inode  is also needed elsewhere in the file system to clear certain i-node fields (but not all of them).</p>
+      <p> When a file is removed, its i-node is freed by calling  free-inode  (line 8525). All that happens here is that the corresponding bit in the i-node bit map is set to 0.</p>
+      <p> The procedure  rw-inode  (line 8543) is analogous to  rw-block.  Its job is to fetch an i-node from the disk. It does its work by carrying out the following steps:</p>
+      <p> 1. Calculate which block contains the required i-node.</p>
+      <p> 2. Read in the block by calling  get-block.</p>
+      <p> 3. Extract the i-node and copy it to the  inode  table .</p>
+      <p> 4. Return the block by calling  put-block.</p>
+      <p> The procedure  dup-inode  (line 8579) just increments the usage count of the i-node.</p>
+      <p> Super-block Management</p>
+      <p> The file  super.c  contains procedures that manage the super-block and the bit maps. There are seven procedures in this file, listed in Fig. 5-38.</p>
+      <p> Load-bit-maps  (line 8631) is called when the root device is loaded, or when a new file system is mounted. It reads in all the bit map blocks, and sets up the super-block to point to them. The arrays  s-imap  and  s-zmap  in the super-block point to the i-node bit map blocks and zone bit map blocks, respectively.</p>
+      <p> When a file system is unmounted, its bit maps are copied back to disk by unload-bit-maps  (line 8669).</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 317</p>
+      <p> Fig. 5-38. Procedures used to manage the super-block and bit maps.</p>
+      <p> When an i-node or zone is needed,  alloc-inode  or  alloc-zone  is called, as we have seen above. Both of these call  allocJjit  (line 8689) to actually search the relevant bit map. The search involves three nested loops, as follows:</p>
+      <p> 1. The outer one loops on all the blocks of a bit map.</p>
+      <p> 2. The middle one loops on all the words of a block.</p>
+      <p> 3. The inner one loops on all the bits of a word.</p>
+      <p> The middle loop works by seeing if the current word is equal to the one's complement of zero, that is, a complete word full of Is. If so, it has no free i-nodes or zones, so the next word is tried. When a word with a different value is found, it must have at least one 0 bit in it, so the inner loop is entered to find the free (i.e., 0) bit. If all the blocks have been tried without success, there are no free i-nodes or zones, so the code  NO-BIT  (0) is returned.</p>
+      <p> Freeing a bit is simpler than allocating one, because no search is needed. Free-bit  (line 8747) calculates which bit map block contains the bit to free, and sets the proper bit to 0. The block itself is always in memory, and can be found by following the  s-imap  or  s-zmap  pointers in the super-block.</p>
+      <p> The next procedure  getsuper  (line 8771), is used to search the super-block table for a specific device. For example, when a file system is to be mounted, it is necessary to check that it is not already mounted. This check can be performed by asking  getsuper  to find the file system's device. If it does not find the device, then the file system is not mounted.</p>
+      <p> The conversion between block and zone is done by shifting block numbers left or zone numbers right. The amount to shift depends on the number of blocks per zone, which can be different for each file system. The procedure scale-factor  (line 8810) does the lookup.</p>
+      <p> Finally, we have  rwsuper  (line 8824), which is analogous to  rw_block  and rw-Jnode,  as we have mentioned. It is called to read and write super-blocks.</p>
+      <p> File Descriptor Management</p>
+      <p> MINIX contains special procedures to manage file descriptors and the  filp  table (see Fig. 5-35). They are contained in the file  filedes.c.  When a file is created or opened, a free file descriptor and a  Use filp  slot are needed.  The procedure</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> get-fd  (line 8871) is used to find them. They are not marked as in use, however, because many checks must first be made before it is known for sure that the CREAT or  open  will succeed.</p>
+      <p> Get-filp  (line 8916) is used to see if a file descriptor is in range, and if so, returns its  filp  pointer.</p>
+      <p> The last procedure in this file is  find-flip  (line 8930). It is needed to find out when a process is writing on a broken pipe (i.e., a pipe not open for reading by any other process). It locates potential readers by a brute force search of the  filp table.</p>
+      <p> 5.7.3. The Main Program</p>
+      <p> The main loop of the file system is contained in file  main.c,  starting at line 8992. Structurally, it is very similar to the main loop of the memory manager and the I/O tasks. The call to  get-work  waits for the next request message to arrive (unless a process previously suspended on a pipe or terminal can now be handled). It also sets a global variable,  who,  to the caller's process table slot number and another global variable,  fs-call,  to the number of the system call to be carried out.</p>
+      <p> Once back in the main loop, three flags are set:  fp  points to the caller's process table slot,  super-user  tells whether the caller is the super-user or not, and dont-reply  is initialized to  FALSE.  Then comes the main attraction—the call to the procedure that carries out the system call. The procedure to call is selected by using  fs-call  as an index into the array of procedure pointers,  call-vector.</p>
+      <p> When control comes back to the main loop, if  dont-reply  has been set, the reply is inhibited (e.g., a process has blocked trying to read from an empty pipe). Otherwise a reply is sent. The final statement in the main loop has been designed to detect that a file is being read sequentially, and to load the next block into the cache before it is actually requested, to improve performance.</p>
+      <p> The procedure  get-work  (line 9016) checks to see if any previously blocked procedures have now been revived. If so, these have priority over new messages. Only if there is no internal work to do does the file system call the kernel to get a message, on line 9042.</p>
+      <p> After a system call has been completed, successfully or otherwise, a reply is sent back to the caller by  reply  (line 9053). In principle,  send  should never fail, but the kernel returns a status code, so we might as well check it.</p>
+      <p> Before the file system starts running, it initializes itself by calling  fs-init  (line 9069). This procedure builds the linked lists used by the block cache, deleting any buffers that happen to lie across a 64K boundary (because the IBM PC's DMA chip cannot cross 64K boundaries). It then loads the RAM disk from the boot diskette, initializes the super-block table, and reads in the super-block and root i-node for the root device. If everything appears to be in good shape, the i-node and zone bit maps are loaded. Finally, some tests are made on the constants, to see if they make sense.</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 319</p>
+      <p> When a boot diskette is created, a bit-for-bit copy of the RAM disk image is included on it after the MINIX binary. The procedure  load-ram  copies this image, block by block, to the RAM disk, after hrst doing some housekeeping (including telling the RAM disk driver where the RAM disk will go and how big it is).</p>
+      <p> The Dispatch Table</p>
+      <p> The file  table.c  (line 9300) contains the pointer array used in the main loop for determining which procedure handles which system call number. We saw a similar table inside the memory manager.</p>
+      <p> Something new, however, is the table  dmap  on line 9416. This table has one row for each major device, starting at zero. When a device is opened, closed, read, or written, it is this table that provides the name of the procedure to call to handle the operation. All of these procedures are located in the file system's address space. Many of these procedures do nothing, but some call a task to actually request I/O. The task number corresponding to each major device is also provided by the table.</p>
+      <p> Whenever a new major device is added to MINIX, a line must be appended to this table telling what action, if any, is to be taken when the device is opened, closed, read, or written. As a simple example, if a tape drive is added to MINIX, when its special file is opened, the procedure in the table could check to see if the tape is already in use.</p>
+      <p> 5.7.4. Operations on Individual Files</p>
+      <p> In this section we will look at the system calls that operate on files (as opposed to, say, directories). We will start with how files are created, opened, and closed, and then see how they are read and written.</p>
+      <p> Creating, Opening, and Closing Files</p>
+      <p> The file  open.c  contains the code for five system calls: CREAT, MKNOD, OPEN, CLOSE, and LSEEK. We will examine each of these in turn. Creating a file involves three steps:</p>
+      <p> 1. Allocating and initializing an i-node for the new file.</p>
+      <p> 2. Entering the new file in the proper directory.</p>
+      <p> 3. Setting up and returning a file descriptor for the new file.</p>
+      <p> The procedure that handles CREAT is  do-creat  (line 9479). As in the memory manager, the convention is used in the file system that system call XXX is performed by procedure  do-xxx.</p>
+      <p> Do-creat  starts out by fetching the name of the new file, and making sure</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> that free file descriptor and  filp  table slots are available. The new i-node is actually created by the procedure  new-node,  which is called on line 9496. If the i-node cannot be created,  new-node  sets the global variable  err-code.</p>
+      <p> The specific actions carried out by  do-creat  depend on whether the file already exists. If the file does not exist, lines 9504 to 9521 are skipped, the table slots claimed, and the file descriptor returned.</p>
+      <p> If the file does exist, then the file system must test to see what kind of a file it is, what its mode is, and so on. Doing a CREAT on an ordinary file causes it to be truncated to length zero; doing it on a special file that is writable causes it to be opened for writing; doing it on a directory is always rejected.</p>
+      <p> The code of  do-creat,  as well as many other file system procedures, contains a substantial amount of code that checks for various errors and illegal combinations. While not glamorous, this code is essential to having an error free, robust file system. If everything is in order, the file descriptor and  filp  slot located at the beginning are now marked as allocated and the file descriptor is returned. They were not marked as allocated in the beginning in order to make it easier to exit part way through if that had been needed.</p>
+      <p> The MKNOD call is handled by  do^mknod  (line 9541). This procedure is similar to  do-creat,  except that it just creates the i-node and makes a directory entry for it. If the i-node already exists, the call terminates with an error. The case-by-case analysis we saw in  do-creat  is not needed here.</p>
+      <p> The allocation of the i-node and the entering of the path name into the file system are done by  new_node  (line 9557). The statement on line 9575 parses the path name (i.e., looks it up component by component) as far as the final directory; the call to  advance  three lines later tries to see if the final component can be opened.</p>
+      <p> For example, on the call</p>
+      <p> fd = creat("/user/ast/foobar", 0755);</p>
+      <p> last-dir  tries to load the i-node for  luserlast  into the tables and return a pointer to it. If the file does not exist, we will need this i-node shortly in order to add foobar  to the directory. All the other system calls that add or delete files also use last-dir  to first open the final directory in the path.</p>
+      <p> If  new-node  discovers that the file does not exist, it calls  allocinode  on line 9581 to allocate and load a new i-node, returning a pointer to it. If no free i-nodes are left,  new-node  fails, and returns  NIL-INODE.</p>
+      <p> If an i-node can be allocated, we continue at line 9591, filling in some of the fields, writing it back to the disk, and entering the file name in the final directory (on line 9596). Again we see that the file system must constantly check for errors, and upon encountering one, carefully release all the resources, such as i-nodes and blocks that it is holding. If we were prepared to just let MINIX panic when we ran out of, say, i-nodes, rather than undoing all the effects of the current call, and returning an error code to the caller, the file system would be appreciably simpler.</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 321</p>
+      <p> The next procedure is  do-open  (line 9622). After making a variety of checks, it calls  eat^path  to parse the file name and fetch the i-node into memory. Once the i-node is available, the mode can be checked to see if the file may be opened. The call to  forbidden  on line 9645 does the  rwx  bit checking. Directories and special files are handled afterward. Finally, the file descriptor is returned as the function value.</p>
+      <p> Closing a file is even easier than opening one. The work is done by  do-dose (line 9680). Pipes and special files need some attention, but for regular files, all that needs to be done is to decrement the  flip  counter and check to see if it is zero, in which case the i-node is returned with  put-inode.</p>
+      <p> Note that returning an i-node means that its counter in the  inode  table is decremented, so it can be removed from the table eventually. This operation has nothing to do with freeing the i-node (i.e., setting a bit in the bit map saying that it is available). The i-node is only freed when the file has been removed from all directories.</p>
+      <p> The final procedure in this file is  do-lseek  (line 9721). When a seek is done, this procedure is called to set the file position to a new value.</p>
+      <p> Reading a File</p>
+      <p> Once a file has been opened, it can be read or written. First we will discuss reading, then writing. They differ in a number of ways, but have enough similarities that both  do-read  (line 9784) and  do-write  (line 10125) call a common procedure  read^write  (line 9794), to do most of the work.</p>
+      <p> The code on lines 9811 to 9818 is used by the memory manager to have the file system load entire segments in user space for it. Normal calls are processed starting on line 9821, where some validity checks are made (e.g., reading from a file opened only for writing) and some variables are initialized. Reads from character special files do not go through the block cache, so they are filtered out on line 9836.</p>
+      <p> The tests on lines 9844 to 9854 apply only to writes, and have to do with files that may get bigger than the device can hold, or writes that will create a hole in the file by writing  beyond  the end-of-file. As we discussed in the MINIX overview, the presence of multiple blocks per zone causes problems that must be dealt with explicitly. Pipes are also special and are checked for.</p>
+      <p> The heart of the read mechanism, at least for ordinary files, is the loop starting on line 9861. This loop breaks the request up into chunks, each of which fits in a single disk block. A chunk begins at the current position and extends until one of the following conditions is met:</p>
+      <p> 1. All the bytes have been read.</p>
+      <p> 2. A block boundary is encountered.</p>
+      <p> 3. The end-of-file is hit.</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> These rules mean that a chunk never requires two disk blocks to satisfy it. Figure 5-39 shows three examples of how the chunk size is determined. The actual calculation is done on lines 9862 to 9871.</p>
+      <p> Byte number</p>
+      <p> 0     1     2     3     4     5     6     7     8     9     10    11   12   13   14   15 16</p>
+      <p> I 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1</p>
+      <p> Block .</p>
+      <p> Current position = 1</p>
+      <p> Current position = 6</p>
+      <p> Current position = 9</p>
+      <p> ■ Block</p>
+      <p> Chunk = 6</p>
+      <p> Chunk = 2</p>
+      <p> Chunk = 1</p>
+      <p> Fig. 5-39. Three examples of how the first chunk size is determined for a 10-byte file. The block size is 8 bytes, and the number of bytes requested is 6. The chunk is shown shaded.</p>
+      <p> The actual reading of the chunk is done by  rw-chunk  (line 9874). When control comes back, various counters and pointers are incremented, and the next iteration begins. When the loop terminates, the file position and other variables may be updated (e.g., pipe pointers).</p>
+      <p> Finally, if read ahead is called for, the i-node to read from and the position to read from are stored in global variables, so that after the reply message is sent to the user, the file system can start working on getting the next block. In many cases the file system will block, waiting for the next disk block, during which time the user process will be able to work on the data it already has.</p>
+      <p> The procedure  rw-chunk  (line 9919) is concerned with taking an i-node and a file position, converting them into a physical disk block number, and requesting the transfer of that block (or a portion of it) to the user space. The mapping of the relative file position to the physical disk address is done by  read-map,  which understands about i-nodes and indirect blocks. For an ordinary file, the variables b  and  dev  on lines 9944 and 9945 contain the physical block number and device number, respectively. The call to  get-block  on line 9964 is where the cache handler is asked to find the block, reading it in if need be.</p>
+      <p> Once we have a pointer to the block, the call to  rw-user  on line 9972 takes care of transferring the required portion of it to the user space. The block is then released by  put-block,  so that it can be evicted from the cache later, when the time comes. (After being acquired by  get-block,  the counter in the block's header will show that it is in use, so it will be exempt from eviction;  put-block decrements the counter.)</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 323</p>
+      <p> Read-map  (line 9984) converts a logical file position to the physical block number by inspecting the i-node. For blocks close enough to the beginning of the file that they fall within one of the first seven zones (the ones right in the i-node), a simple calculation is sufficient to determine which zone is needed, and then which block. For blocks further into the file, one or more indirect blocks may have to be read.</p>
+      <p> The procedure  rw-user  (line 10042) just formats a message for the system task and sends it. The actual copying is done by the kernel. The file system could hardly do the copying; it does not even know where the user is located in memory. This extra overhead is the price that must be paid for the highly modular design.</p>
+      <p> Finally,  read-ahead  (line 10082) converts the logical position to a physical block number, calls  get-block  to make sure the block is in the cache, and then returns the block immediately. It cannot do anything with the block, after all. It just wants to improve the chance that the block is around if it should be used soon.</p>
+      <p> Note that  read-ahead  is called only from the main loop in  main.  It is not called as part of the processing of the READ system call. It is important to realize that the call to  read-ahead  is performed  after  the reply is sent, so that the user will be able to continue running even if the file system has to wait for a disk block while reading ahead. Figure 5-40 shows the relations between some of the major procedures involved in reading a file.</p>
+      <p> Entry points</p>
+      <p> read—write   Main procedure for reading/writing</p>
+      <p class="illus">
+        <img src="images/picture82.jpg" alt="picture82"/>
+      </p>
+      <p> Look up disk address</p>
+      <p> User-FS Return block transfer to cache</p>
+      <p> Search the cache</p>
+      <p> Listed in dmap table</p>
+      <p> sendrec     Sends message to the kernel</p>
+      <p> Fig. 5-40. Some of the procedures involved in reading a file.</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> Writing a File</p>
+      <p> Writing a file is similar to reading one, except that writing requires allocating new disk blocks. One difference is  write-map  (line 10135), which is analogous to  read^map,  only instead of looking up physical block numbers in the i-node and its indirect blocks, it enters new ones there (to be precise, it enters zone numbers, not block numbers).</p>
+      <p> The code of  write^map  is somewhat long and detailed because it must deal with several cases. If the zone to be inserted is close to the beginning of the file, it is just inserted into the i-node on (line 10160).</p>
+      <p> The worst case is when the file is at the maximum size that can be handled by a single-indirect block, so a double-indirect block must be allocated. Next, a single-indirect block must be allocated and its address put into the double-indirect block. If the double-indirect block is successfully allocated, but the single-indirect block cannot be allocated (i.e., disk full), then the double one must be carefully released so as not to corrupt the bit map.</p>
+      <p> Again, if we could just toss in the sponge and panic at this point, the code would be much simpler. However, from the user's point of view it is much nicer that running out of disk space just returns an error from WRITE, rather than crashing the computer with a corrupted file system.</p>
+      <p> The next procedure in  write, c  is  clear^zone,  which takes care of the problem of erasing blocks that are suddenly in the middle of a file, when a seek is done beyond the end of file, followed by a write of some data. Fortunately, this situation does not occur very often.</p>
+      <p> New-block  (line 10265) is called by  rw-chunk  on line 9955 whenever a new block is needed. Figure 5-41 shows six successive stages of the growth of a sequential file. The block size is IK and the zone size is 2K in this example.</p>
+      <p> (a) (b) (0 (d) le) (f)</p>
+      <p> 24</p>
+      <p> Free zones:    12  20  31   36 .</p>
+      <p> " Block number</p>
+      <p> Fig. 5-41. (a) - (0 The successive allocation of IK blocks. The zone size is 2K.</p>
+      <p> The first time  new_block  is called, it allocates zone 12 (blocks 24 and 25). The next time it uses block 25, which has already been allocated but is not yet in use. On the third call, zone 20 (blocks 40 and 41) is allocated, and so on. Zero-block  (line 10318) clears a block, erasing its previous contents.</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 325</p>
+      <p> Pipes</p>
+      <p> Pipes are similar to ordinary files in many respects. In this section we will focus on the differences. First of all, they are created differently, by the PIPE call, rather than the CREAT call. The PIPE call is handled by  do-.pipe  (line 10384) in file  pipe.c.  All  do-pipe  really does is allocate an i-node for the pipe, and return two file descriptors for it.</p>
+      <p> Reading and writing a pipe is slightly different from reading and writing a file, because a pipe has a finite capacity. An attempt to write to a pipe that is already full will cause the writer to be suspended. Similarly, reading from an empty pipe will suspend the reader. In effect, a pipe has two pointers, the current position (used by readers) and the size (used by writers), to determine where data comes from or goes to.</p>
+      <p> The various checks to see if an operation on a pipe is possible are carried out by  pipe-check  (line 10433). In addition to the above tests, which may lead to the caller being suspended,  pipe-check  calls  release  to see if a process previously suspended due to no data or too much data can now be revived. These revivals are done on line 10457 and line 10478, for sleeping writers and readers, respectively. Writing on a broken pipe (no readers) is also detected here.</p>
+      <p> The act of suspending a process is done by  suspend  (line 10488). All it does is save the parameters of the call in the process table, and set the flag  dont-reply to  TRUE,  to inhibit the file system's reply message.</p>
+      <p> The procedure  release  (line 10510) is called to check if a process that was suspended on a pipe can now be allowed to continue. If it finds one, it calls revive  to set a flag so that the main loop will notice it later.</p>
+      <p> The last procedure in  pipe.c  is  do-.unpause  (line 10572). When the memory manager is trying to signal a process, it must find out if that process is hanging on a pipe or special file (in which case it must be awakened with an  EINTR error). Since the memory manager knows nothing about pipes or special files, it sends a message to the file system to ask. That message is processed by do-unpause,  which revives the process, if it is blocked.</p>
+      <p> 5.7.5. Directories and Paths</p>
+      <p> We have now finished looking at how files are read and written. Our next task is to see how path names and directories are handled.</p>
+      <p> Converting a Path to an I-node</p>
+      <p> Many system calls (e.g., OPEN, UNLINK, and MOUNT) have path names (i.e., file names) as a parameter. Most of these calls must fetch the i-node for the named file before they can start working on the call itself. How a path name is converted to an i-node is a subject we will now look at in detail. We already saw the general outline in Fig. 5 11.</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> The parsing of path names is done in the file  path.c.  The first procedure, eat-path  (line 10675), accepts a pointer to a path name, parses it, arranges for its i-node to be loaded into memory, and returns a pointer to the i-node. It does its work by calling  last-dir  to get the i-node to the final directory, and then calling advance  to get the final component of the path. If the search fails, for example, because one of the directories along the path does not exist, or exists but is protected against being searched,  NIL-INODE  is returned instead of a pointer to the i-node.</p>
+      <p> Pathnames may be absolute or relative, and may have arbitrarily many components, separated by slashes. These issues are dealt with by  last-dir  (line 10703). It begins (line 10722) by examining the first character of the path name to see if it is an absolute path or a relative one. For absolute paths,  rip  is set to point to the root i-node; for relative ones, it is set to point to the i-node for the current working directory.</p>
+      <p> At this point,  last-dir  has the path name and a pointer to the i-node of the directory to look up the first component in. It enters a loop on line 10726 now, parsing the path name, component by component. When it gets to the end, it returns a pointer to the final directory.</p>
+      <p> Get^name  (line 10749) is a utility procedure that extracts components from strings. More interesting is  advance  (line 10792), which takes as parameters a directory pointer and a string, and looks up the string in the directory. If it finds the string,  advance  returns a pointer to its i-node. The details of transferring across mounted file systems are handled here.</p>
+      <p> Although  advance  controls the string lookup, the actual comparison of the string against the directory entries is done in  search-dir,  which is the only place in the file system where directory files are actually examined. It contains two nested loops, one to loop over the blocks in a directory, and one to loop over the entries in a block. The procedure  search-dir  is also used to enter and delete names from directories. Figure 5-42 gives the relations between some of the major procedures used in looking up path names.</p>
+      <p> Convert path to i-node</p>
+      <p> Process one component</p>
+      <p class="illus">
+        <img src="images/picture83.jpg" alt="picture83"/>
+      </p>
+      <p> put—block</p>
+      <p> Look up Find block       Return block</p>
+      <p> disk address in cache to cache</p>
+      <p> Fig. 5-42. Some of the procedures used in looking up path names.</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 327</p>
+      <p> Mounting File Systems</p>
+      <p> Two system calls that affect the file system as a whole are MOUNT and UMOUNT. They allow independent file systems on different minor devices to be "glued" together to form a single naming tree. Mounting, as we saw in Fig. 5-31, is effectively achieved by reading in the root i-node and super-block of the file system to be mounted, and setting two pointers in its super-block. One of them points to the i-node mounted on, and the other points to the root i-node of the mounted file system.</p>
+      <p> The setting of these pointers is done in the file  mount, c  by  do-mount  on lines 11116 and 11117. The two pages of code that precede setting the pointers are almost entirely concerned with checking for all the errors that can occur while mounting a file system, among them:</p>
+      <p> 1. The special file given is not a block device.</p>
+      <p> 2. The special file is a block device, but is already mounted.</p>
+      <p> 3. The file system to be mounted has a rotten magic number.</p>
+      <p> 4. The file system to be mounted is invalid (e.g., no i-nodes).</p>
+      <p> 5. The file to be mounted on does not exist or is a special file.</p>
+      <p> 6. There is no room for the mounted file system's bit maps.</p>
+      <p> 7. There is no room for the mounted file system's super-block.</p>
+      <p> 8. There is no room for the mounted file system's root i-node.</p>
+      <p> Perhaps it seems inappropriate to keep harping on this point, but the reality of any practical operating system is that a substantial fraction of the code is devoted to doing minor chores that are not intellectually very exciting, but are crucial to making a system usable. If a user attempts to mount the wrong floppy disk by accident, say, once a month, and this leads to a crash and a corrupted file system, the user will perceive the system as being unreliable and blame the designer, not himself.</p>
+      <p> Thomas Edison once made a remark that is relevant here. He said that "genius" is one percent inspiration and 99 percent perspiration. The difference between a good system and a mediocre one is not the brilliance of the former's scheduling algorithm, but its attention to getting all the details right.</p>
+      <p> Unmounting a file system is easier than mounting one—there are fewer things that can go wrong. The only real issue is making sure that no process has any open files or working directories on the file system to be removed. This check is straightforward : just scan the whole i-node table to see if any i-nodes in memory belong to the file system to be removed (other than the root i-node). If so, the UMOUNT call fails.</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> special file, gets its i-node, and extracts its major and minor device numbers. These are stored in the i-node itself, in the place where the first zone would normally go. This slot is available because special files do not have zones.</p>
+      <p> Linking and Unlinking Files</p>
+      <p> The next file is  link.c,  which deals with linking and unlinking files. The procedure  do-link  (line 11275) is very much like  do-mount  in that nearly all of the code is concerned with error checking. Some of the possible errors that can occur in the call</p>
+      <p> link(file_name, link^name);</p>
+      <p> are</p>
+      <p> 1.  File-name  does not exist or cannot be accessed.</p>
+      <p> 2.  File^name  already has the maximum number of links.</p>
+      <p> 3.  File-name  is a directory (only super-user can link to it).</p>
+      <p> 4.  Link-name  already exists.</p>
+      <p> 5.  File-name  and  link-name  are on different devices.</p>
+      <p> If no errors are present, a new directory entry is made with the string  link-name and the i-node number of  file-name.  The actual entry is made by  searchdir, called from  do-link  on line 11324.</p>
+      <p> Files are removed by unlinking them. The work is done by  do-unlink  (line 11342). Again, a variety of checks are made first. If no errors are found, the directory entry is cleared and the link count in the i-node is reduced by one.</p>
+      <p> If the link count is now zero, all the zones are freed by  truncate  (line 11388). This procedure works by simply stepping through the i-node a zone at a time, freeing all the zones it finds.</p>
+      <p> 5.7.6. Other System Calls</p>
+      <p> The last group of system calls is a mixed bag of things involving status, directories, protection, time, and other services.</p>
+      <p> Changing Directories and File Status</p>
+      <p> The file  stadir.c  contains the code for four system calls: CHDIR, CHROOT, STAT, and FSTAT. In  last-dir,  on line 10722, we saw how path searches start out by looking at the first character of the path, to see if it is a slash or not. Depending on the result, a pointer is then set to the working directory or the root directory.</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 329</p>
+      <p> Changing from one working directory (or root directory) to another is just a matter of changing these two pointers within the caller's process table. These changes are made by  do-chdir  (line 11475) and  do-chroot  (line 11500). Both of them do the necessary checking, and then call  change  (line 11515) to open the new directory to replace the old one.</p>
+      <p> The code on lines 11483 to 11490 is not executed on CHDIR calls made by user processes. It is specifically for calls made by the memory manager, to change to a user's directory for the purpose of handling EXEC calls. When a user tries to execute a file, say,  a.out  in his working directory, it is easier for the memory manager to change to that directory than to try to figure out where it is.</p>
+      <p> The remaining two system calls handled in this file, STAT and FSTAT, are basically the same, except for how the file is specified. The former gives a path name, whereas the latter provides the file descriptor of an open file. The top-level procedures,  dostat  and  do-fstat,  both call  statAnode  to do the work. Before calling  stat-inode, dostat  opens the file to get its i-node. In this way, both  dostat  and  do-fstat  pass an i-node pointer to  stat-inode.</p>
+      <p> All  stat-inode  does is extract information from the i-node and copy it into a buffer. The buffer must be explicitly copied to user space by  rw-user  on line 11624 because it is too large to fit in a message.</p>
+      <p> Protection</p>
+      <p> The MINIX protection mechanism uses the  rwx  bits. Three sets of bits are present for each file: for the owner, for his group, and for others. The bits are set by the CHMOD system call, which is carried out by  do-chmod  (line 11677). After making a series of validity checks, the mode is changed on line 11704.</p>
+      <p> The CHOWN system call is similar to CHMOD in that both of them change an internal i-node field in some file. The implementation is also similar although do-chown  (line 11715) is available only to the super-user.</p>
+      <p> The UMASK system call allows the user to set a mask (stored in the process table), which then masks out bits in subsequent CREAT system calls. The complete implementation would be only one statement, line 11752, except that the call must return the old mask value as its result. This additional burden triples the number of lines of code required (lines 11751 to 11753).</p>
+      <p> The ACCESS system call makes it possible for a process to find out if it can access a file in a specified way (e.g., for reading). It is implemented by do-access  (line 11760), which fetches the file's i-node and calls the internal procedure,  forbidden  (line 11782), to see if the access is forbidden.  Forbidden checks the uid and gid, as well as the information in the i-node. Depending on what it finds, it selects one of the three  rwx  groups and checks to see if the access is permitted or forbidden.</p>
+      <p> Read-only  (line 11830) is a little internal procedure that tells whether the file system on which its i-node parameter is located is mounted read-only or read-write. It is needed to prevent writes on file systems mounted read-only.</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> Time</p>
+      <p> MINIX has several system calls that involve time: UTIME, TIME, STIME, and TIMES. They are summarized in Fig. 5-43. They are handled by the file system for no good reason. They just had to go somewhere.</p>
+      <p> Fig. 5-43. The four system calls involving time.</p>
+      <p> Associated with each file is a 32-bit number that records the time when the file was last modified. This time is kept in the i-node. With the UTIME system call, this time can be set by the owner of the file or the super-user. The procedure  do-.utime  (line 11877) performs the system call by fetching the i-node and storing the user-specified time in it.</p>
+      <p> The real time is not maintained by the file system. It is maintained by the clock task within the kernel. Consequently, the only way to get or set the real time is to send a message to the clock task. This is, in fact, what  do-time  and dostime  both do. The real time is in seconds, since Jan 1, 1970.</p>
+      <p> The accounting information is also maintained by the kernel. At each clock tick it charges one tick to some process. This information can be retrieved by sending a message to the system task, which is what  do-tims  (line 11937) does. The procedure is not named  do-times  because most C compilers add an underscore to the front of all external symbols, and most linkers truncate symbols to eight characters, thus making  do-time  indistinguishable from  do-times.</p>
+      <p> Leftovers</p>
+      <p> The file  misc.c  contains procedures for a few system calls that do not fit in anywhere else. The DUP system call duplicates a file descriptor. In other words, it creates a new file descriptor that points to the same file as its argument.</p>
+      <p> The call has a variant that is slightly different. It is invoked by the call</p>
+      <p> dup2(fd, fd2);</p>
+      <p> in which  fd  is a file descriptor referring to an open file, and  fd2  is an integer that has no file assigned to it yet. The call makes  fd2  a valid file descriptor for the same file as  fd.</p>
+      <p> The two system calls share the same message type. They are distinguished by the 0100 bit, which is set in  fd  for DUP2. Both versions of the call are handled by  do-dup  (line 11981). The work to be done is straightforward, consisting of manipulating file descriptors and  flip  entries.</p>
+      <p> SEC. 5.7</p>
+      <p> IMPLEMENTATION OF THE MINIX FILE SYSTEM</p>
+      <p> 331</p>
+      <p> The next system call is SYNC, which copies all blocks, i-nodes, and super-blocks that have been modified since being loaded back to the disk. The call is processed by  dosync  (line 12018). It simply searches through all the tables looking for dirty entries.</p>
+      <p> The system calls FORK, EXIT, and SET are really memory manager calls, but the results have to be posted here as well. When a process forks, it is essential that the kernel, memory manager, and file system all know about it. These "system calls" do not come from user processes, but from the memory manager. Their job consists of recording the relevant information.</p>
+      <p> The last nonsystem call is handled by  do-revive  (line 12149). It is called when a task that was previously unable to complete work that the file system had requested, such as providing input data for a user process, has now completed the work. The file system now revives the process and sends it the reply message.</p>
+      <p> 5.7.7. The I/O Device Interface</p>
+      <p> I/O in MINIX is done by sending messages to the tasks within the kernel. The file system's interface with these tasks is contained in the file  device.c,  which also contains procedures that do special things for special files. As a starter, when a special file is opened, the procedure  dev_open  (line 12233) is called, just in case some special processing is needed. This procedure extracts the major and minor device numbers for the special file, and uses the major device number as an index into the  dmap  table in file  table, c  to call a procedure within the file system for special processing (line 12240). Normally this entry is  no-call,  which does nothing, but other procedures can be entered into  dmap  as needed.</p>
+      <p> Closing a device is similar, with the work being done by  dev^close  (line 12248) in this case.</p>
+      <p> When actual device I/O is needed,  dev-io  (line 12261) is called. It builds a standard message (see Fig. 3-15) and sends it to the specified task. It is called from  read-write  to handle character special files, and from  rwJblock  for block special files. While  devJio  is waiting for a reply from the task, the file system waits. It has no internal multiprogramming. Usually these waits are quite short though (a few hundred milliseconds at worst).</p>
+      <p> One system call is handled in  device.c,  IOCTL. That call has been put here because it is closely tied to the task interface. When an IOCTL is done,  do_ioctl is called to build a message and send it to the proper task.</p>
+      <p> Find-dev  (line 12328) is a little helper procedure that extracts the major and minor device numbers from a full device number. The final three procedures in device.c  are not mentioned explicitly in the file system. All three are procedures that are called indirectly, via  dmap.  Reads and writes use either  rw-dev  or rw-dev2  (see Fig. 5-40 for the call hierarchy). When a null routine is needed, no-call  is used.</p>
+      <p> 332 FILE SYSTEMS</p>
+      <p> 5.7.8. General Utilities</p>
+      <p> CHAP. 5</p>
+      <p> The file system contains a few general purpose utility procedures that are used in various places. They are collected together in the file  utility.c.  The first procedure is  clock-time.  It sends messages to the clock task to find out what the current real time is. The next one is  cmpstring.  It compares two strings to see if they are the same. Then comes  copy.  It copies a block of data from one part of the file system's address space to another.</p>
+      <p> The procedure  fetch-name  is needed because many system calls have a file name as parameter. If the file name is short, it is included in the message from the user to the file system. If it is long, a pointer to the name in user space is put in the message.  Fetch-name  checks for both cases, and either way, gets the name.</p>
+      <p> Nosys  is the error handler that is called when the file system receives a system call that is not one of its calls. Finally,  panic  prints a message and tells the kernel to throw in the towel when something catastrophic happens.</p>
+      <p> The last file is  putc.c.  It contains two procedures, both of which have to do with printing messages. The standard library procedures cannot be used, because they send messages to the file system. These procedures send messages directly to the terminal task.</p>
+      <p> 5.8. SUMMARY</p>
+      <p> When seen from the outside, a file system is a collection of files and directories, plus operations on them. Files can be read and written, directories can be created and destroyed, and files can be moved from directory to directory. Most modern file systems support a hierarchical directory system, in which directories may have subdirectories  ad infinitum.</p>
+      <p> When seen from the inside, a file system looks quite different. The file system designers have to be concerned with how storage is allocated, and how the system keeps track of which block goes with which file. We have also seen how different systems have different directory structures. File system reliability and performance are also important issues.</p>
+      <p> We looked at some of the ways network file servers have been constructed in recent years. Atomic updates and transactions are often key features of these systems.</p>
+      <p> Security and protection are of vital concern to both the system users and designers. We discussed some security flaws in older systems, and generic problems that many systems have. We also looked at authentication, with and without passwords, access control lists, and capabilities.</p>
+      <p> Finally, we studied the MINIX file system in detail. It is large, but not very complicated. It accepts requests for work from user processes, indexes into a table of procedure pointers, and calls that procedure to carry out the requested</p>
+      <p> SEC. 5.8</p>
+      <p> SUMMARY</p>
+      <p> 333</p>
+      <p> system call. Due to its modular structure and position outside the kernel, it can be removed from MINIX and used as a free-standing network file server with only minor modifications.</p>
+      <p> PROBLEMS</p>
+      <p> 1. An operating system only supports a single directory, but allows that directory to have arbitrarily many files with arbitrarily long file names. Can something approximating a hierarchical file system be simulated? How?</p>
+      <p> 2. Give 5 different path names for the file  letclpasswd.  (Hint: think about the directory entries "." and "..".)</p>
+      <p> 3. Free disk space can be kept track of using a free list or a bit map. Disk addresses require  D  bits. For a disk with  B  blocks,  F  of which are free, state the condition under which the free list uses less space than the bit map. For  D  having the value 16 bits, express your answer as a percentage of the disk space that must be free.</p>
+      <p> 4. An MS-DOS computer uses a FAT to keep track of disk blocks. Compare its performance to UNIX with respect to doing random seeks on long files, if</p>
+      <p> (a) The FAT is always on disk.</p>
+      <p> (b) The FAT is always in memory.</p>
+      <p> 5. How many disk references are needed to open the path  games/zapper  in UNIX?</p>
+      <p> 6. The link count in the UNIX i-node is redundant. All it does it tell how many directory entries point to the i-node, something that can equally well be seen by looking at the directories. Why is this field used?</p>
+      <p> 7. A UNIX file system uses 1024-byte blocks and 16-bit disk addresses. The i-node holds 8 disk addresses for data blocks, one single-indirect block address, and one double-indirect block address. What is the maximum file size? Think carefully.</p>
+      <p> 8. In UNIX, files can be shared by having two directories point to the same i-node. MS-DOS does not have i-nodes. Could files be linked in two directories at the same time in MS-DOS? If so, how could it be implemented?</p>
+      <p> 9. A file system checker has built up its counters as shown in Fig. 5-15. They are:</p>
+      <p> In use:   1 01001011010010 Free:     0 00111000101101 Are there any errors? If so, are they serious? Why?</p>
+      <p> 10. It has been suggested that the first part of each UNIX file be kept in the same disk block as its i-node. What good would this do?</p>
+      <p> 11. The performance of a file system depends critically upon the cache hit rate (fraction of blocks found in the cache). If it takes 1 msec to satisfy a request from the cache, but 40 msec to satisfy a request if a disk read is needed, give a formula for the mean time required to satisfy a request if the hit rate is  h.  Plot this function for values of  h  from 0 to 1.0.</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> 12. A floppy disk has 40 cylinders. A seek takes 6 msec per cylinder moved. If no attempt is made to put the blocks of a file close to each other, two blocks that are logically consecutive (i.e., follow one another in the file) will be about 13 cylinders apart, on the average. If, however, the operating system makes an attempt to cluster related blocks, the mean interblock distance can be reduced to 2 cylinders (for example). How long does it take to read a 100 block file in both cases, if the rotational latency is 100 msec and the transfer time is 25 msec per block?</p>
+      <p> 13. Would compacting disk storage periodically be of any conceivable value? Why or why not?</p>
+      <p> 14. A UNIX program creates a file and immediately seeks to byte 20 million. It then writes one byte. How many disk blocks does the file now occupy (including indirect blocks).</p>
+      <p> 15. For a file system offering remote disk service, state whether each of the following is done in the client machine or the server machine.</p>
+      <p> (a) Checking file permissions to see if the user may access the file.</p>
+      <p> (b) Handling seek errors on the disk.</p>
+      <p> (c) Looking up path names.</p>
+      <p> 16. How could TENEX be modified not to have the password problem described in the text?</p>
+      <p> 17. After getting your degree, you apply for a job as director of a large university computer center that has just put its ancient operating system out to pasture and switched over to UNIX. You get the job. Fifteen minutes after starting work, your assistant bursts into your office screaming: "Some students have discovered the algorithm we use for encrypting passwords and posted it on the bulletin board." What should you do?</p>
+      <p> 18. The MOUNT system call in UNIX is restricted to the super-user. Why?</p>
+      <p> 19. The Morris-Thompson protection scheme with the n-bit random numbers was designed to make it difficult for an intruder to discover a large number of passwords by encrypting common strings in advance. Does the scheme also offer protection against a student user who is trying to guess the super-user password on his machine?</p>
+      <p> 20. A computer science department has a large collection of UNIX machines on its local network. Users on any machine can issue a command of the form</p>
+      <p> machine4 who</p>
+      <p> and have it executed on  machine4,  without having the user login on the remote machine. This feature is implemented by having the user's kernel send the command and his uid to the remote machine. Is this scheme secure if the kernels are all trustworthy (e.g., large time-shared minicomputers with protection hardware)? What if some of the machines are students' personal computers, with no protection hardware?</p>
+      <p> 21. When a file is removed, its blocks are generally put back on the free list, but they are not erased. Do you think it would be a good idea to have the operating system</p>
+      <p> CHAP. 5</p>
+      <p> PROBLEMS</p>
+      <p> 335</p>
+      <p> erase each block before releasing it? Consider both security and performance factors in your answer, and explain the effect of each.</p>
+      <p> 22. Three different protection mechanisms that we have discussed are capabilities, access control lists, and the UNIX  rwx  bits. For each of the following protection problems, tell which of these mechanisms can be used.</p>
+      <p> (a) Rick wants his files readable by everyone except Jennifer.</p>
+      <p> (b) Helen and Anna want to share some secret files.</p>
+      <p> (c) Cathy wants some of her files to be public.</p>
+      <p> For UNIX, assume that groups are categories such as faculty, students, secretaries, and so on.</p>
+      <p> 23. Consider the following protection mechanism. Each object and each process is assigned a number. A process can only access an object if the object has a higher number than the process. Which of the scheme discussed in the text does this resemble? In what essential way does it differ from the scheme in the text?</p>
+      <p> 24. Can the Trojan Horse attack work in a system protected by capabilities?</p>
+      <p> 25. Two computer science students, Carolyn and Elinor, are having a discussion about i-nodes in MINIX, Carolyn maintains that memories have gotten so large and so cheap that when a file is opened, it is simpler and faster just to fetch a new copy of the i-node into the i-node table, rather than search the entire table to see if it is already there. Elinor disagrees. Who is right?</p>
+      <p> 26. Is it possible for an i-node in memory to have  i-count  equal to 1 but  i-link  equal to 0? How?</p>
+      <p> 27. A MINIX file system for a 360K floppy disk has 360 IK disk blocks. It also has 63 i-nodes. How many blocks are available for directories and data?</p>
+      <p> 28. If the i-node bit map in MINIX is completely garbled by a crash, is there any way to recover the contents of the file system, or is it lost forever? Explain.</p>
+      <p> 29. Now repeat the previous problem, only this time assume it is the zone map that has been garbled.</p>
+      <p> 30. Opening and reading a block special file is implemented almost the same way as opening and reading an ordinary file. Describe the differences between the two.</p>
+      <p> 31. Why does the block cache use the hash table? Could it function without this table?</p>
+      <p> 32. Find as many security flaws as you can in MINIX. Caution: do not try this exercise at your local computer center. They do not have much of a sense of humor there.</p>
+      <p> 33. Write a printer spooling daemon for MINIX.</p>
+      <p> 34. Implement named pipes in MINIX. A named pipe can be implemented as a special file with major device number 255. When one process opens it to read and another process opens it to write, it behaves the same way as a pipe created by the PIPE system call.</p>
+      <p> 35. MINIX does not have any way to lock files. Implement a new system call, LOCK, that takes a file descriptor and locks the corresponding file. If the file is already</p>
+      <p> FILE SYSTEMS</p>
+      <p> CHAP. 5</p>
+      <p> locked, the system call fails. Users can open locked files, but they cannot lock them again until they have been unlocked. Also implement an UNLOCK system call.</p>
+      <p> 36. Implement symbolic links in MINIX. You may limit the path length to something that conveniently fits in an i-node. There is a spare bit in the mode (01000 bit) that can be used to indicate that a file is a symbolic link. Add a new system call to allow symbolic links to be made.</p>
+      <p> 37. Implement a system of disk space quotas by having a file  /etc/quota  tell how much space each user is entitled to have, and how much the user currently has. Every time a zone is allocated on behalf of a user, update the current usage and check to see if the user is over quota. Users who are over quota do not get any more space. Make the design efficient.</p>
+      <p> READING LIST AND</p>
+      <p> BIBLIOGRAPHY</p>
+      <p> In the previous five chapters we have touched upon a variety of topics. This chapter is intended as an aid to readers interested in pursuing their study of operating systems further. Section 6.1 is a list of suggested readings. Section 6.2 is an alphabetical bibliography of all books and articles cited in this book.</p>
+      <p> In addition to the references given below, the  Proceedings of the n-th ACM Symposium on Operating Systems Principles  (ACM) held every other year and the  Proceedings of the n-th International Conference on Distributed Computing Systems  (IEEE) held every year are good places to look for recent papers on operating systems. Furthermore,  A CM Transactions on Computer Systems  and Operating Systems Review  are two journals that often have interesting articles on operating systems. Brumfield (1986) has published a useful guide to the operating systems literature. Useful bibliographies have been assembled by Metzner (1982), Newton (1979), Smith (1978, 1981), and Zobel (1983).</p>
+      <p> 6.1. SUGGESTIONS FOR FURTHER READING</p>
+      <p> 6.1.1. Introduction and General Works</p>
+      <p> Bach,  The Design of the UNIX Operating System</p>
+      <p> A detailed description of the internal structure and algorithms used by System</p>
+      <p> 337</p>
+      <p> READING LIST AND BIBLIOGRAPHY</p>
+      <p> CHAP. 6</p>
+      <p> 5.2. It covers the kernel, the buffer cache, files, processes, and memory management, among other topics.</p>
+      <p> Blair et al., "A Critique of UNIX"</p>
+      <p> A discussion of areas in which UNIX is weak, including file management, process creation, process scheduling, and resource management. A useful antidote to the numerous papers and books that describe UNIX as the greatest invention since sliced bread.</p>
+      <p> Brooks,  The Mythical Man-Month: Essays on Software Engineering</p>
+      <p> A witty, amusing, and informative book on how  not  to write an operating system by someone who learned the hard way. Full of good advice.</p>
+      <p> Comer,  Operating System Design. The Xinu Approach</p>
+      <p> A  book about the Xinu operating system, which runs on the LSI-11 computer. It contains a detailed exposition of the code, including a complete listing in C.</p>
+      <p> Deitel,  An Introduction to Operating Systems</p>
+      <p> The first part of this book contains standard material, but the last five chapters contain detailed case studies of UNIX, VMS, CP/M, MVS, and VM/370.</p>
+      <p> Finkel,  An Operating Systems Vade Mecum</p>
+      <p> A general text on operating systems. It is practically-oriented, up-to-date, well-written and covers many of the topics treated in this book, making it a good place to look for a different perspective on the same subject.</p>
+      <p> Holt,  Concurrent Euclid, The UNIX System, and TUNIS</p>
+      <p> TUNIS, like M1NIX, is a rewrite of UNIX. This book describes the TUNIS system, but does not contain the source code. TUNIS is written not in C, but in Concurrent Euclid, and much of the book is devoted to explaining the various features of this language.</p>
+      <p> Lampson, "Hints for Computer System Design"</p>
+      <p> Butler Lampson, one of the world's leading designers of innovative operating systems, has collected many hints, suggestions, and guidelines from his years of experience and put them together in this entertaining and informative article. Like Brooks' book, this is required reading for every aspiring system designer.</p>
+      <p> Peterson and Silberschatz,  Operating System Concepts. 2nd Ed.</p>
+      <p> Another text on operating systems. It covers many of the same topics as this book, and is a good general reference.</p>
+      <p> SEC. 6.1</p>
+      <p> SUGGESTIONS FOR FURTHER READING</p>
+      <p> 339</p>
+      <p> Quarterman et al., "4.2 BSD and 4.3 BSD as Examples of the UNIX System"</p>
+      <p> A survey of the structure, internal organization and algorithms used by Berkeley UNIX including processes, scheduling, paging, I/O, communications and networking.</p>
+      <p> Ritchie and Thompson, "The UNIX Time-Sharing System"</p>
+      <p> This is the original paper on UNIX by its designers. All the key ideas are here. It is as well worth reading now as when it was first published.</p>
+      <p> Tanenbaum and van Renesse, "Distributed Operating Systems"</p>
+      <p> A survey article about distributed operating systems. It focuses on those aspects of distributed operating systems that differ from single-processor systems, and thus complements the material in this book. Four existing distributed systems are examined in detail.</p>
+      <p> 6.1.2. Processes</p>
+      <p> Andrews and Schneider, "Concepts and Notations for Concurrent Progr."</p>
+      <p> A tutorial and survey of processes and interprocess communication, including busy waiting, semaphores, monitors, message passing, and other techniques. The article also shows how these concepts are embedded in various programming languages.</p>
+      <p> Ben-Ari,  Principles of Concurrent Programming</p>
+      <p> This little book is entirely devoted to the problems of interprocess communication. There are chapters on mutual exclusion, semaphores, monitors, and the dining philosophers problem, among others.</p>
+      <p> Birrell and Nelson, "Implementing Remote Procedure Calls"</p>
+      <p> Remote procedure calls are commonly used in distributed systems for interprocess communication. This paper describes the implementation of a particularly elegant remote procedure call system developed at Xerox PARC.</p>
+      <p> Kerridge and Simpson, "Communicating Parallel Processes"</p>
+      <p> A discussion of what is wrong with the standard interprocess communication primitives, and a proposal for a new language in which parallelism can be more easily expressed.</p>
+      <p> Lampson and Redell, "Experience with Processes and Monitors in Mesa"</p>
+      <p> When monitors are used in real systems, problems arise that do not come up in textbook examples. This paper describes some of these problems and their solutions.</p>
+      <p> READING LIST AND BIBLIOGRAPHY</p>
+      <p> CHAP. 6</p>
+      <p> Peterson and Silberschatz,  Operating Systems Concepts. 2nd Ed.</p>
+      <p> Chapters 9 and 10 are devoted to processes and interprocess communication, including semaphores, monitors, and other techniques.</p>
+      <p> 6.1.3. Input/Output</p>
+      <p> Calingaert,  Operating Systems Elements</p>
+      <p> Chapter 5 on device management discusses such issues as: allocation, buffering, blocking and error recovery.</p>
+      <p> Coffman et al., "System Deadlocks"</p>
+      <p> A short introduction to deadlocks, what causes them, and how they can be prevented or detected.</p>
+      <p> Finkel,  An Operating Systems Vade Mecum</p>
+      <p> Chapter 5 discusses I/O hardware and device drivers, particularly for terminals and disks.</p>
+      <p> Grosshans,  File Systems Design and Implementation</p>
+      <p> Chapters 2-8 cover a variety of design issues for I/O systems, primarily for disks and magnetic tapes.</p>
+      <p> Holt, "Some Deadlock Properties of Computer Systems"</p>
+      <p> A discussion of deadlocks. Holt introduces a directed graph model that can be used to analyze some deadlock situations.</p>
+      <p> IEEE,  Computer Magazine,  July 1985</p>
+      <p> This special issue on mass storage has five papers on advanced disk systems, including optical disks.</p>
+      <p> Isloor and Marsland, "The Deadlock Problem: An Overview"</p>
+      <p> A tutorial on deadlocks, with special emphasis on data base systems. A variety of models and algorithms are covered.</p>
+      <p> Pike et al., "Hardware/Software Tradeoffs for Bitmap Graphics on the Blit"</p>
+      <p> A description of how the Blit terminal works. The authors argue that special hardware assistance for bitmap graphics is not necessary. Everything should be done in software.</p>
+      <p> 6.1.4. Memory Management</p>
+      <p> Denning, "Virtual Memory"</p>
+      <p> A classic paper on many aspects of virtual memory. Denning was one of the pioneers in this field, and was the inventor of the working set concept.</p>
+      <p> SEC. 6.1</p>
+      <p> SUGGESTIONS FOR FURTHER READING</p>
+      <p> 341</p>
+      <p> Denning, "Working Sets Past and Present"</p>
+      <p> A good overview of numerous memory management and paging algorithms. A comprehensive bibliography is included.</p>
+      <p> Doran, "Virtual Memory"</p>
+      <p> A tutorial on virtual memory, covering both concepts and implementation. The Burroughs B6700 and GE 645 are used as examples.</p>
+      <p> Knuth,  The Art of Computer Programming</p>
+      <p> First fit, best fit, buddy systems, and other memory management algorithms are discussed and compared in this book.</p>
+      <p> Peterson and Silberschatz,  Operating System Concepts. 2nd Ed.</p>
+      <p> Chapters 5 and 6 deal with memory management, including swapping, paging, and segmentation. A variety of paging algorithms are mentioned.</p>
+      <p> 6.1.5. File Systems</p>
+      <p> Anyanwu and Marshall, "A Crash Resistant UNIX File System"</p>
+      <p> A description of how the concept of stable storage can be integrated into an operating system. The conceptual background, implementation, and performance of the resulting system are discussed.</p>
+      <p> Denning,  Cryptography and Data Security</p>
+      <p> A thorough treatment of the problems of protection, cryptography, and security in operating systems and data base systems. Many models and algorithms are discussed.</p>
+      <p> Denning and Denning, "Data Security"</p>
+      <p> A survey of security and protection issues, ranging from capabilities and cryptography at one end, to information flows and inference controls at the other.</p>
+      <p> Grampp and Morris, "UNIX Operating System Security"</p>
+      <p> A practical guide to making your UNIX system more secure. It covers passwords, file system security, the SETUID bit, Trojan horses, networking, encryption, and people problems.</p>
+      <p> Grosshans,  File Systems Design and Implementation</p>
+      <p> The latter part of this book deals with file system design and access methods. It is oriented towards the kinds of file systems found on large mainframes, which are quite different from the ones covered in this book.</p>
+      <p> READING LIST AND BIBLIOGRAPHY</p>
+      <p> CHAP. 6</p>
+      <p> IEEE,  Proc. of the 1986 IEEE Symposium on Security and Privacy</p>
+      <p> A collection of 24 papers on various aspects of security and privacy, including models as well as policies and applications such as operating systems, networks, cryptography, and data bases.</p>
+      <p> Kochan and Wood,  UNIX System Security</p>
+      <p> An entire book telling how to run a secure UNIX shop. It deals with user security, system security, and network security.</p>
+      <p> McKusick et al., "A Fast File System for UNIX"</p>
+      <p> The UNIX file system was completely reimplemented for 4.2 BSD. This paper describes the design of the new file system, with emphasis on performance aspects.</p>
+      <p> Lampson, "Atomic Transactions"</p>
+      <p> A good introduction to the concept of atomic transactions, showing how they can be built up from simple primitives.</p>
+      <p> Linden, "Oper. System Structures to Support Security and Reliable Software"</p>
+      <p> A survey of protection mechanisms, with an emphasis on domains, capabilities, and typed objects.</p>
+      <p> Popek and Walker,  The LOCUS Distributed Systems Architecture</p>
+      <p> Chapter 3 describes the operation of the LOCUS file system, which is physically distributed, replicated, but still compatible with that of UNIX.</p>
+      <p> Svobodova, "File Servers for Network-Based Distributed Systems"</p>
+      <p> A survey of file servers used in distributed systems. The emphasis is on file servers that provide atomic actions and transactions.</p>
+      <p> 6.2. ALPHABETICAL BIBLIOGRAPHY</p>
+      <p> ANDREWS, G.R., and SCHNEIDER, F.B.: "Concepts and Notations for Concurrent Programming,"  Computing Surveys,  vol. 15, pp. 3-43, March 1983.</p>
+      <p> ANYANWU, J.A., and MARSHALL, L.F.:  "A Crash Resistant UNIX File System," Software—Practice and Experience,  vol. 16, pp. 107-118, Feb. 1986.</p>
+      <p> ATKINSON, R., and HEWITT, C: "Synchronization and Proof Techniques for Serializ-ers,"  IEEE Trans, on Software Eng.,  vol. SE-5, pp. 10-23, Jan. 1979.</p>
+      <p> BAYS, C: "A Comparison of Next-Fit, First-Fit, and Best-Fit,"  Commun. of the ACM, vol. 20, pp. 191-192, March 1977.</p>
+      <p> SEC. 6.2</p>
+      <p> ALPHABETICAL BIBLIOGRAPHY</p>
+      <p> 343</p>
+      <p> BECK, L.L.: "A Dynamic Storage Allocation Technique Based on Memory Residence Time,"  Commun. of the ACM,  vol. 25, pp. 714-724, Oct. 1982.</p>
+      <p> BELADY, L.A., NELSON, R.A., and SHEDLER, G.S.: "An Anomaly in Space-Time Characteristics of Certain Programs Running in a Paging Machine,"  Commun, of the ACM,  vol. 12, pp. 349-353, June 1969.</p>
+      <p> BELL TELEPHONE LABORATORIES, INC.:  UNIX Programmer's Manual, Vol. 1.  New York: Holt, Rinehart, and Winston, 1983.</p>
+      <p> BEN-ARI, M:  Principles of Concurrent Programming,  Englewood Cliffs, N.J.: Prentice-Hall International, 1982.</p>
+      <p> BENSOUSSAN, A., CLINGEN, C.T., and DALEY, R.C.: "The MULTICS Virtual Memory: Concepts and Design,"  Commun. of the ACM,  vol. 15, pp. 308-318, May 1972.</p>
+      <p> BIRRELL, A.D., and NEEDHAM, R.M.: "A Universal File Server,"  IEEE Trans, on Software Eng.,  vol. SE-6, pp. 450-453, Sept. 1980.</p>
+      <p> BIRRELL, A.D., and NELSON, B.J.: "Implementing Remote Procedure Calls,"  ACM Trans, on Computer Systems,  vol. 2, pp. 39-59, Feb. 1984.</p>
+      <p> BLAIR, G.S., MALONE, J.R., and MARIANI, J.A.: "A Critique of UNIX,"  Software-Practice and Experience,  vol. 15, pp. 1125-1139, Dec. 1985.</p>
+      <p> BOLON, C:  Mastering C,  Berkeley, CA: Sybex, 1986.</p>
+      <p> BOURNE, S.R.:  The UNIX System,  Reading, Mass: Addison-Wesley, 1982.</p>
+      <p> BRINCH HANSEN, P.: "The Programming Language Concurrent Pascal,"  IEEE Trans, on Software Eng.,  vol. SE-1, pp. 199-207, June 1975.</p>
+      <p> BROOKS, F. P., Jr.:  The Mythical Man-Month: Essays on Software Engineering,  Reading, Mass: Addison-Wesley, 1975.</p>
+      <p> BROWN, P.:  Starting with UNIX,  Reading, Mass.: Addison-Wesley, 1984.</p>
+      <p> BRUMFIELD, J.A.: "A Guide to Operating Systems Literature,"  Operating Systems Review,  vol. 20, pp. 38-42, April 1986.</p>
+      <p> CADOW, H.:  OS/360 Job Control Language,  Englewood Cliffs, N.J.: Prentice-Hall, 1970.</p>
+      <p> CALINGAERT, P.:  Operating System Elements,  Englewood Cliffs, N.J.: Prentice-Hall, 1982.</p>
+      <p> CAMPBELL, R.H., and HABERMANN, A.N.: "The Specification of Process Synchronization by Path Expressions," in  Operating Systems,  Kaiser, C. (ed.), Berlin: Springer-Verlag, 1974.</p>
+      <p> CHERITON, D.R.: "An Experiment Using Registers for Fast Message-Based Interprocess Communication,"  Operating Systems Review,  vol. 18, pp. 12-20, Oct. 1984.</p>
+      <p> READING LIST AND BIBLIOGRAPHY</p>
+      <p> CHAP. 6</p>
+      <p> CHRISTIAN, K.:  The UNIX Operating System,  New York: John Wiley, 1983.</p>
+      <p> COFFMAN, E.G., ELPHICK, M.J., and SHOSHANI, A.: "System Deadlocks,"  Computing Surveys,  vol. 3, pp. 67-78, June 1971.</p>
+      <p> COMER, D.:  Operating System Design. The Xinu Approach,  Englewood Cliffs, N.J.: Prentice-Hall, 1984.</p>
+      <p> CORBATO, F.J., MERWIN-DAGGETT, M., and DALEY, R.C: "An Experimental Time-Sharing System,"  Proc. AlTPS Fall Joint Computer Conf.,  pp. 335-344, 1962.</p>
+      <p> CORBATO, F.J., SALTZER, J.H., and CLINGEN, C.T.: "MULTICS—The First Seven Years,"  Proc. AFIPS Spring Joint Computer Conf.,  pp. 571-583, 1972.</p>
+      <p> CORBATO, F.J., and VYSSOTSKY, V.A.: "Introduction and Overview of the MULTICS System,"  Proc. AFIPS Fall Joint Computer Conf.,  pp. 185-196, 1965.</p>
+      <p> COURTOIS, P.J., HEYMANS, F., and PARNAS, D.L.: "Concurrent Control with Readers and Writers,"  Commun. of the ACM,  vol. 10, pp. 667-668, Oct. 1971.</p>
+      <p> DALEY, R.C, and NEUMANN, P.G.: "A General Purpose File System for Secondary Storage,"  Proc. AFIPS Fall Joint Computer Conf,  pp. 213-229, 1965.</p>
+      <p> DEITEL, H.M.:  An Introduction to Operating Systems,  Reading, Mass.: Addison-Wesley, 1983.</p>
+      <p> DENNING, D:  Cryptography and Data Security,  Reading, Mass: Addison-Wesley, 1982.</p>
+      <p> DENNING, P.J.: "The Working Set Model for Program Behavior,"  Commun. of the ACM,  vol. 11, pp. 323-333, 1968a.</p>
+      <p> DENNING, P.J.: "Thrashing: Its Causes and Prevention,"  Proc. AFIPS National Computer Conf,  pp. 915-922, 1968b.</p>
+      <p> DENNING, P.J.: "Virtual Memory,"  Computing Surveys,  vol. 2, pp. 153-189, Sept. 1970.</p>
+      <p> DENNING, P.J.: "Working Sets Past and Present,"  IEEE Trans, on Software Eng.,  vol. SE-6, pp. 64-84, Jan. 1980.</p>
+      <p> DALEY, R.C, and DENNIS, J.B.: "Virtual Memory, Process, and Sharing in MULTICS," Commun. of the ACM,  vol. 11, pp. 306-312, May 1968.</p>
+      <p> DALEY, R.C, and NEUMANN, P.G.: "A General Purpose File System for Secondary Storage,"  Proc. AFIPS Fall Joint Computer Conf,  pp. 213-229, 1965.</p>
+      <p> DENNIS, J.B., and VAN HORN, E.C: "Programming Semantics for Multiprogrammed Computations,"  Commun. of the ACM,  vol. 9, pp. 143-155, March 1966.</p>
+      <p> DIJKSTRA, E.W.: "Co-operating Sequential Processes," in  Programming Languages, Genuys, F. (ed.), London: Academic Press, 1965.</p>
+      <p> SEC. 6.2</p>
+      <p> ALPHABETICAL BIBLIOGRAPHY</p>
+      <p> 345</p>
+      <p> DIJKSTRA, E.W.: "The Structure of THE Multiprogramming System,"  Commun. of the ACM,  vol. 11, pp. 341-346, May 1968.</p>
+      <p> DORAN, R.W.: "Virtual Memory"  Computer,  vol. 9, pp. 27-37, Oct. 1976.</p>
+      <p> FABRY, R.S.: "Capability-Based Addressing,"  Commun. of the ACM,  vol. 17, pp. 403-412, July 1974.</p>
+      <p> FELDMAN, S.I.: "Make—A Computer Program for Maintaining Programs,"  Software-Practice and Experience,  vol. 9, pp. 255-266, April 1979.</p>
+      <p> FINKEL, R.A.:  An Operating Systems Vade Mecum,  Englewood Cliffs, N.J.: Prentice-Hall, 1986.</p>
+      <p> FOTHERINGHAM, J.: "Dynamic Storage Allocation in the Atlas Computer Including an Automatic Use of a Backing Store,"  Commun. of the ACM,  vol. 4, pp. 435-436, Oct. 1961.</p>
+      <p> FOXLEY, E.:  UNIX for Super-Users,  Reading, Mass.: Addison-Wesley, 1985.</p>
+      <p> FRIDRICH, M., and OLDER, W.: "The Felix File Server,"  Proc. of the Eighth Symposium on Operating Systems Principles,  ACM, pp. 37-46, 1981.</p>
+      <p> GEHANI, N.:  Advanced C: Food for the Educated Palate,  Rockville, Md.: Computer Science Press, 1985.</p>
+      <p> GOLDEN, D., and PECHURA, M.: "The Structure of Microcomputer File Systems," Commun. of the ACM,  vol. 29, pp. 222-230, March 1986.</p>
+      <p> GRAHAM, R.: "Use of High-Level Languages for System Programming," Project MAC Report TM-13, M.I.T., Sept. 1970.</p>
+      <p> GRAMPP, F.T., and MORRIS, R.H.: "UNIX Operating System Security,"  AT&amp;T Bell Laboratories Technical Journal,  vol. 63, pp. 1649-1672, Oct. 1984.</p>
+      <p> GROSSHANS, D.:  File Systems Design and Implementation,  Englewood Cliffs, N.J.: Prentice-Hall, 1986.</p>
+      <p> HANCOCK, L., and KRIEGER, M.:  The C Primer. 2nd Ed.,  New York: McGraw-Hill, 1986.</p>
+      <p> HARBISON, S., and STEELE, G., Jr.:  C: A Reference Manual,  Englewood Cliffs, N.J.: Prentice-Hall, 1984.</p>
+      <p> HARRISON, M.A., RUZZO, W.L., and ULLMAN, J.D.: "Protection in Operating Systems,"  Commun. of the ACM,  vol. 19, pp. 461-471, Aug. 1976.</p>
+      <p> HA VENDER, J.W.: "Avoiding Deadlock in Multitasking Systems,"  IBM Systems Journal,  vol. 7, pp. 74-84, 1968.</p>
+      <p> HEBBARD, B. et al.: "A Penetration Analysis of the Michigan Terminal System," Operating Systems Review,  vol. 14, pp. 7-20, Jan. 1980.</p>
+      <p> READING LIST AND BIBLIOGRAPHY</p>
+      <p> CHAP. 6</p>
+      <p> HOARE, C.A.R.: "Monitors, An Operating System Structuring Concept,"  Commun. of the ACM,  vol. 17, pp. 549-557, Oct. 1974; Erratum in  Commun. of the ACM,  vol. 18, p. 95, Feb. 1975.</p>
+      <p> HOLT, R.C: "Some Deadlock Properties of Computer Systems,"  Computing Surveys, vol. 4, pp. 179-196, Sept. 1972.</p>
+      <p> HOLT, R.C:  Concurrent Euclid, The UNIX System, and TUNIS,  Reading, Mass: Addison-Wesley, 1983.</p>
+      <p> IEEE:  Proc. of the 1986 IEEE Symposium on Security and Privacy,  IEEE, 1986.</p>
+      <p> ISLOOR, S.S., and MARSLAND, T.A.: "The Deadlock Problem: An Overview,"  Computer,  vol. 13, pp. 58-78, Sept. 1980.</p>
+      <p> KAUFMAN, A.: "Tailored-List and Recombination-Delaying Buddy Systems,"  ACM Trans, on Programming Languages and Systems,  vol. 6, pp. 118-125, Jan. 1984.</p>
+      <p> KERNIGHAN, B.W., and MASHEY, J.R.: "The UNIX Programming Environment,"  IEEE Computer,  vol. 14, pp. 12-24, April 1981.</p>
+      <p> KERNIGHAN, B.W., and PIKE, R.  The UNIX Programming Environment,  Englewood Cliffs, N.J.: Prentice-Hall, 1984.</p>
+      <p> KERNIGHAN, B.W., and RITCHIE, D.M.:  The C Programming Language,  Englewood Cliffs, N.J.: Prentice-Hall, 1978.</p>
+      <p> KERRIDGE, J., and SIMPSON, D.: "Communicating Parallel Processes,"  Software-Practice and Experience,  vol. 16, pp. 63-86, Jan. 1986.</p>
+      <p> KLEINROCK, L.:  Queueing Systems. Vol. 2. Computer Applications,  New York: John Wiley, 1975.</p>
+      <p> KNOWLTON, K.C.: "A Fast Storage Allocator,"  Commun. of the ACM,  vol. 8, pp. 623-625, Oct. 1965.</p>
+      <p> KNUTH, D.E.:  The Art of Computer Programming, Volume 1: Fundamental Algorithms. 2nd ed.,  Reading, Mass.: Addison-Wesley, 1973.</p>
+      <p> KOCHAN, S.G., and WOOD, P.H.:  UNIX System Security,  Hasbrouck Heights, N.J.: Hay-den, 1985.</p>
+      <p> LAMPSON, B.W.: "A Scheduling Philosophy for Multiprogramming Systems,"  Commun. of the ACM,  vol. 11, pp. 347-360, May 1968.</p>
+      <p> LAMPSON, B.W.: "A Note on the Confinement Problem,"  Commun. of the ACM,  vol. 10, pp. 613-615, Oct. 1973.</p>
+      <p> LAMPSON, B.W.: "Atomic Transactions," in  Distributed Systems — Architecture and Implementation,  Lampson, B.W. (ed.), Springer-Verlag, pp. 246-264, 1981.</p>
+      <p> SEC. 6.2</p>
+      <p> ALPHABETICAL BIBLIOGRAPHY</p>
+      <p> 347</p>
+      <p> LAMPSON, B.W.: "Hints for Computer System Design,"  IEEE Software,  vol. 1, pp. 11-28, Jan. 1984.</p>
+      <p> LAMPSON, B.W., and REDELL, D.D.: "Exprience with Processes and Monitors in Mesa,"  Commun. of the ACM,  vol. 23, pp. 105-117, Feb. 1980.</p>
+      <p> LAMPSON, B.W., and STURGIS, H.E.: "Crash Recovery in a Distributed Data Storage System," Xerox PARC Report, April 1979.</p>
+      <p> LANDWEHR, C.E;.: "Formal Models of Computer Security,"  Computing Surveys,  vol. 13, pp. 247-278, Sept. 1981.</p>
+      <p> LEVIN, R., COHEN, E.S., CORWIN, W.M., POLLACK, F.J., and WULF, W.A.: "Policy/Mechanism Separation in Hydra,"  Proc. of the Fifth Symposium on Operating System Principles,  ACM, pp. 132-140, 1975.</p>
+      <p> LINDE, R.R.: "Operating System Penetration,"  Proc. AFIPS National Computer Conf, pp. 361-368, 1975.</p>
+      <p> LINDEN, T.A.: "Operating System Structures to Support Security and Reliable Software"  Computing Surveys,  vol. 8, pp. 409-445, Dec. 1976.</p>
+      <p> LOMUTO, A.N., and LOMUTO, N.:  A UNIX Primer,  Englewood Cliffs, N.J.: Prentice-Hall, 1983.</p>
+      <p> McGILTON, H., and MORGAN, R.:  Introducing the UNIX System,  New York: McGraw-Hill, 1983.</p>
+      <p> McKUSICK, M.J., JOY, W.N., LEFFLER, S.J., and FABRY, R.S.: "A Fast File System for UNIX,"/4CM  Trans, on Computer Systems,  vol. 2, pp. 181-197, Aug. 1984.</p>
+      <p> METZNER, J.R.: "Structuring Operating Systems Literature for the Graduate Course," Operating Systems Review,  vol. 16, pp. 10-25, Oct. 1982.</p>
+      <p> MORRIS, R., and THOMPSON, K.: "Password Security: A Case History,"  Commun. of the ACM,  vol. 22, pp. 594-597, Nov. 1979.</p>
+      <p> MULLENDER, S.J., and TANENBAUM, A.S.: "Immediate Files,"  Software-Practice and Experience.,  vol. 14, pp. 365-368, April 1984.</p>
+      <p> NEWTON,  G.:   "Deadlock  Prevention,   Detection,  and  Resolution:  An Annotated Bibliography,"  Operating Systems Review,  vol. 13, pp. 33^4, April 1979.</p>
+      <p> OLDEHOEFT, R.R., and ALLAN, S.J.: "Adaptive Exact-Fit Storage Management,"  Commun. of the ACM,  vol. 28, pp. 506-511, May 1985.</p>
+      <p> ORGANICK, E.I.:  Tlie Multics System,  Cambridge, Mass: M.I.T. Press, 1972.</p>
+      <p> PASTERNACK, I.:  Exploring the UNIX Environment,  New York: Bantam Books, 1985.</p>
+      <p> PETERSON, G.L.: "Myths about the Mutual Exclusion Problem,"  Information Processing Letters,  vol. 12, pp. 115-116, June 1981.</p>
+      <p> READING LIST AND BIBLIOGRAPHY</p>
+      <p> CHAP. 6</p>
+      <p> PETERSON, J.L., and NORMAN, T.A.: "Buddy Systems,"  Commun. of the ACM,  vol. 20, pp. 421-431, June 1977.</p>
+      <p> PETERSON, J.L., and SILBERSCHATZ, A.:  Operating System Concepts. 2nd Ed.  Reading, Mass.: Addison-Wesley, 1985.</p>
+      <p> PIKE, R., LOCANTHI, B., and REISER, J.: '-Hardware/Software Tradeoffs for Bitmap Graphics on the Blit,"  Software—Practice and Experience,  vol. 15, pp. 131-152, Feb. 1985.</p>
+      <p> POOLE, P.C., and POOLE, N.:  Using UNIX by Example,  Reading, Mass: Addison-Wesley, 1986.</p>
+      <p> POPEK, G., and WALKER, B.:  The LOCUS Distributed System Architecture,  Cambridge, Mass.: MIT Press, 1985.</p>
+      <p> POPEK, G., WALKER, B., CHOW, J., EDWARDS, D., KLINE, C, RUDISIN, G., and THIEL, G.: "LOCUS A Network Transparent, High Reliability Distributed System,"  Proc. Eighth Symp. Operating Syst. Prin.,  ACM, pp. 160-168, 1981.</p>
+      <p> PU, C, NOE, J.D., and PROUDFOOT, A: "Regeneration of Replicated Objects: A Technique and its Eden Implementation,"  Proc. Second Int'l Conf. on Data Eng.,  pp. 175-187, Feb 1986.</p>
+      <p> QUARTERMAN, J.S., SILBERSCHATZ, A., and PETERSON, J.L.: "4.2BSD and 4.3BSD as Examples of the UNIX System,"  Computing Surveys,  vol. 17, Dec. 1985.</p>
+      <p> REED, D.P., and KANODIA, R.K.: "Synchronization with Eventcounts and Sequencers," Commun. of the ACM,  vol. 22, pp. 115-123, Feb. 1979.</p>
+      <p> RITCHIE, D.M., and THOMPSON, K.: "The UNIX Time-Sharing System,"  Commun. of the ACM,  vol. 17, pp. 365-375, July 1974.</p>
+      <p> ROCHKIND, M.J.:  Advanced UNIX Programming,  Englewood Cliffs, N.J.: Prentice-Hall, 1985.</p>
+      <p> SALTZER, J.H.: "Protection and Control of Information Sharing in  multics,"  Commun. of the ACM,  vol. 17, pp. 388-402, July 1974.</p>
+      <p> SALTZER, J.H., and SCHROEDER, M.D.: "The Protection of Information in Computer Systems,"  Proc. IEEE,  vol. 63, pp. 1278-1308, Sept. 1975.</p>
+      <p> SCHROEDER, M.D., and SALTZER, J.H.: "A Hardware Architecture for Implementing Protection Rings,"  Commun. of the ACM,  vol. 15, pp. 157-170, March 1972.</p>
+      <p> SEAWRIGHT, L.H., and MACKINNON, R.A.: "VM/370—A Study of Multiplicity and Usefulness,"  IBM Systems Journal,  vol. 18, pp. 4-17, 1979.</p>
+      <p> SMITH, A.J.: "Bibliography on Paging and Related Topics,"  Operating Systems Review, vol. 12, pp. 39-56, Oct. 1978.</p>
+      <p> SEC. 6.2</p>
+      <p> ALPHABETICAL BIBLIOGRAPHY</p>
+      <p> 349</p>
+      <p> SMITH, A.J.: "Bibliography on File and I/O System Optimization and Related Topics," Operating Systems Review,  vol. 15, pp. 39-54, Oct. 1981.</p>
+      <p> STEPHENSON, C.J.: "Fast Fits: A New Method for Dynamic Storage Allocation,"  Proc. Ninth Symposium on Operating Systems Principles,  ACM, pp. 30-32, 1983.</p>
+      <p> SVOBODOVA, L.: "File Servers for Network-Based Distributed Systems,"  Computing Surveys,  vol. 16, pp. 353-398, Dec. 1984.</p>
+      <p> SWINEHART, D., MCDANIEL, G., and BOGGS, D.R.: "WFS: A Simple Shared File System for a Distributed Environment,"  Proc. Seventh Symposium on Operating System Principles,  ACM, pp. 9-17, 1979.</p>
+      <p> TANENBAUM, A.S., MULLENDER, S.J., and VAN RENESSE, R.: "Using Sparse Capabilities in a Distributed Operating System,"  Proc. Sixth Int'l Conf. on Distributed Computer Systems,  IEEE, pp. 558-563, 1986.</p>
+      <p> TANENBAUM, A.S., and VAN RENESSE, R.: "Distributed Operating Systems,"  Computing Surveys,  vol. 17, Dec. 1985.</p>
+      <p> TANENBAUM, A.S., VAN STAVEREN, H., KEIZER, E.G., and STEVENSON, J.W.: "A Practical Tool Kit for Making Portable Compilers,"  Commun. of the ACM,  vol. 26, pp. 654-660, Sept. 1983.</p>
+      <p> TEORY, T.J.: "Properties of Disk Scheduling Policies in Multiprogrammed Computer Systems,"  Proc. AFIPS Fall Joint Computer Conf.,  pp. 1-11, 1972.</p>
+      <p> THOMPSON, K.: "Unix Implementation,"  Bell System Technical Journal,  vol. 57, pp. 1931-1946, July-Aug. 1978.</p>
+      <p> WALKER, A.N.:  The UNIX Environment,  New York: John Wiley, 1984.</p>
+      <p> WALKER, B., POPEK, G., ENGLISH, R., KLINE, C, and THIEL, G.: "The LOCUS Distributed Operating System,"  Proc. Ninth Symp. Operating Syst. Prin.,  ACM, pp. 49-70, 1983.</p>
+      <p> WEINSTEIN, M.J ., PAGE, T.W., Jr., LIVESEY, B.K., and POPEK, G.J.: "Transactions and Synchronization in a Distributed Operating System,"  Proc. Tenth Symp. Oper. Syst. Prin.,  pp. 115-125, Dec. 1985.</p>
+      <p> WULF, W.A., COHEN, E.S., CORWIN, W.M., JONES, A.K., LEVIN, R., PIERSON, C, and POLLACK, F.J.: "HYDRA: The Kernel of a Multiprocessor Operating System,"  Commun. of the ACM,  vol. 17, pp. 337-345, June 1974.</p>
+      <p> ZOBEL, D.: "The Deadlock Problem: A Classifying Bibliography,"  Operating Systems Review,  vol. 17, pp. 6-16, Oct. 1983.</p>
+      <p> A</p>
+      <p> INTRODUCTION TO C</p>
+      <p> C was invented by Dennis Ritchie of AT&amp;T Bell Laboratories to provide a high-level language in which UNIX could be programmed. It is now widely used for many other applications as well. C is especially popular with systems programmers because it allows programs to be expressed simply and concisely. The definitive work describing C is  The C Programming Language  by Kernighan and Ritchie (1978). Bolon (1986), Gehani (1984), Hancock and Krieger (1986), Harbison and Steele (1984), and numerous others have also written books about C.</p>
+      <p> In this appendix we will attempt to provide enough of an introduction to C that someone who is familiar with high-level languages such as Pascal, PL/I, or Modula 2 will be able to understand most of the MINIX code given in this book. Features of C not used in MINIX are not discussed here. Numerous subtle points are omitted. The emphasis is on reading C, not writing it.</p>
+      <p> A.l. FUNDAMENTALS OF C</p>
+      <p> A C program is made up of a collection of procedures (often called functions, even when they do not return values). These procedures contain declarations, statements, and other elements that together tell the computer to do something. Figure A-l shows a little procedure that declares three integer variables and assigns them all values.  The procedure's name is  main.   It has no formal</p>
+      <p> SEC. A.l</p>
+      <p> FUNDAMENTALS OF C</p>
+      <p> 351</p>
+      <p> parameters, as indicated by the absence of any identifiers between the parentheses. Its body is enclosed between braces (curly brackets). This example shows that C has variables, and that these variables must be declared before being used. C also has statements, in this example, assignment statements. All statements must be terminated by semicolons (unlike Pascal, which uses semicolons between statements, not after them). Comments are started by the /* symbol and ended by the */ symbol, and may extend over multiple lines.</p>
+      <p> main() {</p>
+      <p> int i, j, k;</p>
+      <p> i = 10;</p>
+      <p> j = i + 015;</p>
+      <p> k = j * j + OxFF;</p>
+      <p> /* this is a comment */</p>
+      <p> /* declaration of 3 integer variables */</p>
+      <p> /* set i to 10 (decimal) */</p>
+      <p> /* set j to i + 15 (octal) */</p>
+      <p> /* set k to j * j + OxFF (hexadecimal) */</p>
+      <p> Fig. A-l. An example of a procedure in C.</p>
+      <p> The procedure contains three constants. The constant 10 in the first assignment is an ordinary decimal constant. The constant 015 is an octal constant (equal to 13 decimal). Octal constants always begin with a leading zero. The constant OxFF is a hexadecimal constant (equal to 255 decimal). Hexadecimal constants always begin with Ox. All three radices are commonly used in C.</p>
+      <p> A.2. BASIC DATA TYPES</p>
+      <p> C has two principal data types: integer and character, written int and char, respectively. There is no Boolean data type. Instead, integers are used, with 0 meaning false and everything else meaning true. C also has floating point types, but MINIX does not use them.</p>
+    </div>
+  </body>
+</html>

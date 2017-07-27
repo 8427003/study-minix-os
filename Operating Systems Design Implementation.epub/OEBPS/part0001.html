@@ -1,0 +1,939 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>part0001</title>
+    <meta content="abbyy to epub tool, v0.2" name="generator"/>
+    <link href="stylesheet.css" type="text/css" rel="stylesheet"/>
+    <meta content="application/xhtml+xml; charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <div class="body">
+      <p> How do we avoid race conditions? The key to preventing trouble here and in many other situations involving shared memory, shared files, and shared everything else, is to find some way to prohibit more than one process from reading and writing the shared data at the same time. Put in other words, what we need is mutual exclusion—some way of making sure that if one process is using a shared variable or file, the other processes will be excluded from doing the same thing. The difficulty above occurred because process  B  started using one of the shared variables before process  A  was finished with it. The choice of appropriate primitive operations for achieving mutual exclusion is a major design issue in any operating system, and a subject that we will examine in great detail in the following sections.</p>
+      <p> The problem of avoiding race conditions can also be formulated in an abstract way. Part of the time, a process is busy doing internal computations and other things that do not lead to race conditions. However, sometimes a process may be accessing shared memory or files, or doing other critical things that can lead to races. That part of the program where the shared memory is accessed is called the critical section. If we could arrange matters such that no two processes were ever in their critical sections at the same time, we could avoid race conditions.</p>
+      <p> Although this requirement avoids race conditions, this is not sufficient for having parallel processes cooperate correctly and efficiently using shared data. We need four conditions to hold to have a good solution:</p>
+      <p> 1. No two processes may be simultaneously inside their critical sections.</p>
+      <p> 2. No assumptions are made about relative process speeds or number of CPUs.</p>
+      <p> 3. No process running outside its critical section should block other processes.</p>
+      <p> 4. No process should wait arbitrarily long to enter its critical section.</p>
+      <p> 2.2.3. Mutual Exclusion with Busy Waiting</p>
+      <p> In this section we will examine various proposals for achieving mutual exclusion, so that while one process is busy updating shared memory in its critical region, no other process will enter  its  critical region and cause trouble.</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> Disabling Interrupts</p>
+      <p> The simplest solution is to have each process disable all interrupts just after entering its critical region and re-enable them just before leaving it. With interrupts disabled, no clock interrupts can occur. The CPU is only switched from process to process as a result of clock or other interrupts, after all, and with interrupts turned off the CPU will not be switched to another process. Thus, once a process has disabled interrupts, it can examine and update the shared memory without fear that any other process will intervene.</p>
+      <p> This approach is generally unattractive because it is unwise to give user processes the power to turn off interrupts. Suppose one of them did it, and never turned them on again? That would be the end of the system. Furthermore, if the computer has two or more CPUs, disabling interrupts affects only the CPU that executed the disable instruction. The other ones will continue to run normally and may well access the shared memory.</p>
+      <p> On the other hand, it is frequently convenient for the kernel itself to disable interrupts for a few instructions while it is updating variables or lists. If an interrupt occurred while the list of ready processes, for example, was in an inconsistent state, race conditions could occur. The conclusion is: disabling interrupts is sometimes a useful technique within the kernel, but is not appropriate as a general mutual exclusion mechanism for user processes.</p>
+      <p> Lock Variables</p>
+      <p> As a second attempt, let us look for a software solution. Consider having a single, shared, (lock) variable, initially 0. When a process wants to enter its critical region, it first tests the lock. If the lock is 0, the process sets it to 1 and enters the critical region. If the lock is already 1, the process just waits until it becomes 0. Thus, a 0 means that no process is in its critical region, and a 1 means that some process is in its critical region.</p>
+      <p> Unfortunately, this idea contains exactly the same fatal flaw that we saw in the spooler directory. Suppose one process reads the lock and sees that it is 0. Before it can set the lock to 1, another process is scheduled, runs, and sets the lock to 1. When the first process runs again, it will also set the lock to 1, and two processes will be in their critical regions at the same time.</p>
+      <p> Now you might think that we could get around this problem by first reading out the lock value, then checking it again just before storing into it, but that really does not help. The race now occurs if the second process modifies the lock just after the first process has finished its second check.</p>
+      <p> Strict Alternation</p>
+      <p> A third approach to the mutual exclusion problem is shown in Fig. 2-7. In this proposed solution, the integer variable  turn,  initially 0, keeps track of whose</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 55</p>
+      <p> turn it is to enter the critical region and examine or update the shared memory. Initially, process 0 inspects  turn,  finds it to be 0, and enters its critical region. Process 1 also finds it to be 0, and therefore sits in a tight loop continually testing  turn  to see when it becomes 1. Continuously testing a variable waiting for some value to appear is called busy waiting. It should usually be avoided, since it wastes CPU time.</p>
+      <p> while (TRUE) {  while   (TRUE)  {</p>
+      <p> while (turn ! = 0) /* wait */ ; while (turn != 1) /* wait */ •</p>
+      <p> critical_section(); critical_section();</p>
+      <p> turn  = 1; turn = 0;</p>
+      <p> noncritical_section(); noncritical sectionO;</p>
+      <p> } } ~ '</p>
+      <p> (a)</p>
+      <p> (b)</p>
+      <p> Fig. 2-7. A proposed solution to the critical section problem.</p>
+      <p> When process 0 leaves the critical section, it sets  turn  to 1, to allow process 1 to enter its critical section. Suppose process 1 finishes its critical section quickly, so both processes are in their noncritical sections, with  turn  set to 0. Now process 0 executes its whole loop quickly, coming back to its noncritical section with turn  set to 1. At this point, process 0 finishes its noncritical section and goes back to the top of its loop. Unfortunately, it is not permitted to enter its critical section now, because  turn  is 1 and process 1 is busy with its noncritical section. Put in a different way, taking turns is not a good idea when one of the processes is much slower than the other.</p>
+      <p> This situation violates condition 3 set out above: process 0 is being blocked by a process not in its critical section. Going back to the spooler directory earlier, if we now associate the critical section with reading and writing the spooler directory, process 0 would not be allowed to print another file because process 1 was doing something else.</p>
+      <p> In fact, this solution requires that the two processes strictly alternate in entering their critical regions, for example, in spooling files. Neither one would be permitted to spool two in a row. While this algorithm does avoid all races, it is not really a serious candidate as a solution.</p>
+      <p> Peterson's Solution</p>
+      <p> By combining the idea of taking turns with the idea of lock variables and warning variables, the Dutch mathematician T. Dekker was the first one to devise a software solution to the mutual exclusion problem that does not require strict alternation. Unfortunately, his solution is quite complicated, so in practice it is never used. For a discussion of Dekker's algorithm, see Dijkstra (1965).</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> In 1981, Peterson discovered a much simpler way to achieve mutual exclusion. It is shown in Fig. 2-8.</p>
+      <p> ^define FALSE 0 ^define TRUE 1</p>
+      <p> ^define N 2 /* number of processes */</p>
+      <p> int turn; /* whose turn is it? */</p>
+      <p> int interested[N]; /* all values initially 0 (FALSE) */</p>
+      <p> enter_region(process)</p>
+      <p> int process; /* process number: 0 or 1 */</p>
+      <p> {</p>
+      <p> int other; /* number of the other process */</p>
+      <p> other = 1 - process; /* the opposite of process */</p>
+      <p> interestedfprocess] = TRUE;     /* show that you are interested */ turn = process;  /*  set flag */</p>
+      <p> while (turn == process &amp;&amp; interested[other] == TRUE) /* null statement */</p>
+      <p> }</p>
+      <p> leave_region(process)</p>
+      <p> int process; /* process leaving critical region */</p>
+      <p> {</p>
+      <p> interested[process] = FALSE;   /* indicate departure from critical region +</p>
+      <p> }</p>
+      <p> Fig. 2-8. Peterson's solution for achieving mutual exclusion.</p>
+      <p> Before using the shared variables (i.e., before entering its critical region), each process calls  enter-region  with its own process number, 0 or 1, as parameter. This call will cause it to wait, if need be, until it is safe to enter. After it has finished with the shared variables, the process calls  leave-region  to indicate that it is done and to allow the other process to enter, if it so desires.</p>
+      <p> Let us see how this solution works. Initially neither process is in its critical region. Now process 0 calls  enter-region.  It indicates its interest by setting its array element, and sets  turn  to 0. Since process 1 is not interested,  enter-region returns immediately. If process 1 now calls  enter-region,  it will hang there until interested[0]  goes to  FALSE,  an event that only happens when process 0 calls leave-region.</p>
+      <p> Now consider the case that both processes call  enter-region  almost simultaneously. Both will store their process number in  turn.  Whichever store is done last is the one that has a lasting result; the first one is lost. Suppose process 1 stores last, so  turn  is 1. When both processes come to the while statement, process 0 executes it zero times, and enters its critical region. Process 1 loops and does not enter its critical region.</p>
+      <p> SEC. 2.2 INTERPROCESS COMMUNICATION</p>
+      <p> The TSL Instruction</p>
+      <p> 57</p>
+      <p> Now let us look at a proposal that requires a little help from the hardware. Many computers, especially those designed with multiple processors in mind, have an instruction TEST AND SET LOCK (TSL) that works as follows. It reads the contents of the memory word into a register and then stores a nonzero value at that memory address. The operations of reading the word and storing into it are guaranteed to be indivisible—no other processor can access the word until the instruction is finished. The CPU executing the TSL instruction locks the memory bus to prohibit other CPUs from accessing memory until it is done.</p>
+      <p> To use the TSL instruction, we will use a shared  variable, flag,  to coordinate access to shared memory. When  flag  is 0, any process may set it to 1 using the TSL instruction and then read or write the shared memory. When it is done, the process sets  flag  back to 0 using an ordinary xMOVE instruction.</p>
+      <p> How can this instruction be used to prevent two processes from simultaneously entering their critical regions? The solution is given in Fig. 2-9. There a four-instruction subroutine in a fictitious (but typical) assembly language is shown. The first instruction copies the old value  of flag  to a register and then sets  flag  to 1. Then the old value is compared with 0. If it is nonzero, the lock was already set, so the program just goes back to the beginning and tests it again. Sooner or later it will become 0 (when the process currently in its critical section is done with its critical section), and the subroutine returns, with the lock set. Clearing the lock is simple. The program just stores a 0 in  flag.  No special instructions are needed.</p>
+      <p> enter_region:</p>
+      <p> tsl register,flag cmp register,#0 jnz enter_region ret</p>
+      <p> leave_region:</p>
+      <p> mov flag,#0 ret</p>
+      <p> copy flag to register and set flag to 1 was flag zero?</p>
+      <p> if it was non zero, lock was set, so loo return to caller; critical region entere</p>
+      <p> store a 0 in flag return to caller</p>
+      <p> Fig. 2-9. Setting and clearing locks using TSL.</p>
+      <p> One solution to the critical section problem is now straightforward. Before entering its critical section, a process calls  enter_region,  which does busy waiting until the lock is free, then it acquires the lock and returns. After the critical section the process calls  leave^region,  which stores a 0 in  flag.  As with all solutions based on critical regions, the processes must call  enter_region  and  leave-region at the correct times for the method to work. If a process cheats, the mutual exclusion will fail.</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> 2.2.4. Sleep and Wakeup</p>
+      <p> Both Peterson's solution and the solution using TSL are correct, but both have the defect of requiring busy waiting. In essence, what these solutions do is this: when a process wants to enter its critical section, it checks to see if the entry is allowed. If it is not, the process just sits in a tight loop waiting until it is.</p>
+      <p> Not only does this approach waste CPU time, but it can also have unexpected effects. Consider a computer with two processes,  H,  with high priority and  L, with low priority. The scheduling rules are such that  H  is run whenever it is in ready state. At a certain moment, with  L  in its critical region,  H  becomes ready to run (e.g., an I/O operation completes).  H  now begins busy waiting, but since L is never scheduled while  H  is running, L never gets the chance to leave its critical region, so  H  loops forever.</p>
+      <p> Now let us look at some interprocess communication primitives that block instead of wasting CPU time when they are not allowed to enter their critical sections. One of the simplest is the pair SLEEP and WAKEUP. SLEEP is a system call that causes the caller to block, that is, be suspended until another process wakes it up. The WAKEUP call has one parameter, the process to be awakened. Alternatively, both SLEEP and WAKEUP each have one parameter, a memory address used to match up SLEEPS with WAKEUPs.</p>
+      <p> As an example of how these primitives are used, let us consider the producer-consumer problem (also known as the bounded buffer problem). Two processes share a common, fixed-size buffer. One of them, the producer, puts information into the buffer, and the other one, the consumer, takes it out.</p>
+      <p> Trouble arises when the producer wants to put a new item in the buffer, but it is already full. The solution is for the producer to go to sleep, to be awakened when the consumer has removed one or more items. Similarly, if the consumer wants to remove an item from the buffer and sees that the buffer is empty, it goes to sleep until the producer puts something in the buffer and wakes it up.</p>
+      <p> This approach sounds simple enough, but it leads to the same kinds of race conditions we saw earlier with the spooler directory. To keep track of the number of items in the buffer, we will need a variable,  count.  If the maximum number of items the buffer can hold is  N,  the producer's code will first test to see if  count  is  N.  If it is, the producer will go to sleep; if it is not, the producer will add an item and increment  count.</p>
+      <p> The consumer's code is similar: first test  count  to see if it is 0. If it is, go to sleep; if it is nonzero, remove an item and decrement the counter. Each of the processes also tests to see if the other should be sleeping, and if not, wakes it up. The code for both producer and consumer is shown in Fig. 2-10.</p>
+      <p> To express system calls such as SLEEP and WAKEUP in C, we will show them as calls to library routines. They are not part of the standard C library, but presumably would be available on any system that actually had these system calls. The procedures  enter_item  and  remove-item,  which are not shown, handle the bookkeeping of putting items into and taking items out of the buffer.</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 59</p>
+      <p> tfdefine N 100 int count = 0;</p>
+      <p> producer()</p>
+      <p> {</p>
+      <p> while (TRUE) {</p>
+      <p> produce_item(); if (count == N) sleep(); enter_item(); count = count +</p>
+      <p> l;</p>
+      <p> /* number of slots in the buffer */ /* number of items in the buffer */</p>
+      <p> }</p>
+      <p> if (count == 1) wakeup(consumer)</p>
+      <p> /* repeat forever */ /# generate next item */ /* if buffer is full, go /* put item in buffer */ /* increment count of items in buffer */</p>
+      <p> to sleep */</p>
+      <p> /* was buffer empty? */</p>
+      <p> consumer() {</p>
+      <p> while (TRUE) {</p>
+      <p> if (count  -=  0 remove_item(); count = count</p>
+      <p> /* repeat forever */ sleepO;    /* if buffer is empty, got to sleep */</p>
+      <p> /* take item out of buffer */ 1; /* decrement count of items in buffer */</p>
+      <p> if (count == N-l) wakeup(producer);        /* was buffer full? */ consume_item(); /* print item */</p>
+      <p> Fig. 2-10. The producer-consumer problem with a fatal race condition.</p>
+      <p> Now let us get back to the race condition. It can occur because access to count  is unconstrained. The following situation could possibly occur. The buffer is empty and the consumer has just read  count  to see if it is 0. At that instant, the scheduler decides to stop running the consumer temporarily and start running the producer. The producer enters an item in the buffer, increments count,  and notices that it is now 1. Reasoning that  count  was just 0, and thus the consumer must be sleeping, the producer calls  wakeup  to wake the consumer up.</p>
+      <p> Unfortunately, the consumer is not yet logically asleep, so the wakeup signal is lost. When the consumer next runs, it will test the value of  count  it previously read, find it to be 0, and go to sleep. Sooner or later the producer will rill up the buffer and also go to sleep. Both will sleep forever.</p>
+      <p> The essence of the problem here is that a wakeup sent to a process that is not (yet) sleeping is lost. If it were not lost, everything would be all right. The obvious quick fix is to modify the rules to add a wakeup waiting bit to the picture. When a wakeup is sent to a process that is already awake, this bit is set. Later, when the process tries to go to sleep, if the wakeup waiting bit is on, it will be turned off, but the process will stay awake. The wakeup waiting bit is really a piggy bank for wakeup signals.</p>
+      <p> While the wakeup waiting bit saves the day in this simple example, it is easy</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> to construct examples with three or more processes in which one wakeup waiting bit is insufficient. We could make another patch, and add a second wakeup waiting bit, or maybe 8 or 32 of them, but in principle the problem is still there.</p>
+      <p> 2.2.5. Semaphores</p>
+      <p> This was the situation in 1965, when E. W. Dijkstra (1965) suggested using an integer variable to count the number of wakeups saved for future use. In his proposal, a new variable type, called a semaphore, was introduced. A semaphore could have the value 0, indicating that no wakeups were saved, or some positive value if one or more wakeups were pending.</p>
+      <p> Dijkstra proposed having two operations, DOWN and UP (generalizations of SLEEP and WAKEUP, respectively). The DOWN operation on a semaphore checks to see if the value is greater than 0. If so, it decrements the value (i.e., uses up one stored wakeup) and just continues. If the value is 0, the process is put to sleep. Checking the value, changing it, and possibly going to sleep is all done as a single, indivisible, atomic action. It is guaranteed that once a semaphore operation has started, no other process can access the semaphore until the operation has completed or blocked.</p>
+      <p> The UP operation increments the value of the semaphore addressed. If one or more processes were sleeping on that semaphore, unable to complete an earlier DOWN operation, one of them is chosen by the system (e.g., at random), and is allowed to complete its DOWN. Thus, after an UP on a semaphore with processes sleeping on it, the semaphore will still be 0, but there will be one fewer process sleeping on it. The operation of incrementing the semaphore and waking up one process is also indivisible. No process ever blocks doing an UP, just as no process ever blocks doing a WAKEUP in the earlier model.</p>
+      <p> As an aside, in Dijkstra's original paper, he used the names P and V instead of DOWN and UP, respectively, but since these have no mnemonic significance to people who do not speak Dutch (and only marginal significance to those who do), we will use the terms DOWN and UP instead. These were first introduced in Algol 68.</p>
+      <p> Semaphores solve the lost-wakeup problem, as shown in Fig. 2-11. It is essential that they be implemented in an indivisible way. The normal way is to implement UP and DOWN as system calls, with the operating system briefly disabling all interrupts while it is testing the semaphore, updating it, and putting the process to sleep, if necessary. As all of these actions take only a few instructions, no harm is done in disabling interrupts. If multiple CPUs are being used, each semaphore should be protected by a lock variable, with the TSL instruction used to make sure that only one CPU at a time examines the semaphore. Be sure you understand that using TSL to prevent several CPUs from accessing the semaphore at the same time is quite different from busy waiting by the producer or consumer waiting for the other to empty or fill the buffer.</p>
+      <p> This solution uses three semaphores, one called  full  for counting the number</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 61</p>
+      <p> #define N 100 typedef int semaphore; semaphore mutex = 1; semaphore empty = N; semaphore full = 0;</p>
+      <p> producer() {</p>
+      <p> int. item;</p>
+      <p> while (TRUE) {</p>
+      <p> produce_item(&amp;item); down(&amp;empty); down(&amp;mutex); enter_item(item); up(&amp;mutex); up(&amp;full);</p>
+      <p> }</p>
+      <p> /* number of slots in the buffer */</p>
+      <p> /* semaphores are a special kind of int *</p>
+      <p> /* controls access to critical region */</p>
+      <p> /* counts empty buffer slots */</p>
+      <p> /* counts full buffer slots */</p>
+      <p> /* TRUE is the constant 1 */</p>
+      <p> /* generate something to put in buffer */</p>
+      <p> /* decrement empty count */</p>
+      <p> /* enter critical region */</p>
+      <p> /* put new item in buffer */</p>
+      <p> /* leave critical region */</p>
+      <p> /* increment count of full slots */</p>
+      <p> consumer() {</p>
+      <p> int item;</p>
+      <p> while (TRUE) {</p>
+      <p> down(&amp;full); down(&amp;mutex); remove_item(&amp;item); up(&amp;mutex); up(&amp;empty); consume_item(item);</p>
+      <p> }</p>
+      <p> /# infinite loop */</p>
+      <p> /* decrement full count #/</p>
+      <p> /* enter critical region */</p>
+      <p> /* take item from buffer */</p>
+      <p> /* leave critical region */</p>
+      <p> /* increment count of empty slots */</p>
+      <p> /* do something with the item */</p>
+      <p> Fig. 2-11. The producer-consumer problem using semaphores.</p>
+      <p> of slots that are full, one called  empty  for counting the number of slots that are empty and one called  mutex  to make sure the producer and consumer do not access the buffer at the same time.  Full  is initially 0,  empty  is initially equal to the number of slots in the buffer, and  mutex  is initially 1. Semaphores that are initialized to 1 and used by two or more processes to ensure that only one of them can enter its critical region at the same time are called binary semaphores. If each process does a DOWN just before entering its critical region and an UP just after leaving it, mutual exclusion is guaranteed.</p>
+      <p> Now that we have a good interprocess communication primitive at our disposal, let us go back and look at the interrupt sequence of Fig. 2-5 again. In a system using semaphores, the natural way to hide interrupts is to have a semaphore,</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> initially set to 0, associated with each I/O device. Just after starting an I/O device, the managing process does a DOWN on the associated semaphore, thus blocking immediately. When the interrupt comes in, the interrupt handler then does an UP on the associated semaphore, which makes the relevant process ready to run again. In this model, step 5 in Fig. 2-5 consists of doing an UP on the device's semaphore, so that in step 6 the scheduler will be able to run the device manager. Of course, if several processes are now ready, the scheduler may choose to run an even more important process next. We will look at how scheduling is done later in this chapter.</p>
+      <p> 2.2.6. Event Counters</p>
+      <p> The solution to the producer-consumer problem using semaphores relied on mutual exclusion to avoid race conditions. It is also possible to program a solution without requiring mutual exclusion. In this section we will describe such a method. It uses a special kind of variable called an event counter (Reed and Kanodia, 1979).</p>
+      <p> Three operations are defined on an event counter  E:</p>
+      <p> 1.  Read(E):  Return the current value of  E.</p>
+      <p> 2. Advance(E):  Atomically increment £ by 1.</p>
+      <p> 3.  Await(E, v):  Wait until  E  has a value of v or more.</p>
+      <p> The producer-consumer problem does not use READ, but it is needed for other synchronization problems.</p>
+      <p> Notice that event counters only increase, never decrease. They always start at 0. Figure 2-12 shows the producer-consumer problem once more, this time using event counters.</p>
+      <p> Two event counters are used. The first one,  in,  counts the cumulative number of items that the producer has put into the buffer since the program started running. The other one,  out,  counts the cumulative number of items that the consumer has removed from the buffer so far. It is clear that  in  must be greater than or equal to  out , but not by more than the size of the buffer.</p>
+      <p> When the producer has computed a new item, it checks to see if there is room in the buffer, using the AWAIT system call. Initially,  out  will be 0 and sequence — N  will be negative, so the producer does not block. If the producer manages to generate  N +  1 items before the consumer has run at all, the AWAIT statement will wait until  out  becomes 1, something that will only happen after the consumer has removed one item.</p>
+      <p> The consumer's logic is even simpler. Before trying to remove the  k-th  item, it just waits until  in  has reached  k,  that is, until the producer has put  k  items into the buffer.</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 63</p>
+      <p> #define N        100 /* number of slots in the buffer */</p>
+      <p> typedef int event_counter; /* event_counters are a special kind of int */</p>
+      <p> event_counter in = 0; /# counts items inserted into buffer */</p>
+      <p> event_counter out = 0; /* counts items removed from buffer */</p>
+      <p> producer() {</p>
+      <p> int item, sequence = 0;</p>
+      <p> while (TRUE) {</p>
+      <p> produce_item(&amp;item); sequence = sequence + 1; await(out, sequence - N); enter_item(item); advance(&amp;in);</p>
+      <p> }</p>
+      <p> }</p>
+      <p> consumer() {</p>
+      <p> int item, sequence = 0;</p>
+      <p> while (TRUE) {</p>
+      <p> sequence = sequence + 1; await(in, sequence); remove_item(&amp;item); advance(&amp;out); consume_item(item);</p>
+      <p> }</p>
+      <p> Fig. 2-12. The producer-consumer problem using event counters. 2.2.7. Monitors</p>
+      <p> With semaphores and event counters, interprocess communication looks easy, doesn't it? Forget it. Look closely at the order of the DOWNs before entering or removing items from the buffer in Fig. 2-11. Suppose the two DOWNs in the producer's code were reversed in order, so  mutex  was decremented before  empty instead of after it. If the buffer were completely full, the producer would block, with  mutex  set to 0. Consequently, the next time the consumer tried to access the buffer, it would do a DOWN on  mutex,  now 0, and block too. Both processes would stay blocked forever and no more work would ever be done. This unfortunate situation is called a deadlock. We will study deadlocks in detail in Chap.</p>
+      <p> This problem is pointed out to show how careful you must be when using semaphores. One subtle error and everything comes to a grinding halt. It is like</p>
+      <p> /* infinite loop */</p>
+      <p> /» generate something to put in buffer */ /* count items produced so far */ /* wait until there is room in buffer */ /* put item in slot (sequence-1)  %  N  */ /* let consumer know about another item */</p>
+      <p> /* infinite loop */</p>
+      <p> /* number of item to remove from buffer */ /* wait until required item is present */ /* take item from slot (sequence-1) % N */ /* let producer know that item is gone */ /* do something with the item ♦/</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> programming in assembly language, only worse, because the errors are race conditions, deadlocks, and other forms of unpredictable and irreproducible behavior.</p>
+      <p> To make it easier to write correct programs, Hoare (1974) and Brinch Hansen (1975) proposed a higher level synchronization primitive called a monitor. Their proposals differed slightly, as described below. A monitor is a collection of procedures, variables, and data structures that are all grouped together in a special kind of module or package. Processes may call the procedures in a monitor whenever they want to, but they cannot directly access the monitor's internal data structures from procedures declared outside the monitor. Figure 2-13 illustrates a monitor written in an imaginary language, pidgin Pascal.</p>
+      <p> monitor  example integer /; condition c;</p>
+      <p> procedure  producer{x) ;</p>
+      <p> end;</p>
+      <p> procedure  consumer{x) ;</p>
+      <p> end;</p>
+      <p> end monitor; Fig. 2-13. A monitor.</p>
+      <p> Monitors have an important property that makes them useful for achieving mutual exclusion: only one process can be active in a monitor at any instant. Monitors are a programming language construct, so the compiler knows they are special and can handle calls to monitor procedures differently from other procedure calls. Typically, when a process calls a monitor procedure, the first few instructions of the procedure will check to see if any other process is currently active within the monitor. If so, the calling process will be suspended until the other process has left the monitor. If no other process is using the monitor, the calling process may enter.</p>
+      <p> It is up to the compiler to implement the mutual exclusion on monitor entries, but a common way is to use a binary semaphore. Because the compiler, not the programmer, is arranging for the mutual exclusion, it is much less likely that something will go wrong. In any event, the person writing the monitor does not have to be aware of how the compiler arranges for mutual exclusion. It is sufficient to know that by turning all the critical sections into monitor procedures, no two processes will ever execute their critical sections at the same time.</p>
+      <p> Although monitors provide an easy way to achieve mutual exclusion, as we</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 65</p>
+      <p> have seen above, that is not enough. We also need a way for processes to block when they cannot proceed. In the producer-consumer problem, it is easy enough to put all the tests for buffer-full and buffer-empty in monitor procedures, but how should the producer block when it finds the buffer full?</p>
+      <p> The solution lies in the introduction of condition variables, along with two operations on them, WAIT and  signal.  When a monitor procedure discovers that it cannot continue (e.g., the producer finds the buffer full), it does a WAIT on some condition variable, say,  full.  This action causes the calling process to block. It also allows another process that had been previously prohibited from entering the monitor to enter now.</p>
+      <p> This other process, for example, the consumer, can wake up its sleeping partner by doing a SIGNAL on the condition variable that its partner is waiting on. To avoid having two active processes in the monitor at the same time, we need a rule telling what happens after a SIGNAL. Hoare proposed to let the newly awakened process run, suspending the other one. Brinch Hansen proposed finessing the problem by requiring that a process doing a SIGNAL  must  exit the monitor immediately. In other words, a SIGNAL statement may appear only as the final statement in a monitor procedure. We will use Brinch Hansen's proposal because it is conceptually simpler and is also easier to implement. If a SIGNAL is done on a condition variable on which several processes are waiting, only one of them, determined by the system scheduler, is revived.</p>
+      <p> A skeleton of the producer-consumer problem with monitors is given in Fig. 2-14 in pidgin Pascal.</p>
+      <p> You may be thinking that the operations WAIT and SIGNAL look similar to SLEEP and WAKEUP, which we saw earlier had fatal race conditions. They  are very similar, but with one crucial difference: SLEEP and WAKEUP failed because while one process was trying to go to sleep, the other one was trying to wake it up. With monitors, that cannot happen. The automatic mutual exclusion on monitor procedures guarantees that if, say, the producer inside a monitor procedure discovers that the buffer is full, it will be able to complete the WAIT operation without having to worry about the possibility that the scheduler may switch to the consumer just before the WAIT completes. The consumer will not even be let into the monitor at all until the WAIT is finished and the producer has been marked as no longer runnable.</p>
+      <p> By making the mutual exclusion of critical regions automatic, monitors make parallel programming much less error-prone than with semaphores. Still, they too have some drawbacks. It is not for nothing that Fig. 2-14 is written in a strange kind of pidgin Pascal rather than in C, as are the other examples in this book. As we said earlier, monitors are a programming language concept. The compiler must recognize them and arrange for the mutual exclusion somehow C, Pascal, and most other languages do not have monitors, so it is unreasonable to expect their compilers to enforce any mutual exclusion rules. In fact how could the compiler even know which procedures were in monitors and which were not?</p>
+      <p> PROCESSES</p>
+      <p> CHAP.</p>
+      <p> monitor  ProducerConsumer condition  full, empty; integer  count;</p>
+      <p> procedure  enter; begin</p>
+      <p> if  count  =  N  then wait  (full); enter-item; count := count +  1; if  count =  1 then signal  (empty); end;</p>
+      <p> procedure  remove; begin</p>
+      <p> if  count  = 0 then  wait(empty); remove-item; count  :=  count —  1; if  count = N  - 1 then signal  (full); end;</p>
+      <p> count :=  0; end monitor;</p>
+      <p> procedure  producer; begin</p>
+      <p> while  true  do</p>
+      <p> begin</p>
+      <p> produce-item; ProducerConsumer. enter; end end;</p>
+      <p> procedure  consumer; begin</p>
+      <p> while  true  do</p>
+      <p> begin</p>
+      <p> ProducerConsumer. remove; consume—item; end end;</p>
+      <p> Fig. 2-14. The producer-consumer problem with monitors. The buffer has  N slots.</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 67</p>
+      <p> These same languages do not have semaphores either, but adding semaphores is easy: all you need to do is add two short assembly language routines to the library to issue the UP and DOWN system calls. The compilers do not even have to know that they exist. Of course, the operating systems have to know about the semaphores, but at least if you have decided to write a semaphore-based operating system, you can write the user programs for it in C or Pascal or even BASIC if you are masochistic enough. With monitors, you need a language that has them built in. A few languages, such as Concurrent Euclid (Holt, 1983) have them, but they are rare.</p>
+      <p> Another problem with monitors, and also with semaphores, is that they were designed for solving the mutual exclusion problem on one or more CPUs that all have access to a common memory. By putting the semaphores (or event counters) in the shared memory and protecting them with TSL instructions, we can avoid races. When we go to a distributed system consisting of multiple CPUs, each with its own private memory, connected by a local area network, these primitives become inapplicable. The conclusion is that semaphores are too low level and monitors are not usable except in a few programming languages. Furthermore, none of the primitives provide for information exchange between machines. Something else is needed.</p>
+      <p> 2.2.8. Message Passing</p>
+      <p> That something else is message passing. This method of interprocess communication uses two primitives SEND and RECEIVE, which, like semaphores and unlike monitors, are system calls rather than language constructs. As such, they can easily be put into library procedures, such as</p>
+      <p> send(destination, &amp;message);</p>
+      <p> and</p>
+      <p> receive(source, &amp;message);</p>
+      <p> The former sends a message to a given destination and the latter receives a message from a given source (or from  ANY,  if the receiver does not care). If no message is available, the receiver could block until one arrives.</p>
+      <p> Design Issues for Message Passing Systems</p>
+      <p> Message passing systems have many interesting problems and design issues that do not arise with semaphores or monitors, especially if the communicating processes are on different machines connected by a network. For example, messages can be lost by the network. To guard against lost messages, the sender and receiver can agree that as soon as a message has been received, the receiver will send back a special acknowledgement message. If the sender has not received the acknowledgement within a certain time interval, it retransmits the message.</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> Now consider what happens if the message itself is received correctly, but the acknowledgement is lost. The sender will retransmit the message, so the receiver will get it twice. It is essential that the receiver can distinguish a new message from the retransmission of an old one. Usually this problem is solved by putting consecutive sequence numbers in each original message. If the receiver gets a message bearing the same sequence number as the previous message, it knows that the message is a duplicate that can be ignored.</p>
+      <p> Message systems also have to deal with the question of how processes are named, so that the process specified in a SEND or RECEIVE call is unambiguous. Often a naming scheme of  process@machine  is used.</p>
+      <p> If the number of machines is very large, and there is no central authority that allocates machine names, it may happen that two organizations give their machine the same name. The problem of conflicts can be reduced considerably by grouping machines into domains, and then addressing processes as process@machine.domain.  In this scheme there is no problem if two machines have the same name, provided that they are in different domains. The domain names must also be unique, of course.</p>
+      <p> Authentication is also an issue in message systems: how can the client tell that he is communicating with the real file server, and not with an imposter? How can the file server tell which client has requested a file? Encrypting the messages with a key known only to authorized users can often be helpful here.</p>
+      <p> At the other end of the spectrum, there are also design issues that are important when the sender and receiver are on the same machine. One of these is performance. Copying messages from one process to another is always slower than doing a semaphore operation or entering a monitor. Much work has gone into making message passing efficient. Cheriton (1984), for example, has suggested limiting message size to what will fit in the machine's registers, and then doing message passing using the registers.</p>
+      <p> Remote Procedure Call</p>
+      <p> Some message passing systems are structured with all message traffic taking the form of a request message from a client to a server, followed by a reply message from the server back to the client. From the client's point of view, sending a message to a server and then waiting for a reply looks very much like calling a procedure and then waiting for it to finish. In both cases, the caller provides some parameters, starts the operation, blocks until it completes, and then gets some result values.</p>
+      <p> Some distributed operating systems (e.g., Birrell and Nelson, 1984) exploit this similarity by having interprocess communication take the form of remote procedure calls. When a client process wants to read a block from a remote file, for example, it calls a procedure (called a stub procedure)  read  on its own machine using the normal procedure call instruction, as shown in Fig. 2-15. Read  then sends a request message to the file server and waits for the reply.</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 69</p>
+      <p class="illus">
+        <img src="images/picture17.jpg" alt="picture17"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture18.jpg" alt="picture18"/>
+      </p>
+      <p> Fig. 2-15. Remote procedure call in six steps. (1) and (3) are ordinary procedure calls. (2) and (5) are messages. (4) and (6) are ordinary procedure returns.</p>
+      <p> On the server's machine, the message is accepted by the server stub procedure, which then calls the server using the standard procedure call instruction. When the server procedure has done the work, it returns to its caller, the stub, in the usual way. The server stub then sends a reply message back to the client stub. When the reply arrives, the client stub returns the results to the client procedure in the usual way.</p>
+      <p> The beauty of this scheme is that neither the client procedure nor the server procedure has to know that messages are being used. They just see ordinary procedure calls to local procedures. Only the stubs have to know about messages. The stubs are usually library procedures or are compiler generated.</p>
+      <p> Although the goal is to make remote procedure calls as much like local procedure calls as possible, it is a difficult goal to achieve. One problem is parameter passing. Passing parameters by value is not difficult, but passing them by reference is much harder. Furthermore, if the client and server machines have different representations for information, such as floating point numbers, much time may be wasted converting to and from a standard network format.</p>
+      <p> On some machines (e.g., 68000) the high-order byte of an integer has the lowest-numbered address and on other machines (e.g., 8088) it has the highest-numbered address. As a consequence, when an integer is sent from a 68000 to an 8088 a byte at a time, the integer will be byte-swapped when it arrives. This difference in architecture causes enormous problems and inefficiencies.</p>
+      <p> Another problem specific to remote procedure call is that of its failure semantics. Suppose the server crashes when executing a remote procedure call. What should be reported back to the client? It is not enough to merely report the crash, because the server may actually have finished the call just before crashing. If the client thinks the server crashed  before  executing the call, it will try again, which may not always be desirable.</p>
+      <p> As an example of this problem, consider an automated chocolate factory in which a remote procedure call is made to set a bit that causes a valve to open just long enough to fill a vat with chocolate. If the chocolate server crashes at approximately the time it was going to set the hardware bit, the client can never learn whether it crashed a microsecond  before  or  after  setting the bit.  If the</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> client repeats the call later, we may end up with a sticky brown floor. If the client does not repeat the call later, we may end up with an empty vat.</p>
+      <p> Depending on their implementations, remote procedure call systems can be divided into three categories based on their failure semantics. At least once systems guarantee that on a server crash the call will be executed one or more times (by simply timing out and repeating it until it is acknowledged). At most once systems guarantee that no call will ever be executed more than one time (no time out), but cannot guarantee that a call in progress during a crash will be executed at all. Maybe systems do not guarantee anything, but they are the easiest to implement.</p>
+      <p> The Producer-Consumer Problem with Message Passing</p>
+      <p> Now let us see how the producer-consumer problem can be solved with message passing and no shared memory. A solution is given in Fig. 2-16. We assume that all messages are the same size and that messages sent but not yet received are buffered automatically by the operating system. In this solution, a total of  N  messages is used, analogous to the A' slots in a shared memory buffer. The consumer starts out by sending  N  empty messages to the producer. Whenever the producer has an item to give to the consumer, it takes an empty message and sends back a full one. In this way, the total number of messages in the system remains constant in time, so they can be stored in a given amount of memory.</p>
+      <p> If the producer works faster than the consumer, all the messages will end up full, waiting for the consumer; the producer will be blocked, waiting for an empty to come back. If the consumer works faster, then the reverse happens: all the messages will be empties waiting for the producer to fill them up; the consumer will be blocked, waiting for a full message.</p>
+      <p> Many variants are possible with message passing. For starters, let us look at how messages are addressed. One way is to assign each process a unique address and have messages be addressed to processes. An alternative way is to invent a new data structure, called a mailbox. A mailbox is a place to buffer a certain number of messages, typically specified when the mailbox is created. When mailboxes are used, the address parameters in the SEND and RECEIVE calls are mailboxes, not processes. When a process tries to send to a mailbox that is full, it is suspended until a message is removed from that mailbox.</p>
+      <p> For the producer-consumer problem, both the producer and consumer would create mailboxes large enough to hold  N  messages. The producer would send messages containing data to the consumer's mailbox, and the consumer would send empty messages to the producer's mailbox. When mailboxes are used, the buffering mechanism is clear: the destination mailbox holds messages that have been sent to the destination process but have not yet been accepted.</p>
+      <p> The other extreme from having mailboxes is to eliminate all buffering. When this approach is followed, if the SEND is done before the RECEIVE, the sending</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 71</p>
+      <p> ^define N 100 /* number of slots in the buffer */</p>
+      <p> producer() {</p>
+      <p> int item;</p>
+      <p> message m; /* message buffer */</p>
+      <p> while (TRUE) {</p>
+      <p> produce_item(&amp;item);        /* generate something to put in buffer */ receive(consumer, &amp;m);     /* wait for an empty to arrive */ build_message(&amp;m, item); /* construct a message to send #/ send(consumer, &amp;m); /* send item to consumer */</p>
+      <p> }</p>
+      <p> consumer() {</p>
+      <p> int item, i; message m;</p>
+      <p> for (i = 0; i &lt; N; i++) send(producer, &amp;m);     /* send N empties */ while (TRUE) {</p>
+      <p> receive(producer, &amp;m);      /*  get message containing item */ extract_item(&amp;m, &amp;item); /* extract item from message */ send(producer, &amp;m); /* send back empty reply */</p>
+      <p> ^        consume_item(item); /* do something with the item */</p>
+      <p> }</p>
+      <p> Fig. 2-16. The producer-consumer problem with  N  messages.</p>
+      <p> process is blocked until the RECEIVE happens, at which time the message can be copied directly from the sender to the receiver, with no intermediate buffering. Similarly, if the RECEIVE is done first, the receiver is blocked until a SEND happens. This strategy is often known as a rendezvous. It is easier to implement than a buffered message scheme but is less flexible since the sender and receiver are forced to run in lockstep.</p>
+      <p> The interprocess communication between user processes in MINIX (and UNIX) is via pipes, which are effectively mailboxes. The only real difference between a message system with mailboxes and the pipe mechanism is that pipes do not preserve message boundaries. In other words, if one process writes 10 messages of 100 bytes to a pipe and another process reads 1000 bytes from that pipe, the reader will get all 10 messages at once. With a true message system, each  read should return only one message. Of course, if the processes agree always to read and write fixed-size messages from the pipe, or to end each message with a special character (e.g., line feed), no problems arise. The processes that make up the MINIX operating system itself use a true message scheme with fixed size messages for communication among themselves.</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> 2.2.9. Equivalence of Primitives</p>
+      <p> Reed and Kanodia (1979) described a different interprocess communication method called sequencers. Campbell and Habermann (1974) discussed a method called path expressions. Atkinson and Hewitt (1979) introduced serializes. While the list of different methods is not endless, it is certainly pretty long, with new ones being dreamed up all the time. Fortunately, space limitations prevent us from looking at all of them. Furthermore, many of the proposed schemes are similar to other ones.</p>
+      <p> In the previous sections we have studied four different interprocess communication primitives. Over the years, each one has accumulated supporters who maintain that their favorite way is the best way. The truth of the matter is that all these methods are essentially semantically equivalent (at least as far as single CPU systems are concerned). Using any of them, you can build the other ones.</p>
+      <p> We will now show the essential equivalence of semaphores, monitors, and messages. Not only is this interesting in its own right, but it also provides more insight and understanding about how the primitives work and how they can be implemented. Lack of space prevents us from dealing with event counters as well, but the general approach should be clear from the other examples.</p>
+      <p> Using Semaphores to Implement Monitors and Messages</p>
+      <p> Let us first see how we can build monitors and messages using semaphores. If the operating system provides semaphores as a basic feature, any compiler writer can easily implement monitors in his language as follows. Associated with each monitor is a binary semaphore,  mutex,  initially 1, to control entry to the monitor, and an additional semaphore, initially 0, per condition variable. When a monitor procedure is called, the first thing it does is a DOWN on its  mutex.  If the monitor is currently in use, the process will block. When leaving a monitor, a process does an UP on  mutex  to permit a waiting process to enter.</p>
+      <p> WAIT on a condition variable, c, is compiled into a sequence of three semaphore operations: UP  mutex,  then DOWN  c,  and finally DOWN  mutex.  The SIGNAL operation on a condition variable is translated into an UP on the corresponding semaphore.</p>
+      <p> To see why this mapping works, consider the producer-consumer problem again. The  mutex  semaphore guarantees that each process has exclusive access to the monitor for its critical section. Suppose the consumer starts first and discovers that there is no work for it in the buffer. It does a WAIT  empty,  which causes an UP on  mutex  and a DOWN on  empty.  The consumer goes to sleep, and the producer is allowed to enter as soon as it wants to. When the producer discovers that  count  (see Fig. 2-14 ) is 1, it will do SIGNAL  empty  to wake up the consumer. At this point both producer and consumer are active in the monitor, but since one of our rules of programming with monitors is that after doing SIGNAL a process must leave the monitor immediately, no harm is done.</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 73</p>
+      <p> Note that if the producer does its UP on  mutex  and leaves the monitor before the consumer has done its DOWN on  mutex,  it is possible that the producer could enter the monitor again before the consumer does its DOWN. Again, no harm is done, because the consumer cannot inspect or update any of the shared variables until after it has done the DOWN on  mutex.  If the producer is in the monitor at that moment,  mutex  will be 0 and the consumer will block until the producer leaves the monitor and does an UP on  mutex.</p>
+      <p> Now let us look at how to implement message passing with semaphores. Associated with each process is a semaphore, initially 0, on which it will block when a SEND or RECEIVE must wait for completion. A shared buffer area will be used to hold mailboxes, each one containing an array of message slots. The slots in each mailbox are chained together in a linked list, so messages are delivered in the order received. Each mailbox has integer variables telling how many slots are full and how many are empty. Finally, each mailbox also contains the start of two queues, one queue for processes that are unable to send to the mailbox and one queue for processes that are unable to receive from the mailbox. These queues need to supply only the process numbers of the waiting processes so an UP can be done on the relevant semaphore. The whole shared buffer is protected by a binary semaphore,  mutex,  to make sure that only one process can inspect or update the shared data structures at once. It is shown in Fig. 2-17.</p>
+      <p> Mailboxes</p>
+      <p> Full slots Empty slots</p>
+      <p> Send queue 2</p>
+      <p> Receive queue</p>
+      <p> Message</p>
+      <p> Message</p>
+      <p> Fig. 2-17. The shared buffer for implementing message passing with semaphores.</p>
+      <p> When a SEND or RECEIVE is done on a mailbox containing at least one empty or full slot, respectively, the operation inserts or removes a message, updates the counters and links, and exits normally. The use of  mutex  at the start and end of the critical region ensures that only one process at a time can use the counters and pointers, in order to avoid race conditions.</p>
+      <p> When a RECEIVE is done on an empty mailbox, the process trying to receive a message first enters itself on the receive queue for the mailbox and then does an UP on  mutex  and a DOWN on its own semaphore, thus putting itself to sleep.</p>
+      <p> Full slots</p>
+      <p> Empty slots</p>
+      <p> Send queue</p>
+      <p> Receive queue Message</p>
+      <p> Message</p>
+      <p> Semaphores one per process</p>
+      <p> (s) Mutex</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> Later, when it is awakened, it will immediately do a DOWN on  mutex  just as in the case of using semaphores to construct monitors.</p>
+      <p> When a SEND is done, if room exists in the destination mailbox, the message is put there and the sender checks to see if the receiving queue for that mailbox has any waiting processes. If so, the first one is removed from the queue, and the sender does an UP on its semaphore. The sender then exits the critical region and the newly awakened receiver can continue. Their respective DOWN and UP on  mutex  cancel (in whatever order they occur) and no problems occur, provided that just as with monitors, a process that wakes up another process always does the WAKEUP as the very last thing before leaving the critical region.</p>
+      <p> When a SEND cannot complete due to a full mailbox, the sender first queues itself on the destination mailbox, then does an UP on  mutex  and a DOWN on its own semaphore. Later, when a receiver removes a message from the full mailbox and notices that someone is queued trying to send to that mailbox, the sender will be awakened.</p>
+      <p> Using Monitors to Implement Semaphores and Messages</p>
+      <p> Implementing semaphores and messages using monitors follows roughly the same pattern as what we have just described, but is simpler, because monitors are a higher level construct than semaphores. To implement semaphores, we need a counter and a linked list for each semaphore to be implemented, as well as a condition variable per process. When a DOWN is done, the caller checks (inside the monitor) to see if the counter for that semaphore is greater than zero. If it is, the counter is decremented and the caller simply exits the monitor. If the counter is zero, the caller adds its own process number to the linked list for that semaphore and does a WAIT on its condition variable.</p>
+      <p> When an UP is done on a semaphore, the calling process increments the counter (inside the monitor, of course) and then checks to see if the linked list for that semaphore has any entries. If the list has entries, the calling process removes one of them and does a SIGNAL on the condition variable for that process. Note that the calling process is not required to choose the first process on the linked list. In a more sophisticated implementation, each process could put its priority on the list along with its process number, so that the highest priority process would be awakened first.</p>
+      <p> Implementing messages using monitors is essentially the same as with semaphores, except that instead of a semaphore per process we have a condition variable per process. The mailbox structures are the same for both implementations.</p>
+      <p> Using Messages to Implement Semaphores and Monitors</p>
+      <p> If a message system is available, it is possible to implement semaphores and monitors using a little trick. The trick is to introduce a new process, the  synchronization process.    Let us first look at how this process can be used to</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 75</p>
+      <p> implement semaphores. The synchronization process maintains a counter and a linked list of waiting processes for each semaphore. To do an UP or DOWN, a process calls the corresponding (library) procedure,  up  or  down,  which sends a message to the synchronization process specifying both the operation desired and the semaphore to be used. The library procedure then does a RECEIVE to get the reply from the synchronization process.</p>
+      <p> When the message arrives, the synchronization process checks the counter to see if the required operation can be completed. UPs can always complete, but DOWNs will block if the value of the semaphore is 0. If the operation is allowed, the synchronization process sends back an empty message, thus unblocking the caller. If, however, the operation is a DOWN and the semaphore is 0, the synchronization process enters the caller onto the queue and does not send a reply. The result is that the process doing the DOWN is blocked, just as it should be. Later, when an UP is done, the synchronization process picks one of the processes blocked on the semaphore, either in first-come-first-served order, priority order, or some other order, and sends it a reply. Race conditions are avoided here because the synchronization process handles only one request at a time.</p>
+      <p> Monitors can be implemented using messages using the same trick. We showed earlier how monitors can be implemented using semaphores. Now we have shown how semaphores can be implemented using messages. By combining the two, we get monitors from messages. One way to achieve this goal is to have the compiler implement the monitor procedures by calling the library procedures up  and  down  for the  mutex  and per-process semaphores, as described at the beginning of this section. These procedures would then be implemented by sending messages to the synchronization process. Other implementations are also possible.</p>
+      <p> 2.3. CLASSICAL IPC PROBLEMS</p>
+      <p> The operating systems literature is full of interesting problems that have been widely discussed and analyzed. In the following sections we will examine two of the better-known problems.</p>
+      <p> 2.3.1. The Dining Philosophers Problem</p>
+      <p> In 1965, Dijkstra posed and solved a synchronization problem called the dining philosophers problem. Since that time, everyone inventing yet another synchronization primitive has tried to demonstrate how wonderful the new primitive is by showing how elegantly it solves the dining philosophers problem. The problem can be stated as follows. Five philosophers are seated around a circular table. Each philosopher has a plate of especially slippery spaghetti. The spaghetti is so slippery that a philosopher needs two forks to eat it. Between each plate is a fork. The table is shown in Fig. 2-18.</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p class="illus">
+        <img src="images/picture19.jpg" alt="picture19"/>
+      </p>
+      <p> Fig. 2-18. Lunch time in the Philosophy Department.</p>
+      <p> The life of a philosopher consists of alternate periods of eating and thinking. (This is something of an abstraction, even for philosophers, but the other activities are irrelevant here.) When a philosopher gets hungry, she tries to acquire her left and right fork, one at a time, in either order. If successful in acquiring two forks, she eats for a while, then puts down the forks and continues to think. The key question is: can you write a program for each philosopher that does what it is supposed to do and never gets stuck? (It has been pointed out that the two-fork requirement is somewhat artificial; perhaps we should switch from Italian to Chinese food, substituting rice for spaghetti and chopsticks for forks.)</p>
+      <p> Figure 2-19 shows the obvious solution. The procedure  take-fork  waits until the specified fork is available and then seizes it. Unfortunately, the obvious solution is wrong. Suppose that all five philosophers take their left forks simultaneously. None will be able to take their right forks, and there will be a deadlock.</p>
+      <p> We could modify the program so that after taking the left fork, the program checks to see if the right fork is available. If it is not, the philosopher puts down the left one, waits for some time, and then repeats the whole process. This proposal too, fails, although for a different reason. With a little of bad luck, all the philosophers could start the algorithm simultaneously, picking up their left forks, seeing that their right forks were not available, putting down their left forks, waiting, picking up their left forks again simultaneously, and so on, forever. A situation like this, in which all the programs continue to run indefinitely but fail to make any progress is called starvation. (It is called starvation even when the problem does not occur in an Italian or a Chinese restaurant.)</p>
+      <p> SEC. 2.3</p>
+      <p> CLASSICAL IPC PROBLEMS</p>
+      <p> 77</p>
+      <p> ^define N 5 /* number of philosophers #/</p>
+      <p> philosopher(i)</p>
+      <p> int i; /* philosopher number, 0-a */</p>
+      <p> {</p>
+      <p> while (TRUE) {</p>
+      <p> think(); /* philosopher is thinking */</p>
+      <p> take_fork(i); /* take left fork */</p>
+      <p> take_fork((i+l)  %  N);     /* take right fork;  %  is modulo operator *</p>
+      <p> eat(); /* yum-yum, spaghetti */</p>
+      <p> put_fork(i); /♦ put left fork back on the table */ put_fork((i+1)  %  N);      /* put right fork back on the table */</p>
+      <p> Fig. 2-19. A nonsolution to the dining philosophers problem.</p>
+      <p> Now you might think, "If the philosophers would just wait a random time instead of the same time after failing to acquire the right-hand fork, the chance that everything would continue in lockstep for even an hour is very small." Of course this is true, but in some applications one would prefer a solution that always works and cannot fail due to an unlikely series of random numbers. (Think about safety control in a nuclear power plant.)</p>
+      <p> One improvement to Fig. 2-19 that has no deadlock and no starvation is to protect the five statements following the call to  think  by a binary semaphore. Before starting to acquire forks, a philosopher would do a DOWN on  mutex. After replacing the forks, she would do an UP on  mutex.  From a theoretical viewpoint, this solution is adequate. From a practical one, it has a performance bug: only one philosopher can be eating at any instant. With five forks available, we should be able to allow two philosophers to eat at the same time.</p>
+      <p> The solution presented in Fig. 2-20 is correct and also allows the maximum parallelism for an arbitrary number of philosophers. It uses an array,  state,  to keep track of whether a philosopher is eating, thinking, or hungry (trying to acquire forks). A philosopher may move only into eating state if neither neighbor is eating. Philosopher fs neighbors are defined by the macros  LEFT  and RIGHT.  In other words, if / is 2,  LEFT  is 1 and  RIGHT  is 3.</p>
+      <p> The program uses an array of semaphores, one per philosopher, so hungry philosophers can block if the needed forks are busy. By now you should have enough background to understand this solution without any more help.</p>
+      <p> 2.3.2. The Readers and Writers Problem</p>
+      <p> The dining philosophers problem is useful for modeling processes that are competing for exclusive access to a limited number of resources, such as tape drives or other I/O devices. Another famous problem is the readers and writers problem (Courtois et al., 1971), which models access to a data base. Imagine a</p>
+      <p> #define N 5 ^define LEFT (i-l)XN ^define RIGHT (i+l)%N ^define THINKING 0 #define HUNGRY 1 ^define EATING 2 typedef int semaphore; int statetN]; semaphore mutex  -  1; semaphore s[N];</p>
+      <p> philosopher(i)</p>
+      <p> int i;</p>
+      <p> {</p>
+      <p> while (TRUE) { thinkO; take_forks(i); eat();</p>
+      <p> put_forks(i);</p>
+      <p> }</p>
+      <p> }</p>
+      <p> take_forks(i)</p>
+      <p> int i;</p>
+      <p> {</p>
+      <p> down(&amp;mutex); state[i] = HUNGRY; test(i); up(&amp;mutex); down(&amp;s[i]);</p>
+      <p> }</p>
+      <p> put_forks(i)</p>
+      <p> int i;</p>
+      <p> {</p>
+      <p> down(&amp;mutex); statefi] = THINKING; test(LEFT); test(RIGHT); up(&amp;mutex);</p>
+      <p> }</p>
+      <p> test(i) int i; {</p>
+      <p> if (state[i] = = HUNGRY &amp;&amp; statefi] = EATING; up(&amp;s[i]);</p>
+      <p> }</p>
+      <p> }</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> /* number of philosophers  */</p>
+      <p> /*  number of i's left neighbor */</p>
+      <p> /*  number of i's right neighbor #/</p>
+      <p> /* philosopher is thinking */</p>
+      <p> /* philosopher is trying to get forks */</p>
+      <p> /* philosopher is eating */</p>
+      <p> /* semaphores are a special kind of int */</p>
+      <p> /* array to keep track of everyone's state */</p>
+      <p> /* mutual exclusion for critical regions */</p>
+      <p> /* one semaphore per philosopher */</p>
+      <p> /* philosopher number, 0 to N-l */</p>
+      <p> /* repeat forever #/</p>
+      <p> /* philosopher is thinking */</p>
+      <p> /* acquire two forks or block */</p>
+      <p> A yum-yum, spaghetti #/</p>
+      <p> /* put both forks back on table */</p>
+      <p> /* philosopher number, 0 to N-l */ /* enter critical region #/</p>
+      <p> /* record fact that philosopher i is hungry */</p>
+      <p> /* try to acquire 2 forks */</p>
+      <p> /* exit critical region */</p>
+      <p> /*  block if forks were not acquired #/</p>
+      <p> /* philosopher number, 0 to N-l */</p>
+      <p> /* enter critical region #/ /*  philosopher has finished eating */ /*■ see if left neighbor can now eat */ /* see if right neighbor can now eat */ /* exit critical region #/</p>
+      <p> /* philosopher number, 0 to N-l #/ statefLEFT]  != EATING &amp;&amp; state[RIGHT]  != EATING) {</p>
+      <p> Fig. 2-20. A solution to the dining philosophers problem.</p>
+      <p> SEC. 2.3</p>
+      <p> CLASSICAL IPC PROBLEMS</p>
+      <p> 79</p>
+      <p> big data base, such as an airline reservation system, with many competing processes wishing to read and write it. It is acceptable to have multiple processes reading the data base at the same time, but if one process is writing (i.e., changing) the data base, no other processes may have access to the data base, not even readers. The question is how do you program the readers and the writers? One solution of Courtois et al. is shown in Fig. 2-21.</p>
+      <p> typedef int semaphore; semaphore mutex  -  1; semaphore db = 1; int rc = 0;</p>
+      <p> reader() {</p>
+      <p> while (TRUE) {</p>
+      <p> down(&amp;mutex); rc = rc + 1; if (rc       1) down(&amp;db); up(&amp;mutex); read_data_base(); down(&amp;mutex); rc = rc - 1; if (rc == 0) up(&amp;db); up(&amp;mutex); use_data_read();</p>
+      <p> /* use your imagination */</p>
+      <p> /* controls access to 'rc' */</p>
+      <p> /# controls access to the data base #/</p>
+      <p> /# # of processes reading or wanting to */</p>
+      <p> /* repeat forever */</p>
+      <p> /* get exclusive access to 'rc' */</p>
+      <p> /* one reader more now */</p>
+      <p> /* if this is the first reader ... */</p>
+      <p> /* release exclusive access to 'rc' */</p>
+      <p> /* access the data  */</p>
+      <p> /*  get exclusive access to 'rc' */</p>
+      <p> /* one reader fewer now  */</p>
+      <p> /*  if this is the last reader ... */</p>
+      <p> /* release exclusive access to 'rc' */</p>
+      <p> /# noncritical section #/</p>
+      <p> }</p>
+      <p> }</p>
+      <p> writer() {</p>
+      <p> while (TRUE) {</p>
+      <p> think_up_data(); down(&amp;db); write_data_base(); up(&amp;db);</p>
+      <p> }</p>
+      <p> }</p>
+      <p> /* repeat forever */ /* noncritical section */ /* get exclusive access */ /* update the data ♦/</p>
+      <p> /# release exclusive access */</p>
+      <p> Fig. 2-21. A solution to the readers and writers problem.</p>
+      <p> In this solution, the first reader to get access to the data base does a DOWN on the semaphore  db.  Subsequent readers merely increment a counter,  rc.  As readers leave, they decrement the counter and the last one out does an UP on the semaphore, allowing a blocked writer, if there is one, to get in.</p>
+      <p> Implicit in this solution is that readers have priority over writers. If a writer appears while several readers are in the data base, the writer must wait. If new readers keep appearing, so that there is always at least one reader in the data base, the writer must keep waiting until no more readers are interested in the</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> data base. Courtois et al. also presented a solution that gives priority to writers. For details, we refer you to their paper.</p>
+      <p> 2.4. PROCESS SCHEDULING</p>
+      <p> In the examples of the previous sections, we have often had situations in which two or more processes (e.g., producer and consumer) were logically runn-able. When more than one process is runnable, the operating system must decide which one to run first. That part of the operating system concerned with this decision is called the scheduler, and the algorithm it uses is called the scheduling algorithm. Back in the old days of batch systems with input in the form of card images on a magnetic tape, the scheduling algorithm was simple: just run the next job on the tape. With multi-user time-sharing systems, often combined with batch jobs in the background, the scheduling algorithm is more complex.</p>
+      <p> Before looking at specific scheduling algorithms, we should think about what the scheduler is trying to achieve. Various criteria come to mind as to what constitutes a good scheduling algorithm, among them:</p>
+      <p> 1. Fairness: make sure each process gets its fair share of the CPU.</p>
+      <p> 2. Efficiency: keep the CPU busy 100 percent of the time.</p>
+      <p> 3. Response time: minimize response time for interactive users.</p>
+      <p> 4. Turnaround: minimize the time batch users must wait for output.</p>
+      <p> 5. Throughput: maximize the number of jobs processed per hour.</p>
+      <p> A little thought will show that some of these goals are contradictory. To minimize response time for interactive users, the scheduler should not run any batch jobs at all (except maybe between 3 A.M. and 6 A.M., when all the interactive users are snug in their beds). The batch users probably will not like this algorithm, however; it violates criterion 4. It can be shown (Kleinrock, 1975) that any scheduling algorithm that favors some class of jobs hurts another class of jobs. The amount of CPU time available is finite, after all. To give one user more you have to give another user less.</p>
+      <p> A complication that schedulers have to deal with is that every process is unique and unpredictable. Some spend a lot of time waiting for file I/O, while others would use the CPU for hours at a time if given the chance. When the scheduler starts running some process, it never knows for sure how long it will be until that process blocks, either for I/O, or on a semaphore, or for some other reason. To make sure that no process runs too long, nearly all computers have an electronic timer or clock built in, which causes an interrupt periodically. A frequency of 50 or 60 times a second (called 50 or 60 Hertz and abbreviated Hz) is common, but on many computers the operating system can set the timer</p>
+      <p> SEC. 2.4</p>
+      <p> PROCESS SCHEDULING</p>
+      <p> 81</p>
+      <p> frequency to anything it wants. At each clock interrupt, the operating system gets to run and decide whether the currently running process should be allowed to continue, or whether it has had enough CPU time for the moment and should be suspended to give another process the CPU.</p>
+      <p> The strategy of allowing processes that are logically runnable to be temporarily suspended is called preemptive scheduling, and is in contrast to the run to completion method of the early batch systems. As we have seen throughout this chapter, a process can be suspended at an arbitrary instant, without warning, so another process can be run. This leads to race conditions and necessitates semaphores, event counters, monitors, messages, or some other sophisticated method for preventing them. On the other hand, a policy of letting a process run as long as it wanted to would mean that somebody computing x to a billion places could deny service to all other users for weeks or months.</p>
+      <p> 2.4.1. Round Robin Scheduling</p>
+      <p> Now let us look at some specific scheduling algorithms. One of the oldest, simplest, fairest, and most widely used algorithms is round robin. Each process is assigned a time interval, called its quantum, which it is allowed to run. If the process is still running at the end of the quantum, the CPU is preempted and given to another process. If the process has blocked or finished before the quantum has elapsed, the CPU switching is done when the process blocks, of course. Round robin is easy to implement. All the scheduler needs to do is maintain a list of runnable processes, as shown in Fig. 2-22(a). When the quantum runs out on a process, it is put on the end of the list, as shown in Fig. 2 22(b).</p>
+      <p> Current Current process Next process process</p>
+      <p class="illus">
+        <img src="images/picture20.jpg" alt="picture20"/>
+      </p>
+      <p> (a) (b)</p>
+      <p> Fig. 2-22. Round robin scheduling, (a) The list of runnable processes, (b) The list of runnable processes after S's quantum runs out.</p>
+      <p> The only interesting issue with round robin is the length of the quantum. Switching from one process to another requires a certain amount of time for doing the administration—saving and loading registers and memory maps, updating various tables and lists, etc. Suppose this process switch or context switch, as it is sometimes called, takes 5 msec. Also suppose that the quantum is set at 20 msec. With these parameters, after doing 20 msec of useful work, the CPU will have to spend 5 msec on process switching. Twenty percent of the CPU time will be wasted on administrative overhead.</p>
+      <p> To improve the CPU efficiency, we could set the quantum to, say, 500 msec. Now the wasted time is less than 1 percent. But consider what happens if ten</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> interactive users hit the carriage return key at roughly the same time. Ten processes will be put on the list of runnable processes. If the CPU is idle, the first one will start immediately, the second one may not start until about 1/2 sec later, and so on. The unlucky last one may have to wait 5 sec before getting a chance, assuming all the others use their full quanta. Most users will perceive a 5-sec response to a short command as terrible.</p>
+      <p> Conclusion: setting the quantum too short causes too many process switches and lowers the CPU efficiency, but setting it too long may cause poor response to short interactive requests. A quantum around 100 msec is often a reasonable compromise.</p>
+      <p> 2.4.2. Priority Scheduling</p>
+      <p> Round robin scheduling makes the implicit assumption that all processes are equally important. Frequently, the people who own and operate computer centers have different ideas on that subject. At a university computer center, the pecking order may be deans first, then professors, secretaries, janitors, and finally students. The need to take external factors into account leads to priority scheduling. The basic idea is straightforward: each process is assigned a priority, and the runnable process with the highest priority is allowed to run.</p>
+      <p> To prevent high-priority processes from running indefinitely, the scheduler may decrease the priority of the currently running process at each clock tick (i.e., at each clock interrupt). If this action causes its priority to drop below that of the next highest process, a process switch occurs.</p>
+      <p> Priorities can be assigned to processes statically or dynamically. On a military computer, processes started by generals might begin at priority 100, processes started by colonels at 90, majors at 80, captains at 70, lieutenants at 60, and so on. Alternatively, at a commercial computer center, high-priority jobs might cost 100 dollars an hour, medium priority 75 dollars an hour, and low priority 50 dollars an hour. The UNIX system has a command,  nice,  which allows a user to voluntarily reduce the priority of his process, in order to be nice to the other users. Nobody ever uses it.</p>
+      <p> Priorities can also be assigned dynamically by the system to achieve certain system goals. For example, some processes are highly I/O bound and spend most of their time waiting for I/O to complete. Whenever such a process wants the CPU, it should be given the CPU immediately, to let it start its next I/O request, which can then proceed in parallel with another process actually computing. Making the I/O bound process wait a long time for the CPU will just mean having it around occupying memory for an unnecessarily long time. A simple algorithm for giving good service to I/O bound processes is to set the priority to 1//, where/is the fraction of the last quantum that a process used. A process that used only 2 msec of its 100 msec quantum would get priority 50, while a process that ran 50 msec before blocking would get priority 2, and a process that used the whole quantum would get priority 1.</p>
+      <p> SEC. 2.4</p>
+      <p> PROCESS SCHEDULING</p>
+      <p> 83</p>
+      <p> It is often convenient to group processes into priority classes and use priority scheduling among the classes but round robin scheduling within each class. Figure 2-23 shows a system with four priority classes. The scheduling algorithm is as follows: as long as there are runnable processes in priority class 4, just run each one for one quantum, round robin fashion, and never bother with lower priority classes. If priority class 4 is empty, then run the class 3 processes round robin. If classes 4 and 3 are both empty, then run class 2 round robin, and so on. If priorities are not adjusted from time to time, lower priority classes may all starve to death.</p>
+      <p> Runnable processes</p>
+      <p class="illus">
+        <img src="images/picture21.jpg" alt="picture21"/>
+      </p>
+      <p> (Highest priority)</p>
+      <p> (Lowest priority)</p>
+      <p> Fig. 2-23. A scheduling algorithm with four priority classes.</p>
+      <p> 2.4.3. Multiple Queues</p>
+      <p> One of the earliest priority schedulers was in CTSS (Corbato et al., 1962). CTSS had the problem that process switching was very slow because the 7094 could hold only one process in memory. Each switch meant swapping the current process to disk and reading in a new one from disk. The CTSS designers quickly realized that it was more efficient to give CPU-bound processes a large quantum once in a while, rather than giving them small quanta frequently (to reduce swapping). On the other hand, giving all processes a large quantum would mean poor response time, as we have already seen. Their solution was to set up priority classes. Processes in the highest class were run for one quantum. Processes in the next highest class were run for two quanta. Processes in the next class were run for four quanta, and so on. Whenever a process used up all the quanta allocated to it, it was moved down one class.</p>
+      <p> As an example, consider a process that needed to compute continuously for 100 quanta. It would initially be given one quantum, then swapped out. Next time it would get two quanta before being swapped out. On succeeding runs it would get 4, 8, 16, 32, and 64 quanta, although it would have used only 37 of the final 64 quanta to complete its work. Only 7 swaps would be needed (including the initial load) instead of 100 with a pure round robin algorithm. Furthermore, as the process sank deeper and deeper into the priority queues it would be run less and less frequently, saving the CPU for short, interactive processes.</p>
+      <p> The following policy was adopted to prevent a process that needed to run for</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> a long time when it first started, but became interactive later, from being punished forever. Whenever a carriage return was typed at a terminal, the process belonging to that terminal was moved to the highest priority class, on the assumption that it was about to become interactive. One fine day some user with a heavily CPU-bound process discovered that just sitting at the terminal and typing carriage returns at random every few seconds did wonders for his response time. He told all his friends. Moral of the story: getting it right in practice is much harder than getting it right in principle.</p>
+      <p> Many other algorithms have been used for assigning processes to priority classes. For example, the influential XDS 940 system (Lampson, 1968), built at Berkeley, had four priority classes, called terminal, I/O, short quantum, and long quantum. When a process that was waiting for terminal input was finally awakened, it went into the highest priority class (terminal). When a process waiting for a disk block became ready, it went into the second class. When a process was still running when its quantum ran out, it was initially placed in the third class. However, if a process used up its quantum too many times in a row without blocking for terminal or other I/O, it was moved down to the bottom queue. Many other systems use something similar to favor interactive users.</p>
+      <p> 2.4.4. Shortest Job First</p>
+      <p> Most of the above algorithms were designed for interactive systems. Now let us look at one that is especially appropriate for batch jobs for which the run times are known in advance. In an insurance company, for example, people can predict quite accurately how long it will take to run a batch of 1000 claims, since similar work is done every day. When several equally important jobs are sitting in the input queue waiting to be started, the scheduler should use shortest job first. Look at Fig. 2-24. Here we find four jobs  A, B, C,  and  D,  with run times of 8, 4, 4, and 4 minutes, respectively. By running them in that order, the turnaround time for  A  is 8 minutes, for  B  is 12 minutes, for  C  is 16 minutes, and for  D  is 20 minutes, for an average of 14 minutes.</p>
+      <p> Fig. 2-24. An example of shortest job tirst scheduling.</p>
+      <p> Now let us consider running these four jobs using shortest job first, as shown in Fig. 2-24(b). The turnaround times are now 4, 8, 12, and 20 minutes, for an average of 11 minutes. Shortest job first is provably optimal. Consider the case of four jobs, with run times of  a, b, c,  and  d,  respectively. The first job finishes at time  a,  the second finishes at time  a+b,  and so on. The mean turnaround time is  (4a + 3b + 2c + d)/4.    It is clear that  a  contributes more to the</p>
+      <p> SEC. 2.4</p>
+      <p> PROCESS SCHEDULING</p>
+      <p> 85</p>
+      <p> average than the other times, so it should be the shortest job, with  b  next, then  c and finally  d  as the longest as it affects only its own turnaround time. The same argument applies equally well to any number of jobs.</p>
+      <p> Because shortest job first always produces the minimum average response time, it would be nice if it could be used for interactive processes as well. To a certain extent, it can be. Interactive processes generally follow the pattern of wait for command, execute command, wait for command, execute command, and so on. If we regard the execution of each command as a separate "job," then we could minimize overall response time by running the shortest one first. The only problem is figuring out which of the currently runnable processes is the shortest one.</p>
+      <p> One approach is to make estimates based on past behavior and run the process with the shortest estimated running time. Suppose the estimated time per command for some terminal is  T 0 .  Now suppose its next run is measured to be T x .  We could update our estimate by taking a weighted sum of these two numbers, that is,  aT Q  +  (1  - a)T v   Through the choice of  a  we can decide to have the estimation process forget old runs quickly, or remember them for a long time. With  a =  1/2, we get successive estimates of:</p>
+      <p> T Q ,   T 0 /2 +  772,   774 + 774 + r 2 /2,   r 0 /8 + r,/8 + 7 2 /4 +  T 3 I2</p>
+      <p> Thus, after three new runs, the weight of  T 0   in the new estimate has dropped to 1/8.</p>
+      <p> The technique of estimating the next value in a series by taking the weighted average of the current measured value and the previous estimate is sometimes called aging. It is applicable to many situations where a prediction must be made based on previous values. Aging is especially easy to implement when a -  1/2. All that is needed is to add the new value to the current estimate and divide the sum by 2 (by shifting it right 1 bit).</p>
+      <p> It is worth pointing out that shortest job first is only optimal when all the jobs are available simultaneously. As a counterexample, consider five jobs,  A  through E,  with run times of 2, 4, 1, 1, and 1, respectively. Their arrival times are 0 0 3, 3, and 3. ' '</p>
+      <p> Initially, only  A  or  B  can be chosen, since the other three jobs have not arrived yet. Using shortest job first we will run the jobs in the order  A, B, C D E,  for an average wait of 4.6. However, running them in the order  B, C D E A  has an average wait of 4.4. ' '</p>
+      <p> 2.4.5. Policy-Driven Scheduling</p>
+      <p> A completely different approach to scheduling is to make real promises to the user about performance and then live up to them. One promise that is realistic to make and easy to live up to is this: If there are  n  users logged in while you are working, you will receive about  \ln  of the CPU power.</p>
+      <p> To make good on this promise, the system must keep track of how much</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> CPU time a user has had for all his processes since login, and also how long each user has been logged in. It then computes the amount of CPU each user is entitled to, namely the time since login divided by  n.  Since the amount of CPU time each user has actually had is also known, it is straightforward to compute the ratio of actual CPU had to CPU time entitled. A ratio of 0.5 means that a process has only had half of what it should have had, and a ratio of 2.0 means that a process has had twice as much as it was entitled to. The algorithm is then to run the process with the lowest ratio until its ratio has moved above its closest competitor.</p>
+      <p> A similar idea can be applied to real-time systems, in which there are absolute deadlines that must be met. Here one looks for the process in greatest danger of missing its deadline, and runs it first. A process that must finish in 10 seconds gets priority over one that must finish in 10 minutes.</p>
+      <p> 2.4.6. Two-level Scheduling</p>
+      <p> Up until now we have more or less assumed that all runnable processes are in main memory. If insufficient main memory is available, some of the runnable processes will have to be kept on the disk. This situation has major implications for scheduling, since the process switching time to bring in and run a process from disk is one or two orders of magnitude more than switching to a process already in main memory.</p>
+      <p> b, c</p>
+      <p> e, f,</p>
+      <p> g,h</p>
+      <p> (a) (b) (c)</p>
+      <p> Fig. 2-25. A two-level scheduler must move processes between disk and memory, and also choose processes to run from among those in memory. Three different instants of time are represented by (a), (b), and (c) .</p>
+      <p> A more practical way of dealing with swapped out processes is to use a two-level scheduler. Some subset of the runnable processes is first loaded into main memory, as shown in Fig. 2-25(a). The scheduler then restricts itself to only choosing processes from this subset for a while. Periodically, a higher-level scheduler is invoked to remove processes that have been in memory long enough and to load processes that have been on disk too long. Once the change has been made, as in Fig. 2-25(b), the lower-level scheduler again restricts itself to only running processes that are actually in memory. Thus, the lower-level scheduler is concerned with making a choice among the runnable processes that</p>
+      <p> , b, ,d</p>
+      <p> Process in</p>
+      <p> main memory</p>
+      <p class="illus">
+        <img src="images/picture22.jpg" alt="picture22"/>
+      </p>
+      <p> Processes on disk</p>
+      <p> a, b, c, d</p>
+      <p> SEC. 2.4</p>
+      <p> PROCESS SCHEDULING</p>
+      <p> 87</p>
+      <p> are in memory at that moment, while the higher-level scheduler is concerned with shuttling processes back and forth between memory and disk.</p>
+      <p> Among the criteria that the higher-level scheduler could use to make its decisions are:</p>
+      <p> 1. How long has it been since the process was swapped in or out?</p>
+      <p> 2. How much CPU time has the process had recently?</p>
+      <p> 3. How big is the process? (Small ones do not get in the way).</p>
+      <p> 4. How high is the priority of the process?</p>
+      <p> Again here we could use round robin, priority scheduling, or various other methods.</p>
+      <p> 2.5. OVERVIEW OF PROCESSES IN MINIX</p>
+      <p> Having completed our study of the principles of process management and interprocess communication, we can now take a look at how they are applied in MINIX. Unlike UNIX, whose kernel is a monolithic program not split up into modules, MINIX itself is a collection of processes that communicate with each other and with user processes using a single interprocess communication primitive-message passing. This design gives a more modular and flexible structure, making it easy, for example, to replace the entire file system by a completely different one.</p>
+      <p> 2.5.1. The Internal Structure of MINIX</p>
+      <p> Let us begin our study of MINIX by taking a bird's-eye view of the system MINIX is structured in four layers, with each layer performing a well-defined function. The four layers are illustrated in Fig. 2-26.</p>
+      <p> Layer</p>
+      <p> User processes Server processes I/O tasks</p>
+      <p> Fig. 2-26. MINIX is structured in four layers.</p>
+      <p> The bottom layer catches all interrupts and traps, and provides higher layers with a model of independent sequential processes that communicate using</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> messages. The code in this layer has two major activities. The first is catching the traps and interrupts, saving and restoring registers, and the general nuts and bolts of actually making the process abstraction provided to the higher layers work. The second is handling the mechanics of messages; checking for legal destinations, locating send and receive buffers in physical memory, and copying bytes from sender to receiver. That part of the layer dealing with the lowest level of interrupt handling is written in assembly language. The rest of the layer and all of the higher layers, are written in C.</p>
+      <p> Layer 2 contains the I/O processes, one per device type. To distinguish them from ordinary user processes, we will call them tasks, but the differences between tasks and processes are minimal. In many systems the I/O tasks are called device drivers; we will use the terms "task" and "device driver" interchangeably. A task is needed for each device type, including disk, printer, terminal, and clock. If other I/O devices are present, a task is needed for each one of those too. One task, the system task, is a little different, since it does not correspond to any I/O device. We will discuss the tasks in the next chapter.</p>
+      <p> All the tasks in layer 2 and all the code in layer 1 are linked together into a single binary program called the kernel. On a machine with kernel mode and user mode, the kernel would run in kernel mode. Despite being linked together in the same object program, the tasks in layer 2 are all completely independent from one another, are scheduled independently, and communicate using messages. They are linked together into a single binary to make it easier to port MINIX to machines with two modes where only the kernel is allowed to do I/O.</p>
+      <p> Layer 3 contains two processes that provide useful services to the user processes. The memory manager (MM) carries out all the MINIX system calls that involve memory management, such as FORK, EXEC, and BRK. The file system (FS) carries out all the file system calls, such as READ,  mount,  and CHDIR. As we noted at the start of Chap. 1, operating systems do two things: manage resources and provide an extended machine by implementing system calls. In MINIX the resource management is largely in the kernel (layers 1 and 2), and system call interpretation is in layer 3. The file system has been designed as a file "server" and can be moved to a remote machine with almost no changes. This also holds for the memory manager, although remote memory servers are not as useful as remote file servers.</p>
+      <p> Finally, layer 4 contains all the user processes—shells, editors, compilers, and user-written  a.out  programs.</p>
+      <p> 2.5.2. Process Management in MINIX</p>
+      <p> Processes in MINIX follow the general process model given in this chapter. Processes can create subprocesses, which in turn can create more subprocesses, yielding a tree of processes. In fact, all the user processes in the whole system are part of a single tree with  init  (see Fig. 2-26) at the root.</p>
+      <p> To see how this situation comes about, we have to take a look at how MINIX</p>
+      <p> SEC. 2.5</p>
+      <p> OVERVIEW OF PROCESSES IN MINIX</p>
+      <p> 89</p>
+      <p> is booted from floppy disk. When the computer is turned on, the hardware reads the first sector of the first track into memory and jumps to it. This sector contains a bootstrap program that loads the entire operating system (and the file system checker) into memory and starts it running. After the kernel, memory manager, and file system have run and initialized themselves, control is passed to ink.</p>
+      <p> Init  starts out by reading the file  letclttys,  to see how many terminals are currently installed (in the standard distribution, just the console). It then forks off a child process for each terminal. Each of these children executes  /bin/login to wait until someone logs in.</p>
+      <p> After a successful login,  /bin/login  executes the user's shell (specified in letclpasswd,  normally  Ibinlsh).  The shell waits for commands to be typed and then forks off a new process for each command. In this way, the shells are the children of  init,  the user processes are the grandchildren, and all the processes in the system are part of a single tree.</p>
+      <p> The two principal system calls in MINIX for process management are FORK and EXEC. FORK, as we have seen, is the only way to create a new process. EXEC allows a process to execute a specified program. When a program is executed, it is allocated a portion of memory whose size is specified in the program file's header. It retains this memory allocation throughout its execution, although the distribution among data segment, stack segment, and unused can vary as the process runs.</p>
+      <p> All the information about a process is kept in the process table, which is divided up among the kernel, memory manager, and file system, with each one having those fields that it needs. When a new process comes into existence, by FORK, or an old process terminates, by EXIT or a signal, the memory manager first updates its part of the process table and then sends messages to the file system and kernel telling them to do likewise.</p>
+      <p> 2.5.3. Interprocess Communication in MINIX</p>
+      <p> Interprocess communication within MINIX itself is done by exchanging fixed-size messages. The size of the messages is determined by the size of a structure called  message.  On the 8088 it is 24 bytes, but if  minix  were moved to a CPU with 4 byte integers, the struct would become larger. Three primitives are provided for sending and receiving messages. They are called by the C library procedures</p>
+      <p> send(dest, &amp;message);</p>
+      <p> to send a message to process  dest,</p>
+      <p> receive(source, &amp;message);</p>
+      <p> to receive a message from process  source {or ANY),  and send_rec(src_dst, &amp;message);</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> to send a message and wait for a reply from the same process. The reply overwrites the original message. Each process or task can send and receive messages from processes and tasks in its own layer, and from those in the layer directly below it. User processes may not communicate directly with the I/O tasks. The system enforces this restriction.</p>
+      <p> When a process (which also includes the tasks as a special case) sends a message to a process that is not currently waiting for a message, the sender blocks until the destination does a RECEIVE. In other words, MINIX uses the rendezvous method to avoid the problems of buffering sent, but not yet received, messages. Although less flexible than a scheme with buffering, it turns out to be adequate for this system, and much simpler because no buffer management is needed.</p>
+      <p> 2.5.4. Process Scheduling in MINIX</p>
+      <p> The MINIX scheduler uses a multilevel queueing system with three levels, corresponding to layers 2, 3, and 4 in Fig. 2-26. Within each level, round robin is used. Tasks have the highest priority, the memory manager and file server are next, and user processes are last.</p>
+      <p> When picking a process to run, the scheduler checks to see if any tasks are ready. If one or more are ready, the one at the head of the queue is run. If no tasks are ready, a server (MM or FS) is chosen, if possible, otherwise a user is run. If no process is ready, the system sits in an idle loop waiting for the next interrupt.</p>
+      <p> At each clock tick, a check is made to see if the current process is a user process that has run more than 100 msec. If it is, the scheduler is called to see if another user process is waiting for the CPU. If one is found, the current process is moved to the end of its scheduling queue, and the process now at the head is run. Tasks, the memory manager, and the file system are never preempted by the clock, no matter how long they have been running.</p>
+      <p> 2.6. IMPLEMENTATION OF PROCESSES IN MINIX</p>
+      <p> We are now moving closer to looking at the actual code, so a few words about the notation we will use to describe it are in order. The terms "procedure," "function," and "routine" will be used interchangeably. Variable names will be written in italics, as in  rw-flag.  When a variable or procedure name starts a sentence it will be capitalized, but the actual names all begin with lower case letters. System calls will be in small caps, for example, READ.</p>
+      <p> The book and the software, both of which are continuously evolving, did not "go to press" on the same day, so there may be minor discrepancies between the references to the code, the listing, and the disk or tape version. Such differences generally only affect a line or two, however.</p>
+      <p> SEC. 2.6 IMPLEMENTATION OF PROCESSES IN MINIX 91</p>
+      <p> 2.6.1. Organization of the MIMX Source Code</p>
+      <p> Logically, the source code is organized as a single director}',  minix,  containing a few files and ten subdirectories:</p>
+      <p> 1.  h -  header files used by the operating system</p>
+      <p> 2.  kernel  - layers 1 and 2 (processes, messages, drivers)</p>
+      <p> 3.  mm  - the code for the memory manager</p>
+      <p> 4.  fs -  the code for the file system</p>
+      <p> 5.  lib  - the library procedures (e.g.,  open, read)</p>
+      <p> 6.  tools -  a collection of special programs needed to build MINIX</p>
+      <p> 7.  commands  - the utility programs (e.g.,  cat, cp, date, Is, pwd)</p>
+      <p> 8.  include -  header files used by the commands</p>
+      <p> 9. test -  programs to give MINIX a thorough testing 10.  doc -  documentation and manuals</p>
+      <p> The code for layers 1 and 2 is contained in the directory  kernel.  In this chapter we will study two key files,  mpx88.s  and  proc.c,  which handle the process management and message passing, respectively. In Chap. 3 we will look at the rest of the files in this directory, which are structured with one file per task. In this way, all the data and code for each I/O device are together in one place. In Chap. 4 we will look at the memory manager. In Chap. 5 we will study the file system.</p>
+      <p> When MINIX is compiled, all the source code files in  kernel, mm,  and  fs  are compiled to object files. Then all the object files in  kernel  are linked together to form a single executable program,  kernel.  The object files in  mm  are also linked together to form a single executable program,  mm.  The same holds for  fs. A fourth executable program,  ink,  is built in  tools.  The program  build  (also in tools)  strips these four programs of their headers, pads each one out so that each is a multiple of 16 bytes, and concatenates them onto a new file. This new file is the binary of the operating system that is copied onto the boot diskette, and later loaded into memory and executed. Fig. 2-27 shows what memory looks like after the four concatenated programs are loaded into it.</p>
+      <p> It is important to realize that  minix  consists of four totally independent programs that communicate only by passing messages. A procedure called  panic  in fs  does not conflict with a procedure called  panic  in  mm  because they ultimately are linked into different executable files. The only procedures that the four pieces of the operating system have in common are a few of the library routines</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> minix/tools/i</p>
+      <p> minix/fs/fs &lt;</p>
+      <p> minix/mm/mm &lt;</p>
+      <p> minix/kernel/kerne! ■&lt;</p>
+      <p> Interrupt vectors</p>
+      <p> Memory available for user programs</p>
+      <p> I nit</p>
+      <p> File system</p>
+      <p> Memory manager</p>
+      <p> Memory task</p>
+      <p> Terminal task</p>
+      <p> Disk task</p>
+      <p> Clock task</p>
+      <p> Process management</p>
+      <p class="illus">
+        <img src="images/picture23.jpg" alt="picture23"/>
+      </p>
+      <p> Maximum of 640K</p>
+      <p> Typically 70K-100K depending - on how many buffers have been included in the file system</p>
+      <p> 40K</p>
+      <p> 25K (depending on number of I/O tasks)</p>
+      <p> 1536   Start of kernel</p>
+      <p> Unused</p>
+      <p> Fig. 2-27. Memory layout after  minix  has been loaded from the disk into memory. The four independently compiled and linked parts are clearly distinct. The sizes are approximate, depending on the configuration.</p>
+      <p> in  lib.  This modular structure makes it very easy to modify, say, the file system, without having these changes affect the memory manager. It also makes it straightforward to remove the file system altogether, and put it on a different machine as a remote file server, communicating with the user machines by sending messages over a network.</p>
+      <p> As an aside, throughout this book we will be referring frequently to specific procedures in the code. As an aid to finding procedures quickly, a cross reference listing of procedure names and macros is provided in Appendix F. We suggest that you color the edge of the first page of the appendix with a felt-tipped marking pen, so that it can be located quickly when the book is closed.</p>
+      <p> 2.6.2. The Common Header Files</p>
+      <p> The directory  h  contains a collection of files defining constants, types, and macros used in more than one of the four pieces of MINIX. Let us take a brief look at these files, starting with  const.h  (line 0000). In this file we find a variety of constant definitions. Definitions that are used only in the kernel are included in the file  kernel/const, h.  Definitions that are used only in the file system are included in the file  fsi const.h.  The memory manager also has a file  mm/const, h for its local definitions. Those definitions that are used in more than one of the directories are included in  hi const, h.</p>
+      <p> SEC. 2.6</p>
+      <p> IMPLEMENTATION OF PROCESSES IN MINIX</p>
+      <p> 93</p>
+      <p> A few of the definitions in  const.h  are especially noteworthy.  EXTERN  is defined as a macro expanding into  extern.  All global variables that are declared in header files and included in two or more files are declared  EXTERN,  as in</p>
+      <p> EXTERN int who;</p>
+      <p> If the variable were declared just as int who;</p>
+      <p> and included in two or more files, some linkers would complain about a multiply defined variable. Furthermore, the C reference manual (Kernighan and Ritchie, 1978) explicitly forbids this construction.</p>
+      <p> To avoid this problem, it is necessary to have the declaration read extern int who;</p>
+      <p> in all places but one. Using  EXTERN  prevents this problem by having it expand into  extern  everywhere except in the file  table.c  where it is redefined as the null string on lines 5129 and 5130. When the header files are included and expanded as part of the compilation of  table.c, extern  is not inserted anywhere (because EXTERN  is now defined as the null string). Thus, storage for the global variables is actually reserved only in one place, in the object file  table.o.  The same trick is used in the file system and memory manager.</p>
+      <p> The file  table.c  is also used for the declaration of the array  task,  which contains the mapping between task numbers and the associated procedures.  It has been put here because the trick used above to prevent multiple declarations does not work with variables that are initialized; that is, you may not say extern int x = 3; anywhere.</p>
+      <p> If you are new to C programming and do not quite understand what is going on here, fear not; the details are really not important. C allows something include files,  that almost no other language allows. This feature can cause problems for some linkers because it can lead to multiple declarations for included variables. The  EXTERN  business is simply a way to make  mink  more portable so it can be linked on machines whose linkers will not accept multiply defined variables.</p>
+      <p> PRIVATE  is defined as a synonym for static. Procedures and data that are not referenced outside the file in which they are declared are always declared as PRIVATE  to prevent their names from being visible outside the file in which they are declared. As a general rule, all variables and procedures should be declared with as local a scope as possible.  PUBLIC  is defined as the null strin* Thus the declaration  e</p>
+      <p> PUBLIC free_zone()</p>
+      <p> comes out of the C preprocessor as</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> free_zone()</p>
+      <p> which, according to the C scope rules, means that the name  freefone  is exported from the file and can be used in other files.  PRIVATE  and  PUBLIC  are not necessary, but are attempts to undo the damage caused by the C scope rules (default is that names are exported outside the file; it should be just the reverse). The rest of  const.h  defines numerical constants used throughout the system.</p>
+      <p> Now let us examine the file  callnr.h  (line 0100). Processes execute the MINIX system calls by sending messages to the memory manager (MM for short) or the file system (FS for short). Each message contains the number of the system call desired. These numbers are defined in  callnr.h.</p>
+      <p> The file  com.h  (line 0150) mostly contains common definitions used in messages from MM and FS to the I/O tasks. The task numbers are also defined. To distinguish them from process numbers, task numbers are negative. The header file also defines the message types (function codes) that can be sent to each task. For example, the clock task accepts codes  SET^ALARM  (to set a timer), CLOCK-TICK  (when a clock interrupt has occurred),  GET-TIME  (request for the real time), and  SET-TIME  (to set the current time of day). The value REAL-TIME  is the message type for the reply to the  GET-TIME  request.</p>
+      <p> The next file is  error.h  (line 0250). It contains the error messages that are returned to user programs in  errno  when a system call fails, as well as some internal errors, such as trying to send to a nonexistent task. They are negative to mark them as error codes. The values are made positive before being returned to user programs.</p>
+      <p> The file  sgtty.h  (line 0350) defines two structures used in the IOCTL system call, along with some constants also used in IOCTL.</p>
+      <p> The file  signal.h  (line 0400) defines the standard signal names. The file stat.h  (line 0450) contains the structure returned by the STAT and FSTAT system calls. All three files,  sgtty.h, signal.h,  and  stat.h  are used not only by the operating system itself, but also by some of the commands. They are duplicated in the directory  include.</p>
+      <p> The last of the common header files is  type.h  (line 0500). It contains a number of key type definitions, along with related numerical values. It also contains the macros  MAX  and  MIN,  so we can say</p>
+      <p> z = MAX(x, y);</p>
+      <p> to assign the larger of  x  and  y  to  z.</p>
+      <p> The most important definition in this file is  message  on lines 0554 to 0565. While we could have defined  message  to be an array of some number of bytes, it is better programming practice to have it be a structure containing union of the various message types that are possible. Six message formats,  mess-1  through mess-6,  are defined. A message is a structure containing a field  msource,  telling who sent the message, a field  ni-type,  telling what the message type is (e.g., GET-TIME  to the clock task) and the data fields. The six message types are shown in Fig. 2-28.</p>
+      <p> SEC. 2.6</p>
+      <p> IMPLEMENTATION OF PROCESSES IN MINIX</p>
+      <p> 95</p>
+      <p> m_ source</p>
+      <p> m_type</p>
+      <p> m4_H</p>
+      <p> m4_!2</p>
+      <p> m4_l3</p>
+      <p> m4_!4</p>
+      <p> Fig. 2-28. The six messages types used in  minix.</p>
+      <p> When it is necessary to send a message containing, say, three integers and three pointers (or three integers and two pointers), then the first format in Fig. 2-28 is the one to use. The same applies to the other formats. How does one assign a value to the first integer in the first format? Suppose the message is called  x.  Then  x.rn^u  refers to the union portion of the message struct. To refer to the first of the six alternatives in the union, we use  x.rruu.m^ml.  Finally, to get at the first integer in this struct we say  x.m-u.m-ml.mlil.  This is quite a mouthful, so somewhat shorter field names are defined as macros after the definition of  message  itself. Thus  x.ml-il  can be used instead of x.m-u.m_ml.mlil.  The short names all have the form of the letter  m,  the format number, an underscore, one or two letters indicating whether the field is an integer, pointer, long, character, character array, or function, and a sequence number to distinguish multiple instances of the same type within a message.</p>
+      <p> 2.6.3. Process Data Structures and Header Files</p>
+      <p> The ideas described above are straightforward, so let us dive in and see what the code looks like. Just as we have files  const.h  and  type.h  in the common header directory  minix/h,  we also have files  const.h  and  type.h  in  minix/kernel. The file  const.h  (line 0650) contains a number of machine dependent values, that is, values that apply to the Intel 8088, but are likely to be different if MINIX is moved to a different machine. These values are enclosed between</p>
+      <p> #ifdef i8088</p>
+      <p> and</p>
+      <p> #endif</p>
+      <p> statements. (See lines 0652 to 0681).</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> When compiling MINIX the compiler is called with cc -c -Di8088 file.c</p>
+      <p> to force the symbol i8088 to be defined, and the machine dependent code to be compiled. If MINIX is ported to, say, a Motorola 68000, the people doing the port will probably add sections of code bracketed by</p>
+      <p> tfifdef m68000</p>
+      <p> and</p>
+      <p> #endif</p>
+      <p> and call the compiler with cc -c -Dm68000 file.c</p>
+      <p> to select out the 68000-dependent code. In this way, MINIX can deal with constants and code that are specific to one particular system. This construction does not especially enhance readability, so it should be used as little as possible.</p>
+      <p> A few of the definitions in  const.h  deserve special mention. The important interrupt vectors are defined here, as are some field values used for resetting the interrupt controller chip after each interrupt.</p>
+      <p> Each task within the kernel has its own stack, of size  TASK-STACK-BYTES. While handling interrupts, a special stack of size  KSTACK-BYTES  is used.</p>
+      <p> The MINIX scheduler has  NQ  (3) priority queues, named  TASK-Q  (highest priority),  SERVER-Q  (middle priority), and  USER-Q  (lowest priority).</p>
+      <p> In the file  glo.h  (line 0700) we find the kernel's global variables.  Realtime  is the number of clock ticks since the system was booted. It is incremented 60 times a second by a crystal oscillator, independent of the line frequency. Lost-ticks  is a counter that keeps track of how many clock ticks have been lost because the clock task was not waiting for a message when a clock interrupt occurred. The interrupt is just ignored and  lost-ticks  incremented so that the time of day can be corrected later.</p>
+      <p> Cur-proc  is the number of the currently scheduled process.  Prev-proc  is the number of the previous process. It is needed for accounting purposes. Sig-procs  counts the number of processes that have signals pending that have not yet been sent to the memory manager for processing.</p>
+      <p> When an interrupt occurs, a message is sent to the task associated with the interrupt. The message is built in the message buffer  int-tness.  Finally, we have the stacks. Each task has its own stack, in the array  tstack.  During interrupt handling, the kernel uses a temporary stack,  kstack.</p>
+      <p> The final kernel header file,  proc.h  (line 0750), contains the process table. It contains storage for the process' registers, stack pointer, state, memory map, stack limit, process id, accounting, alarm time, and message information. When a process cannot complete a SEND because the destination is not waiting, the sender is put onto a queue pointed to by the destination's  p-callerq  field. That</p>
+      <p> SEC. 2.6</p>
+      <p> IMPLEMENTATION OF PROCESSES IN MINIX</p>
+      <p> 97</p>
+      <p> way, when the destination finally does a RECEIVE, it is easy to find all the processes wanting to send to it. The  psendlink  field is used to link the members of the queue together.</p>
+      <p> When a process does a RECEIVE and there is no message waiting for it, it blocks and the number of the process it wants to RECEIVE from is stored in p-getfrom.  The address of the message buffer is stored in  p-messbuf.</p>
+      <p> The last two fields are  p-nextready  and  p-pending.  The former is used to link processes together on the scheduler queues, and the latter is a bit map used to keep track of signals that have not yet been passed to the memory manager (because the memory manager is not waiting for a message).</p>
+      <p> The flag bits in  p-flags  define the state of each table entry. If any of the bits is set, the process cannot be run. If the slot is not in use,  PSLOTJFREE  is set. After a FORK,  NO-MAP  is set to prevent the child process from running until its memory map has been set up. The other two flags indicate that the process is blocked trying to send or receive a message.</p>
+      <p> The macro  proc-addr  is provided because it is not possible to have negative subscripts in C. Logically, the array  proc  should go from  —NR-TASKS  to +NR-PROCS.  Unfortunately, it must start at 0, so proc[0] refers to the most negative task, and so forth. To make it easier to keep track of which slot goes with which process, we can write</p>
+      <p> rp = proc_addr(n);</p>
+      <p> to assign to  rp  the address of the process slot for process  n,  either positive or negative.</p>
+      <p> The variable  proc-ptr  points to the process table entry for the current process. When a system call or interrupt occurs, it tells where to store the registers and processor state.  Bill-ptr  points to the process being charged for the CPU. When a user process calls the file system, and the file system is running,  proc-ptr will point to the file system process. However  bill-ptr  will point to the user making the call, since CPU time used by the file system is charged as system time to the caller.</p>
+      <p> The two arrays  rdy-head  and  rdy-tail  are used to maintain the scheduling queues. The first process on, say, the task queue is pointed to by rdy-head[TASK-Q].  Finally,  busy-map  and  task-mess  are used for handling interrupt messages to tasks that are busy when the message arrives and cannot accept them.</p>
+      <p> The file  type.h  (line 0800) contains only two type definitions, both machine dependent and both relating to interrupts. The struct  pc-psw  represents the three words, PSW (Program Status Word), CS (Code Segment register), and PC (Program Counter) pushed onto the stack by the interrupt hardware. The struct sig-info  is the data structure pushed onto the stack of a user process when it catches a signal. It contains the same three words that the hardware pushes, and also the signal number.</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> 2.6.4. System Initialization</p>
+      <p> Now it is time to start looking at the executable code. Let us begin at the beginning. When the PC is booted, the hardware reads the first sector of the floppy disk in drive 0 into memory and executes it. This bootstrap program loads the operating system and jumps to it. The operating system begins at the label  MINIX  in assembly code, sets up a few registers, and then calls  main  on line 0880 in  main.c.</p>
+      <p> Main  is responsible for initializing the system and then starting it up. It initializes the process table so that when the first tasks and processes are scheduled, their memory maps and registers will be set correctly. Part of the information for initialization comes from the array  sizes,  which contains the text and data sizes in clicks (a click is 16 bytes) for the kernel, memory manager, file system, and  init.  This information is patched into the system binary by a program called build,  which concatenates the various system pieces to make the boot diskette. The first two elements of  sizes  are the kernel's text and data sizes; the next two are the memory manager's, and so on. If any of the four programs does not use separate I and D space, the text size is 0 and the text and data are lumped together as data.</p>
+      <p> Main  also saves all the interrupt vectors, so if CTRL-ALT-DEL is ever typed, it will be possible to reboot the system with the vectors restored to their original situation.</p>
+      <p> The interrupt vectors are then changed to point to the MINIX interrupt handling routines. The vectors that are not used by MINIX are set to invoke the procedures  unexpected-int  (vectors below 16) or  trap  (vectors at or above 16). The unused vectors are sometimes trapped to by accident. The handling routines just print a message and then continue.</p>
+      <p> Part of the initialization done by  main  consists of calling  ready  (line 0915) to put all the tasks, the memory manager, and the file system onto their respective scheduling queues. When  main  exits, the task queued first (the one using slot 0 of the process table, i.e., the one with the most negative number) is run until it blocks trying to receive a message. Then the next task is run until it, too, blocks trying to receive a message. Eventually all the tasks are blocked, so the memory manager and file system can run, and also block. Finally  init  runs to fork off a login process for each terminal. These processes block until input is typed at some terminal, at which point the first user can log in and get the show on the road.</p>
+      <p> The procedure  panic  (line 1012) in the file  main.c  is called when the system has discovered a condition that makes it impossible to continue. Typical panic conditions are a critical disk block being unreadable, an inconsistent internal state being detected, or one part of the system calling another part with invalid parameters.</p>
+      <p> The last procedure in  main.c  is  set-vec  (line 1036). It takes care of the mechanics of setting interrupt vectors.</p>
+      <p> SEC. 2.6</p>
+      <p> IMPLEMENTATION OF PROCESSES IN MINIX</p>
+      <p> 99</p>
+      <p> 2.6.5. Interrupt Handling in MINIX</p>
+      <p> Running processes may be interrupted by clock interrupts, disk interrupts, terminal interrupts, or other interrupts. It is the job of the lowest layer of MINIX to hide these interrupts by turning them into messages. As far as the processes are concerned, when an I/O device completes an operation, it sends a message to some process, waking it up and making it runnable. Only a tiny part of the MINIX kernel actually sees hardware interrupts.</p>
+      <p> That code is in the file  mpx88.s.  Typical interrupt procedures are  tty-int  (line 1187),  Ipr-int  (line 1196),  disk-int  (line 1203), and  clock-int  (line 1217). (The leading underscores present in the assembly code are due to the convention that all variable and procedure names generated by the C compiler begin with an underscore so that library procedures in assembly language not starting with an underscore will never conflict with user-chosen names.)</p>
+      <p> These procedures are structurally similar. Each begins by calling  save  to store all the registers (including the segment registers) in the process table slot belonging to the currently running process. The variable  proc-ptr  makes this slot easy to find. The actual code of  save  is a bit tricky because all the segment registers except CS have unknown values when the procedure starts. When it is finished, they all have been set to point to the start of the kernel.</p>
+      <p> Disk-int  and  clock-int  build a message and call  interrupt  in file  proc.c  to take care of sending the message and calling the scheduler. Keyboard interrupts require more processing before  interrupt  is called, so  tty-int  calls a C procedure keyboard  to do the initial processing and then calls  interrupt  if necessary. Keyboard interrupts are generated both when a key is struck and when it is released. The processing needed when most keys are released is so simple that  keyboard can do it directly, without the overhead of switching to the terminal task.</p>
+      <p> For clock interrupts, disk interrupts, and some keyboard and line printer interrupts, the next step in the interrupt processing is the procedure  interrupt  on line 1878. This procedure has two parameters passed to it by the assembly code: the task to send to and a pointer to the message. It starts off by reenabling the interrupt controller chip. This chip must be explicitly reenabled to allow subsequent interrupts after the interrupt processing is finished. Any interrupts that occur before processing is finished are kept pending by the interrupt controller chip. They are not lost.</p>
+      <p> After taking care of the interrupt controller,  interrupt  calls  minisend  to actually send the message. If the send is successful (i.e., the task was waiting for a message), the corresponding bit in  busy-map  is turned off. If the send is unsuccessful, the corresponding bit in  busy-map  is turned on, to indicate that a message to that task is pending. The pointer to the message is stored in  task-mess.</p>
+      <p> Either way, a check is now made (line 1909) to see if any tasks with pending messages are now ready to accept their messages. For example, if two keyboard interrupts happen in rapid succession, on the second one the terminal task may not yet be done with the first one, so a bit is set in  busy-map.    If the next</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> interrupt is for the clock or disk, a check will be made to see if the terminal task is now ready to accept a message. If it is, the message is sent on line 1914.</p>
+      <p> This code is needed because the message system does not provide any buffering: you cannot send a message to someone unless he is waiting for it (rendezvous principle). For normal processes, the unsuccessful sender is just suspended for a while. With interrupts this strategy is impossible. In effect, the use of  busy-map  and  task-mess  forms a limited kind of buffering to avoid losing messages. For most devices, such as disks, it is technically impossible for the device to generate a second interrupt until the task has run and issued another command. For the clock, lost interrupts do not matter because they are counted on line 1897 and are compensated for later. Only the keyboard can give multiple unexpected interrupts, but the characters typed are recorded in a buffer before  interrupt  is called. The same message pointer is used for each keyboard interrupt, so lost keyboard interrupts do not result in lost characters. When the terminal task is finally called, it gets a message containing a pointer to the buffer where  keyboard  has safely stored all the characters.</p>
+      <p> When the message processing has been finished, a check is made on line 1921 to see if a higher priority process is now runnable. If so,  pick-proc  is called to schedule that process. Either way, when  interrupt  returns to its assembly code caller,  cur^proc  and  procptr  will be set up for the process to be run.</p>
+      <p> The assembly language interrupt procedures all call  restart  to reload the current process' registers and start it running.</p>
+      <p> We make no claim that interrupt processing is easy to fully understand. It requires a little study. In fact, the whole concept of the process abstraction was invented precisely to hide all the messy details of interrupt handling in a very thin layer at the bottom of the system.</p>
+      <p> Now a quick word or two about  s-call  (line 1173). When a process wants to send or receive a message, it calls a little assembly language library procedure to put the source or destination number in AX, the message pointer in BX, and the SEND or RECEIVE code in CX, followed by a trap instruction. The trap is treated by the hardware the same as an interrupt, and is vectored to  s-call.  This procedure calls  save  and builds a message, just as the interrupt procedures do.</p>
+      <p> Instead of calling  interrupt, S-call  calls  sys^call  to do the work, starting by checking for invalid parameters, illegal calls and destinations, and so on. If everything is all right, it does the send on line 1957 or the receive on line 1963. If the operation can be done immediately, the status code  OK  is returned in RET-REG  (AX) and control is returned to the assembly code to restart the caller. If the operation cannot complete, the process is blocked in  minisend  or  mini-rec and a new process is designated as the next one to run. When control passes back to the assembly code, the new process will be started. If no process is now runnable, the idle routine (line 1319) runs.</p>
+      <p> It is important to realize that the value of  cur_proc  may be different on exit from  sys-call  from what it was on entry. The same is true for  interrupt.  After save  has run in the assembly code, all of the current process' state has been</p>
+      <p> SEC. 2.6</p>
+      <p> IMPLEMENTATION OF PROCESSES IN MINIX</p>
+      <p> 101</p>
+      <p> safely stored away, so  cur^proc  can be changed with no ill effects. In essence, after a trap or interrupt, the current process is stopped, and the operating system itself is run with its own stack. When the operating system is finished, it does not matter whether the next process is the same one as the previous one. The work to be done is identical: load the registers and start it off.</p>
+      <p> Study  mpx88.s  carefully. It is important. The only other comments we will make here concern  surprise  and  trp.  Programs can (but should not) execute the INT instruction to cause any interrupt. These are caught by  surprise  or  trp, depending on the number of the vector.</p>
+      <p> 2.6.6. The Kernel's Assembly Code Utilities</p>
+      <p> While we are on the subject of assembly code routines, let us briefly look at the file  klib88.s.  This file contains about a dozen utility routines that are in assembly code, either for efficiency or because they cannot be written in C at all. The first one is  phys-copy  (line 1387). It is called in C by</p>
+      <p> phys_copy(source_address, destination_address, bytes);</p>
+      <p> and copies a block of data from anywhere in physical memory to anywhere else. Both addresses are absolute, that is, address 0 really means the first interrupt vector, and all three parameters are longs.</p>
+      <p> Although  phys-copy  could have been used for copying messages, a faster, specialized procedure has been provided for that purpose (line 1490). It is called by</p>
+      <p> cp_mess(source, src_clicks, src_offset, dest_clicks, dest_offset);</p>
+      <p> where  source  is the sender's process number, which is copied into the  m^source field of the receiver's buffer. Both the source and destination addresses are specified by giving a click number, typically the base of the segment containing the buffer, and an offset from that click. (A click is a multiple of 16 bytes on the IBM PC. Clicks are important because the PC hardware requires all segments to begin at a click.) This form of specifying the source and destination is more efficient than the 32-bit addresses used by  phys-copy.</p>
+      <p> Values are output to I/O ports in C using the assembly language procedure port-out  (line 1529). For example,</p>
+      <p> port_out(0x3F2, OxlC);</p>
+      <p> writes the byte OxlC to port 0x3F2 to set floppy disk motors on and off. Values are read from I/O ports by the analogous procedure,  poruin  (line 1547). The call</p>
+      <p> port_in(0x60, &amp;code);</p>
+      <p> for example, reads the number of the key just struck on the keyboard and stores it in the variable  code.</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> Occasionally it is necessary for a task to disable interrupts temporarily. It does this by calling  lock  (line 1567). When interrupts can be reenabled, the task can call either  unlock  (line 1578) to enable interrupts or  restore  (line 1587) to put them back the way they were before  lock  was called.</p>
+      <p> Buildsig  (line 1612) is a highly specialized procedure that is used only to simulate an interrupt when sending a process a signal.</p>
+      <p> The next two procedures,  csv  (line 1638) and  cret  (line 1660), are highly compiler dependent and may have to be modified when any compiler other than the PC-IX compiler is used. Some compilers do not use them at all. When a procedure compiled by the PC-IX compiler (and many other compilers) starts running, the first thing it does is put the number of bytes of local variables in AX. Then it calls  csv  to save BP, SI, DI, and advance the stack by the number of bytes of locals. While doing this work,  csv  also checks to see if the stack has grown beyond the memory allocated for it. When a procedure wants to return, it calls  cret  to reset the stack pointer and restore the registers. The  csv  and  cret routines provided in the compiler's library cannot be used because they check for stack overflow and make non-MINlX system calls to report them. The purpose of rewriting them is to get rid of the calls to  printf.</p>
+      <p> The last two assembly code procedures shown are  get—chrome  (line 1673) and  vid^copy  (line 1701). The former makes a BIOS call to see whether the console screen is monochrome or color. It matters because they are programmed slightly differently. It returns 1 for color, 0 for monochrome.  Vid-copy  takes care of the actual mechanics of displaying text on the console. We will see how it is used in the next chapter.</p>
+      <p> 2.6.7. Interprocess Communication in MINIX</p>
+      <p> Processes (including tasks) in MINIX communicate by messages using the rendezvous principle. When a process does a SEND, the lowest layer of the kernel checks to see if the destination is waiting for a message from the sender (or from ANY  sender). If so, the message is copied from the sender's buffer to the receiver's buffer, and both processes are marked as runnable. If the destination is not waiting for a message from the sender, the sender is marked as blocked and put onto a queue of processes waiting to send to the receiver.</p>
+      <p> When a process does a RECEIVE, the kernel checks to see if any process is queued trying to send to it. If so, the message is copied from the blocked sender to the receiver, and both are marked as runnable. If no process is queued trying to send to it, the receiver blocks until a message arrives.</p>
+      <p> The implementation of SEND and RECEIVE, as well as SENDREC, which is just a SEND to some process followed immediately by a RECEIVE from the same process, is handled in the file  proc.c.  Let us start with the implementation of SEND, which is done by  minisend  (line 1971). It has three parameters: the caller, the process to be sent to, and a pointer to the buffer where the message is. It starts out by making sure that user processes cannot send messages to tasks. The</p>
+      <p> SEC. 2.6</p>
+      <p> IMPLEMENTATION OF PROCESSES IN MINIX</p>
+      <p> 103</p>
+      <p> parameter  caller,  supplied by the assembly code routine via  interrupt  or  sys-call, is greater than or equal to  LOW-USER  if the caller is a user. For a hardware interrupt it is  HARDWARE  (-1). For a task it is less than -1.</p>
+      <p> After checking the destination address,  minisend  checks to see if the message falls entirely within the user's data segment. If not, an error code is returned.</p>
+      <p> The key test in  minisend  is on lines 2001 and 2002. Here a check is made to see if the destination is blocked on a RECEIVE, as shown by the  RECEIVING bit in the  p-flags  field of its process table entry. If it is waiting, then the next question is: "Who is it waiting for?" If it is waiting for the sender, or for  ANY, the code on lines 2004 to 2007 is executed to copy the message and ready the receiver (put it on the scheduling queues as runnable).</p>
+      <p> If, on the other hand, the receiver is not blocked, or is blocked but waiting for a message from someone else, the code on lines 2010 to 2023 is executed to block and queue the sender (except for sends done by interrupts). All processes wanting to send to a given destination are strung together on a linked list, with the destination's  p-.callerq  field pointing to the process table entry of the process at the head of the queue. The example of Fig. 2-29(a) shows what happens when process 3 is unable to send to process 0. If process 4 is subsequently also unable to send to process 0, we get the situation of Fig. 2-29(b).</p>
+      <p> P_Send; nk=0</p>
+      <p> P-Callerq ■</p>
+      <p> P_Sendlink=0</p>
+      <p> P_Sendlink</p>
+      <p> !=!&gt;</p>
+      <p> P_Callerq</p>
+      <p> (a) (b) Fig. 2-29. Queueing of processes trying to send to process 0.</p>
+      <p> The RECEIVE call is carried out by  mini^rec.  The loop on line 2051 searches through all the processes queued waiting to send to the receiver to see if any are acceptable. If one is found, the message is copied from sender to receiver, then the sender is unblocked, made ready to run, and removed from the queue of processes trying to send to the receiver.</p>
+      <p> If no suitable sender is found, the source and buffer address are saved in its process table entry, and the receiver is marked as blocked on a RECEIVE call. The call to  unready  on line 2073 removes the receiver from the scheduler's queue of runnable processes.</p>
+      <p> The statement on line 2078 has to do with how kernel-generated signals (SIG-INT, SIGQUIT, and SIGALRM) are handled. When one of these occurs, a message is sent to the memory manager, if it is waiting for a message from  ANY. If not, the signal is remembered in the kernel until the memory manager finally tries to receive from  ANY.  Then it is informed of pending signals.</p>
+      <p> 2.6.8. Scheduling in MINIX</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> MINIX uses a multilevel scheduling algorithm that closely follows the structure shown in Fig. 2-26. In that figure we see I/O tasks in layer 2, server processes in layer 3, and user processes in layer 4. The scheduler maintains three queues of runnable processes, one for each layer, as shown in Fig. 2-30. The array rdy^head  has one entry for each queue, with that entry pointing to the process at the head of the queue. Similarly,  rdy^tail  is an array whose entries point to the last process on each queue.</p>
+      <p> Rdy— head</p>
+      <p> Rdy_tail</p>
+      <p> USER_Q</p>
+      <p> SERVER_Q</p>
+      <p> TASK-Q</p>
+      <p> FS</p>
+      <p> j MM j -</p>
+      <p> USER^Q</p>
+      <p> SERVER_Q</p>
+      <p> TASK _.Q</p>
+      <p> Fig. 2-30. The scheduler maintains three queues, one per priority level.</p>
+      <p> Whenever a blocked process is awakened, it is put on the end of its queue. The array  rdy_tail  makes adding a process at the end of a queue efficient. Whenever a running process becomes blocked, or a runnable process is killed by a signal, that process is removed from the scheduler's queues. Only runnable processes are queued.</p>
+      <p> Given the queue structures just described, the scheduling algorithm is simple: find the highest priority queue that is not empty and pick the process at the head of that queue. If all the queues are empty, the idle routine is run. In Fig. 2-30 TASK-Q  has the highest priority. The queue is chosen in  pick-.proc,  on lines 2092 to 2094. The process chosen to run next is not removed from its queue merely because it has been selected.</p>
+      <p> The procedures  ready  (line 2122) and  unready  (line 2153) are called to enter a runnable process on its queue and remove a no-longer runnable process from its queue, respectively. Any change to the queues that might affect the choice of which process to run next requires  pick-proc  to be called to set  cur^proc  again. Whenever the current process blocks on a SEND or a RECEIVE,  pick-proc  is called to reschedule the CPU. Also, after every interrupt, a check is made on line 1921 to see if a newly awakened task should now be scheduled. If a task was running at the time of the interrupt, then it continues to run after the interrupt processing is finished. All tasks are of equal priority, so the new one does not get preference over the old one.</p>
+      <p> Although most scheduling decisions are made when a process blocks or unblocks, there is one other situation in which scheduling is also done. When the clock task notices that the current user process has exceeded its quantum, it calls  sched  (line 2186) to move the process at the head of  USER-Q  to the end of</p>
+      <p> SEC. 2.6</p>
+      <p> IMPLEMENTATION OF PROCESSES IN MINIX</p>
+      <p> 105</p>
+      <p> that queue. This algorithm results in running the user processes in a straight round-robin fashion. The file system, memory manager, and I/O tasks are never put on the end of their queues because they have been running too long. They are trusted to work properly, and to block after having finished their work.</p>
+      <p> In summary, the scheduling algorithm maintains three priority queues, one for I/O tasks, one for the two server processes, and one for the user processes. The first process on the highest priority queue is always run next. If a user process uses up its quantum, it is put at the end of its queue, thus achieving a simple round-robin scheduling among the competing user processes.</p>
+      <p> 2.7. SUMMARY</p>
+      <p> To hide the effects of interrupts, operating systems provide a conceptual model consisting of sequential processes running in parallel. Processes can communicate with each other using interprocess communication primitives, such as semaphores, monitors, or messages. These primitives are used to ensure that no two processes are ever in their critical sections at the same time. A process can be running, runnable, or blocked, and can change state when it or another process executes one of the interprocess communication primitives.</p>
+      <p> Interprocess communication primitives can be used to solve such problems as the producer-consumer, dining philosophers, and reader-writer problem. Even with these primitives, care has to be taken to avoid errors and deadlocks. Many scheduling algorithms are known, including round robin, priority scheduling, multilevel queues, and policy-driven schedulers.</p>
+      <p> MINIX supports the process concept, and provides messages for interprocess communication. Messages are not buffered, so a SEND succeeds only when the receiver is waiting for it. Similarly, a RECEIVE succeeds only when a message is already available. If either operation does not succeed, the caller is blocked.</p>
+      <p> When an interrupt occurs, the lowest level of the kernel creates and sends a message to the task associated with the interrupting device. The major steps needed to convert a disk interrupt to a message are listed below, with the numbers in parentheses telling where in the code it happens. (We assume the message succeeds and the disk task is scheduled to run next.)</p>
+      <p> 1. The hardware jumps to the interrupt routine (line 1203).</p>
+      <p> 2. The registers are saved in the process table (line 1249).</p>
+      <p> 3.  Interrupt  is called to oversee sending the message (line 1878).</p>
+      <p> 4. The actual copying is invoked in  minisend  (line 2004).</p>
+      <p> 5. The destination task is made runnable (line 2007).</p>
+      <p> 6. The disk task is chosen to run next (lines 1921 and 1922).</p>
+      <p> 7. The disk task's registers are loaded and it is started (line 1288).</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> The MINIX scheduling algorithm uses three priority queues, the highest one for tasks, the next one for the file system and memory manager, and the lowest one for user processes. User processes are run round robin for one quantum at a time. All the others are run until they block or are preempted by a higher priority process.</p>
+      <p> PROBLEMS</p>
+      <p> 1. Suppose you were to design an advanced computer architecture that did process switching in hardware, instead of having interrupts. What information would the CPU need? Describe how the hardware process switching might work.</p>
+      <p> 2. What is a race condition?</p>
+      <p> 3. Does the busy waiting solution using the  turn  variable (Fig. 2-7) work when the two processes are running on two CPUs, sharing a common memory?</p>
+      <p> 4. Consider a computer that does not have a TEST AND SET LOCK instruction, but does have an instruction to swap the contents of a register and a memory word in a single indivisible action. Can that be used to write a routine  enter^region  such as the one found in Fig. 2-9?</p>
+      <p> 5. Give a sketch of how an operating system that can disable interrupts could implement semaphores.</p>
+      <p> 6. Show how counting semaphores (i.e., semaphores that can hold an arbitrarily large value) can be implemented using only binary semaphores and ordinary machine instructions.</p>
+      <p> 7. In Sec. 2.2.4, a situation with a high-priority process,  H,  and a low-priority process L  was described, which led to  H  looping forever. Does the same problem occur if round robin scheduling is used instead of priority scheduling? Discuss.</p>
+      <p> 8. Synchronization within monitors uses condition variables and two special operations, WAIT and SIGNAL. A more general form of synchronization would be to have a single primitive, WAITUNTIL that had an arbitrary Boolean predicate as parameter. Thus, one could say, for example,</p>
+      <p> WAITUNTIL x&lt;0ory+z&lt;/j</p>
+      <p> The SIGNAL primitive would no longer be needed. This scheme is clearly more general than that of Hoare or Brinch Hansen, but it is not used. Why not? (Hint: think about the implementation.)</p>
+      <p> 9. A fast food restaurant has four kinds of employees: (1) order takers, who take customer's orders; (2) cooks, who prepare the food; (3) packaging specialists, who stuff the food into bags; and (4) cashiers, who give the bags to customers and take their money. Each employee can be regarded as a communicating sequential process. What form of interprocess communication do they use? Relate this model to processes in MINIX.</p>
+      <p> CHAP. 2</p>
+      <p> PROBLEMS</p>
+      <p> 107</p>
+      <p> 10. Suppose we have a message-passing system using mailboxes. When sending to a full mailbox or trying to receive from an empty one, a process does not block. Instead, it gets an error code back. The process responds to the error code by just trying again, over and over, until it succeeds. Does this scheme lead to race conditions?</p>
+      <p> 11. The implementation of monitors using semaphores did not use an explicit linked list of blocked processes, whereas the implementation of semaphores using monitors did. Explain. (Hint: think about the differences between semaphores and condition variables.)</p>
+      <p> 12. In the solution to the dining philosophers problem (Fig. 2-20), why is the state variable set to  HUNGRY  in the procedure  take-forks?</p>
+      <p> 13. Consider the procedure  put-forks  in Fig. 2-20. Suppose the variable  state[i]  was set to  THINKING after  the two calls to  test,  rather than  before.  How would this change affect the solution for the case of 3 philosophers? For 100 philosophers?</p>
+      <p> 14. The readers and writers problem can be formulated in several ways with regard to which category of processes can be started when. Carefully describe three different variations of the problem, each one favoring (or not favoring) some category of processes. For each variation, specify what happens when a reader or a writer becomes ready to access the data base, and what happens when a process is finished using the data base.</p>
+      <p> 15. The CDC 6600 computers could handle up to 10 I/O processes simultaneously using an interesting form of round robin scheduling called processor sharing. A process switch occurred after each instruction, so instruction 1 came from process 1, instruction 2 came from process 2, etc. The process switching was done by special hardware, and the overhead was zero. If a process needed  T  sec to complete in the absence of competition, how much time would it need if processor sharing was used with  n  processes?</p>
+      <p> 16. Round robin schedulers normally maintain a list of all runnable processes, with each process occurring exactly once in the list. What would happen if a process occurred twice in the list? Can you think of any reason for allowing this?</p>
+      <p> 17. Measurements of a certain system have shown that the average process runs for a time  T  before blocking on I/O. A process switch requires a time  S,  which is effectively wasted (overhead). For round robin scheduling with quantum  Q,  give a formula for the CPU efficiency for each of the following.</p>
+      <p> (a)  Q =  oo</p>
+      <p> (b)  Q &gt;T</p>
+      <p> (c)  S &lt;Q &lt;T</p>
+      <p> (d)  Q = S</p>
+      <p> (e)  Q  nearly 0</p>
+      <p> 18. Five batch jobs  A  through  E,  arrive at a computer center at almost the same time. They have estimated running times of 10, 6, 2, 4, and 8 minutes. Their (externally determined) priorities are 3, 5, 2, 1, and 4, respectively, with 5 being the highest</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> priority. For each of the following scheduling algorithms, determine the mean process turnaround time. Ignore process switching overhead.</p>
+      <p> (a) Round robin.</p>
+      <p> (b) Priority scheduling.</p>
+      <p> (c) First-come, first served (run in order 10, 6, 2, 4, 8).</p>
+      <p> (d) Shortest job first.</p>
+      <p> For (a), assume that the system is multiprogrammed, and that each job gets its fair share of the CPU. For (b) through (d) assume that only one job at a time runs, until it finishes. All jobs are completely CPU bound.</p>
+      <p> 19. A process running on CTSS needs 30 quanta to complete. How many times must it be swapped in, including the very first time (before it has run at all)?</p>
+      <p> 20. Five jobs are waiting to be run. Their expected run times are 9, 6, 3, 5, and  X.  In what order should they be run to minimize average response time? (Your answer will depend on X.)</p>
+      <p> 21. The aging algorithm with  a  = 1/2 is being used to predict run times. The previous four runs, from oldest to most recent are 40, 20, 40, and 15 msec. What is the prediction of the next time?</p>
+      <p> 22. Explain why two-level scheduling is commonly used.</p>
+      <p> 23. During execution, MINIX maintains a variable  proc^ptr  that points to the process table entry for the current process. Why?</p>
+      <p> 24. MINIX does not buffer messages. Explain how this design decision causes problems with clock and keyboard interrupts.</p>
+      <p> 25. When a message is sent to a sleeping process in MINIX, the procedure  ready  is called to put that process on the proper scheduling queue. This procedure starts out by disabling interrupts. Explain.</p>
+      <p> 26. The MINIX procedure  mini-rec  contains a loop. Explain what it is for.</p>
+      <p> 27. Assume that you have an operating system that provides semaphores. Implement a message system. Write the procedures for sending and receiving messages.</p>
+      <p> 28. A student majoring in anthropology and minoring in computer science has embarked on a research project to see if African baboons can be taught about deadlocks. He locates a deep canyon and fastens a rope across it, so the baboons can cross hand-over-hand. Several baboons can cross at the same time, provided that they are all going in the same direction. If eastward moving and westward moving baboons ever get onto the rope at the same time, a deadlock will result (the baboons will get stuck in the middle) because it is impossible for one baboon to climb over another one while suspended over the canyon. If a baboon wants to cross the canyon, he must check to see that no other baboon is currently crossing in the opposite direction. Write a program using semaphores that avoids deadlock. Do not worry about a series of eastward moving baboons holding up the westward moving baboons indefinitely.</p>
+      <p> 29. Repeat the previous problem, but now avoid starvation. When a baboon that wants to cross to the east arrives at the rope and finds baboons crossing to the west, he</p>
+      <p> CHAP. 2</p>
+      <p> PROBLEMS</p>
+      <p> 109</p>
+      <p> waits until the rope is empty, but no more westward moving baboons are allowed to start until at least one baboon has crossed the other way.</p>
+      <p> 30. Solve the dining philosophers problem using monitors instead of semaphores.</p>
+      <p> 31. Add code to the MINIX kernel to keep track of the number of messages sent from process (or task)  i  to process (or task)  j.  Print this matrix when the F4 key is hit.</p>
+      <p> 32. Modify the MINIX scheduler to keep track of how much CPU time each user process has had recently. When no task or server wants to run, pick the user process that has had the smallest share of the CPU.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> One of the main functions of an operating system is to control all the computer's input/output devices. It must issue commands to the devices, catch interrupts, and handle errors. It should also provide an interface between the devices and the rest of the system that is simple and easy to use. To the extent possible, the interface should be the same for all devices (device independence). The I/O code represents a significant fraction of the total operating system. How the operating system manages I/O is the subject of this chapter.</p>
+      <p> An outline of the chapter is as follows. First we will look briefly at some of the principles of I/O hardware, and then we will look at I/O software in general. I/O software can be structured in layers, with each layer having a well-defined task to perform. We will look at these layers to see what they do and how they fit together.</p>
+      <p> After that comes a section on deadlocks. We will define deadlocks precisely, show how they are caused, give two models for analyzing them, and discuss some algorithms for preventing their occurrence.</p>
+      <p> Then we will take a bird's-eye view of I/O in MINIX. Following that introduction, we will look at four I/O devices in detail—the RAM disk, the floppy disk, the clock, and the terminal. For each device we will look at its hardware, software, and implementation in MINIX. Finally, the chapter closes with a short discussion of a little piece of MINIX that is located in the same layer as the I/O tasks, but is itself not an I/O task. It provides some services to the memory manager and file system, such as fetching blocks of data from a user process.</p>
+      <p> 110</p>
+      <p> SEC. 3.1</p>
+      <p> PRINCIPLES OF I/O HARDWARE</p>
+      <p> 111</p>
+      <p> 3.1. PRINCIPLES OF I/O HARDWARE</p>
+      <p> Different people look at I/O hardware in different ways. Electrical engineers look at it in terms of chips, wires, power supplies, motors and all the other physical components that make up the hardware. Programmers look at the interface presented to the software—the commands the hardware accepts, the functions it carries out, and the errors that can be reported back. In this book we are concerned with programming I/O devices, not designing, building, or maintaining them, so our interest will be restricted to how the hardware is programmed, not how it works inside. Nevertheless, the programming of many I/O devices is often intimately connected with their internal operation. In the next two sections we will provide a little general background on I/O hardware as it relates to programming.</p>
+      <p> 3.1.1. I/O Devices</p>
+      <p> I/O devices can be roughly divided into two categories: block devices and character devices. A block device is one that stores information in fixed-size blocks, each one with its own address. Common block sizes range from 128 bytes to 1024 bytes. The essential property of a block device is that it is possible to read or write each block independently of all the other ones. In other words, at any instant, the program can read or write any of the blocks. Disks are block devices.</p>
+      <p> If you look closely, the boundary between devices that are block addressable and those that are not is not well defined. Everyone agrees that a disk is a block addressable device because no matter where the arm currently is, it is always possible to seek to another cylinder and then wait for the required block to rotate under the head. Now consider a magnetic tape containing blocks of IK bytes. If the tape drive is given a command to read block  N,  it can always rewind the tape and go forward until it comes to block  N.  This operation is analogous to a disk doing a seek, except that it takes much longer. Also, it may or may not be possible to rewrite one block in the middle of a tape. Even if it were possible to use magnetic tapes as block devices, that is stretching the point somewhat: they are normally not used that way.</p>
+      <p> The other type of I/O device is the character device. A character device delivers or accepts a stream of characters, without regard to any block structure. It is not addressable and does not have any seek operation. Terminals, line printers, paper tapes, punched cards, network interfaces, mice (for pointing), rats (for psychology lab experiments), and most other devices that are not disklike can be seen as character devices.</p>
+      <p> This classification scheme is not perfect. Some devices just do not fit in. Clocks, for example, are not block addressable. Nor do they generate or accept character streams. All they do is cause interrupts at well-defined intervals. Still, the model of block and character devices is general enough that it can be used as</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> a basis for making some of the operating system software dealing with I/O device independent. The file system, for example, deals just with abstract block devices, and leaves the device-dependent part to lower-level software called device drivers.</p>
+      <p> 3.1.2. Device Controllers</p>
+      <p> I/O units typically consist of a mechanical component and an electronic component. It is often possible to separate the two portions to provide a more modular and general design. The electronic component is called the device controller or adapter. On mini- and microcomputers, it often takes the form of a printed circuit card that can be inserted into the computer. The mechanical component is the device itself.</p>
+    </div>
+  </body>
+</html>

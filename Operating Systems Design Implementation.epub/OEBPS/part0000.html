@@ -1,0 +1,1054 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>part0000</title>
+    <meta content="abbyy to epub tool, v0.2" name="generator"/>
+    <link href="stylesheet.css" type="text/css" rel="stylesheet"/>
+    <meta content="application/xhtml+xml; charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <div class="body">
+      <div class="pages" id="pages"/>
+      <p> OPERATING SYSTEMS:</p>
+      <p> Design and</p>
+      <p> Implementation</p>
+      <p> Prentice-Hall Software Series Brian W. Kernighan,  Advisor</p>
+      <p> OPERATING SYSTEMS:</p>
+      <p> Design and</p>
+      <p> Implementation</p>
+      <p> ANDREW S. TANENBAUM</p>
+      <p> Vrije Universiteit Amsterdam, The Netherlands</p>
+      <p> C  \</p>
+      <p> Prentice-Hall International, Inc.</p>
+      <p class="illus">
+        <img src="images/picture0.jpg" alt="picture0"/>
+      </p>
+      <p> This edition may be sold only in those countries to which it is consigned by Prentice-Hall International. It is not to be re-exported and it is not for sale in the U.S.A., Mexico, or Canada.</p>
+      <p> c 1987 by Prentice-Hall, Inc. A Division of Simon &amp; Schuster Englewood Cliffs, NJ 07632</p>
+      <p> All rights reserved. No part of this book may be reproduced, in any form or by any means, without permission in writing from the publisher.</p>
+      <p> Printed in the United States of America 10 9</p>
+      <p> ISBN    0-13-b37331-3 D5S</p>
+      <p> Prentice-Hall International (UK) Limited,  London Prentice-Hall of Australia Pty. Limited,  Sydney Prentice-Hall Canada Inc.,  Toronto Prentice-Hall Hispanoamericana, S.A.,  Mexico Prentice-Hall of India Private Limited,  New Delhi Prentice-Hall of Japan, Inc.,  Tokyo Prentice-Hall of Southeast Asia Pte. Ltd.,  Singapore Editora Prentice-Hall do Brasil, Ltda.,  Rio de Janeiro Prentice-Hall,  Englewood Cliffs, New Jersey</p>
+      <p> To Suzanne, Barbara, Marvin and the memory of Sweetie</p>
+      <p class="illus">
+        <img src="images/picture1.jpg" alt="picture1"/>
+      </p>
+      <p> CONTENTS</p>
+      <p> PREFACE</p>
+      <p> 1    INTRODUCTION 1</p>
+      <p> 1.1 WHAT IS AN OPERATING SYSTEM? 3</p>
+      <p> 1.1.1 The Operating System as an Extended Machine 3</p>
+      <p> 1.1.2 The Operating System as a Resource Manager 4</p>
+      <p> 1.2 HISTORY OF OPERATING SYSTEMS 5</p>
+      <p> 1.2.1 The First Generation (1945-1955): Vacuum Tubes and Plugboards 5</p>
+      <p> 1.2.2 The Second Generation (1955-1965): Transistors and Batch Systems 6</p>
+      <p> 1.2.3 The Third Generation (1965-1980): ICs and Multiprogramming 8</p>
+      <p> 1.2.4 The Fourth Generation (1980-1990): Personal Computers 11</p>
+      <p> 1.2.5 History of MINIX 13</p>
+      <p> 1.3 OPERATING SYSTEM CONCEPTS 14</p>
+      <p> 1.3.1 Processes 15</p>
+      <p> 1.3.2 Files 16</p>
+      <p> 1.3.3 The Shell 20</p>
+      <p> 1.4 SYSTEM CALLS 21</p>
+      <p> 1.4.1 System Calls for Process Management 23</p>
+      <p> 1.4.2 System Calls for Signaling 25</p>
+      <p> 1.4.3 System Calls for File Management 27</p>
+      <p> 1.4.4 System Calls for Directory Management 32</p>
+      <p> 1.4.5 System Calls for Protection 34</p>
+      <p> 1.4.6 System Calls for Time Management 36</p>
+      <p> 1.5 OPERATING SYSTEM STRUCTURE 36</p>
+      <p> 1.5.1 Monolithic Systems 36</p>
+      <p> 1.5.2 Layered Systems 37</p>
+      <p> 1.5.3 Virtual Machines 39</p>
+      <p> 1.5.4 Client-Server Model 40</p>
+      <p> CONTENTS</p>
+      <p> 1.6 OUTLINE OF THE REST OF THIS BOOK 42</p>
+      <p> 1.7 SUMMARY 42</p>
+      <p> PROCESSES</p>
+      <p> 2.1 INTRODUCTION TO PROCESSES 45</p>
+      <p> 2.1.1 The Process Model 46</p>
+      <p> 2.1.2 Implementation of Processes 50</p>
+      <p> 2.2 INTERPROCESS COMMUNICATION 51</p>
+      <p> 2.2.1 Race Conditions 51</p>
+      <p> 2.2.2 Critical Sections 53</p>
+      <p> 2.2.3 Mutual Exclusion with Busy Waiting 53</p>
+      <p> 2.2.4 Sleep and Wakeup 58</p>
+      <p> 2.2.5 Semaphores 60</p>
+      <p> 2.2.6 Event Counters 62</p>
+      <p> 2.2.7 Monitors 63</p>
+      <p> 2.2.8 Message Passing 67</p>
+      <p> 2.2.9 Equivalence of Primitives 72</p>
+      <p> 2.3 CLASSICAL IPC PROBLEMS 75</p>
+      <p> 2.3.1 The Dining Philosophers Problem 75</p>
+      <p> 2.3.2 The Readers and Writers Problem 77</p>
+      <p> 2.4 PROCESS SCHEDULING 80</p>
+      <p> 2.4.1 Round Robin Scheduling 81</p>
+      <p> 2.4.2 Priority Scheduling 82</p>
+      <p> 2.4.3 Multiple Queues 83</p>
+      <p> 2.4.4 Shortest Job First 84</p>
+      <p> 2.4.5 Policy-Driven Scheduling 85</p>
+      <p> 2.4.6 Two-level Scheduling 86</p>
+      <p> 2.5 OVERVIEW OF PROCESSES IN MINIX 87</p>
+      <p> 2.5.1 The Internal Structure of MINIX 87</p>
+      <p> 2.5.2 Process Management in MINIX 88</p>
+      <p> 2.5.3 Interprocess Communication in MINIX 89</p>
+      <p> 2.5.4 Process Scheduling in MINIX 90</p>
+      <p> 2.6 IMPLEMENTATION OF PROCESSES IN MINIX 90</p>
+      <p> 2.6.1 Organization of the MINIX Source Code 91</p>
+      <p> 2.6.2 The Common Header Files 92</p>
+      <p> 2.6.3 Process Data Structures and Header Files 95</p>
+      <p> 2.6.4 System Initialization 98</p>
+      <p> 2.6.5 Interrupt Handling in MINIX 99</p>
+      <p> 2.6.6 The Kernel's Assembly Code Utilities 101</p>
+      <p> 2.6.7 Interprocess Communication in MINIX 102</p>
+      <p> 2.6.8 Scheduling in MINIX 104</p>
+      <p> 2.7 SUMMARY 105</p>
+      <p> 3 INPUT/OUTPUT</p>
+      <p> CONTENTS</p>
+      <p> ix 110</p>
+      <p> 3.1 PRINCIPLES OF I/O HARDWARE 111</p>
+      <p> 3.1.1 I/O Devices 111</p>
+      <p> 3.1.2 Device Controllers 112</p>
+      <p> 3.2 PRINCIPLES OF I/O SOFTWARE 116</p>
+      <p> 3.2.1 Goals of the I/O Software 116</p>
+      <p> 3.2.2 Interrupt Handlers 117</p>
+      <p> 3.2.3 Device Drivers 118</p>
+      <p> 3.2.4 Device-Independent I/O Software 119</p>
+      <p> 3.2.5 User-Space I/O Software 121</p>
+      <p> 3.3 DEADLOCKS 122</p>
+      <p> 3.3.1 Resources 123</p>
+      <p> 3.3.2 Deadlock Modeling 124</p>
+      <p> 3.3.3 The Ostrich Algorithm 127</p>
+      <p> 3.3.4 Detection and Recovery 128</p>
+      <p> 3.3.5 Deadlock Prevention 128</p>
+      <p> 3.3.6 Deadlock Avoidance 130</p>
+      <p> 3.4 OVERVIEW OF I/O IN MINIX 135</p>
+      <p> 3.4.1 Interrupt Handlers in MINIX 135</p>
+      <p> 3.4.2 Device Drivers in MINIX 135</p>
+      <p> 3.4.3 Device-Independent I/O Software in MINIX 138</p>
+      <p> 3.4.4 User-level I/O Software in MINIX 139</p>
+      <p> 3.4.5 Deadlock Handling in MINIX 139</p>
+      <p> 3.5 RAM DISKS 139</p>
+      <p> 3.5.1 RAM Disk Hardware and Software 140</p>
+      <p> 3.5.2 Overview of the RAM Disk Driver in MINIX 141</p>
+      <p> 3.5.3 Implementation of the RAM Disk Driver in MINIX 142</p>
+      <p> 3.6 DISKS 143</p>
+      <p> 3.6.1 Disk Hardware 143</p>
+      <p> 3.6.2 Disk Software 144</p>
+      <p> 3.6.3 Overview of the Floppy Disk Driver in MINIX 149</p>
+      <p> 3.6.4 Implementation of the Floppy Disk Driver in MINIX 151</p>
+      <p> 3.7 CLOCKS 154</p>
+      <p> 3.7.1 Clock Hardware 154</p>
+      <p> 3.7.2 Clock Software 155</p>
+      <p> 3.7.3 Overview of the Clock Driver in MINIX 158</p>
+      <p> 3.7.4 Implementation of the Clock Driver in MINIX 159</p>
+      <p> 3.8 TERMINALS 160</p>
+      <p> 3.8.1 Terminal Hardware 160</p>
+      <p> 3.8.2 Terminal Software 164</p>
+      <p> 3.8.3 Overview of the Terminal Driver in MINIX 171</p>
+      <p> 3.8.4 Implementation of the Terminal Driver in MINIX 177</p>
+      <p> 3.9 THE SYSTEM TASK IN MINIX 182</p>
+      <p> 3.10 SUMMARY 186</p>
+      <p> CONTENTS</p>
+      <p> 4   MEMORY MANAGEMENT</p>
+      <p> 4.1 MEMORY MANAGEMENT WITHOUT SWAPPING OR PAGING 191</p>
+      <p> 4.1.1 Monoprogramming without Swapping or Paging 192</p>
+      <p> 4.1.2 Multiprogramming and Memory Usage 193</p>
+      <p> 4.1.3 Multiprogramming with Fixed Partitions 196</p>
+      <p> 4.2 SWAPPING 198</p>
+      <p> 4.2.1 Multiprogramming with Variable Partitions 198</p>
+      <p> 4.2.2 Memory Management with Bit Maps 200</p>
+      <p> 4.2.3 Memory Management with Linked Lists 201</p>
+      <p> 4.2.4 Memory Management with the Buddy System 203</p>
+      <p> 4.2.5 Allocation of Swap Space 205</p>
+      <p> 4.2.6 Analysis of Swapping Systems 205</p>
+      <p> 4.3 VIRTUAL MEMORY 206</p>
+      <p> 4.3.1 Paging 207</p>
+      <p> 4.3.2 Segmentation 209</p>
+      <p> 4.4 PAGE REPLACEMENT ALGORITHMS 213</p>
+      <p> 4.4.1 Optimal Page Replacement 213</p>
+      <p> 4.4.2 Not-Recently-Used Page Replacement 214</p>
+      <p> 4.4.3 First-In First-Out Page Replacement 215</p>
+      <p> 4.4.4 Least Recently Used Page Replacement 216</p>
+      <p> 4.4.5 Simulating LRU in Software 217</p>
+      <p> 4.5 DESIGN ISSUES FOR PAGING SYSTEMS 219</p>
+      <p> 4.5.1 The Working Set Model 219</p>
+      <p> 4.5.2 Local versus Global Allocation Policies 221</p>
+      <p> 4.5.3 Page Size 222</p>
+      <p> 4.5.4 Implementation Issues 224</p>
+      <p> 4.6 OVERVIEW OF MEMORY MANAGEMENT IN MINIX 226</p>
+      <p> 4.6.1 Memory Layout 227</p>
+      <p> 4.6.2 Message Handling 229</p>
+      <p> 4.6.3 Memory Manager Data Structures and Algorithms 230</p>
+      <p> 4.6.4 The FORK, EXIT, and WAIT System Calls 233</p>
+      <p> 4.6.5 The EXEC System Call 234</p>
+      <p> 4.6.6 The BRK System Call 237</p>
+      <p> 4.6.7 Signal Handling 237</p>
+      <p> 4.6.8 Other System Calls 239</p>
+      <p> 4.7 IMPLEMENTATION OF MEMORY MANAGEMENT IN MINIX 239</p>
+      <p> 4.7.1 The Header Files 239</p>
+      <p> 4.7.2 The Main Program 240</p>
+      <p> 4.7.3 Implementation of FORK, EXIT, and WAIT 241</p>
+      <p> 4.7.4 Implementation of EXEC 242</p>
+      <p> 4.7.5 Implementation of BRK 243</p>
+      <p> 4.7.6 Implementation of Signal Handling 244</p>
+      <p> 4.7.7 Implementation of the Other System Calls 246</p>
+      <p> 4.7.8 Memory Manager Utilities 246</p>
+      <p> 4.8 SUMMARY 247</p>
+      <p> 5   FILE SYSTEMS</p>
+      <p> CONTENTS</p>
+      <p> xi 251</p>
+      <p> 5.1 THE USER VIEW OF THE FILE SYSTEM 251</p>
+      <p> 5.1.1 File Basics 252</p>
+      <p> 5.1.2 Directories 254</p>
+      <p> 5.2 FILE SYSTEM DESIGN 256</p>
+      <p> 5.2.1 Disk Space Management 256</p>
+      <p> 5.2.2 File Storage 258</p>
+      <p> 5.2.3 Directory Structure 261</p>
+      <p> 5.2.4 Shared Files 263</p>
+      <p> 5.2.5 File System Reliability 266</p>
+      <p> 5.2.6 File System Performance 270</p>
+      <p> 5.3 FILE SERVERS 273</p>
+      <p> 5.3.1 Interface Level 273</p>
+      <p> 5.3.2 Atomic Update 274</p>
+      <p> 5.3.3 Concurrency Control 276</p>
+      <p> 5.3.4 Transactions 277</p>
+      <p> 5.3.5 Replicated Files 279</p>
+      <p> 5.4 SECURITY 279</p>
+      <p> 5.4.1 The Security Environment 280</p>
+      <p> 5.4.2 Famous Security Flaws 281</p>
+      <p> 5.4.3 Generic Security Attacks 283</p>
+      <p> 5.4.4 Design Principles for Security 284</p>
+      <p> 5.4.5 User Authentication 285</p>
+      <p> 5.5 PROTECTION MECHANISMS 289</p>
+      <p> 5.5.1 Protection Domains 289</p>
+      <p> 5.5.2 Access Control Lists 292</p>
+      <p> 5.5.3 Capabilities 293</p>
+      <p> 5.5.4 Protection Models 295</p>
+      <p> 5.5.5 Covert Channels 297</p>
+      <p> 5.6 OVERVIEW OF THE MINIX FILE SYSTEM 299</p>
+      <p> 5.6.1 Messages 299</p>
+      <p> 5.6.2 File System Layout 300</p>
+      <p> 5.6.3 Bit Maps 302</p>
+      <p> 5.6.4 I-nodes 304</p>
+      <p> 5.6.5 The Block Cache 305</p>
+      <p> 5.6.6 Directories and Paths 306</p>
+      <p> 5.6.7 File Descriptors 308</p>
+      <p> 5.6.8 Pipes and Special Files 309</p>
+      <p> 5.6.9 An Example: The READ System Call 311</p>
+      <p> 5.7 IMPLEMENTATION OF THE MINIX FILE SYSTEM 311</p>
+      <p> 5.7.1 The Header Files 312</p>
+      <p> 5.7.2 Table Management 313</p>
+      <p> 5.7.3 The Main Program 318</p>
+      <p> 5.7.4 Operations on Individual Files 319</p>
+      <p> CONTENTS</p>
+      <p> 5.7.5 Directories and Paths 325</p>
+      <p> 5.7.6 Other System Calls 328</p>
+      <p> 5.7.7 The I/O Device Interface 331</p>
+      <p> 5.7.8 General Utilities 332</p>
+      <p> 5.8 SUMMARY 332</p>
+      <p> 6   READING LIST AND BIBLIOGRAPHY 337</p>
+      <p> 6.1 SUGGESTIONS FOR FURTHER READING 337</p>
+      <p> 6.1.1 Introduction and General Works 337</p>
+      <p> 6.1.2 Processes 339</p>
+      <p> 6.1.3 Input/Output 340</p>
+      <p> 6.1.4 Memory Management 340</p>
+      <p> 6.1.5 File Systems 341</p>
+      <p> 6.2 ALPHABETICAL BIBLIOGRAPHY 342</p>
+      <p> APPENDICES</p>
+      <p> A INTRODUCTION TO C</p>
+      <p> 350</p>
+      <p> B   INTRODUCTION TO THE IBM PC</p>
+      <p> 363</p>
+      <p> C  MINIX USERS' GUIDE</p>
+      <p> 371</p>
+      <p> D MINIX IMPLEMENTERS' GUIDE</p>
+      <p> 413</p>
+      <p> E   MINIX SOURCE CODE LISTING</p>
+      <p> 433</p>
+      <p> F   MINIX CROSS REFERENCE LISTING</p>
+      <p> 687</p>
+      <p> INDEX</p>
+      <p> 711</p>
+      <p> PREFACE</p>
+      <p> Most books on operating systems are strong on theory and weak on practice. This one aims to provide a better balance between the two. It covers all the fundamental principles in detail, including processes, interprocess communication, semaphores, monitors, message passing, remote procedure call, scheduling algorithms, input/output, deadlocks, device drivers, memory management, paging algorithms, file system design, network file servers, atomic transactions, security and protection mechanisms. But it also discusses one particular system—MINIX, a UNIX-compatible operating system—in detail, and even provides a complete source code listing for study. This arrangement allows the reader to not only learn the principles, but also to see how they are applied in a real operating system.</p>
+      <p> An operating system has four major components: process management, input/output, memory management, and the file system. After an introductory chapter, the book contains a chapter about each of these topics. Each chapter contains a lengthy discussion of the relevant principles, illustrated with examples taken from a variety of systems, including UNIX, MS-DOS, CP/M, MULTICS, and other operating systems.</p>
+      <p> Having taught operating systems courses for 15 years, and having been the principal architect of three different operating systems for three different computers (PDP-11, 68000, and IBM PC), I have come to realize that just studying the theory (deadlocks, scheduling algorithms, etc.) leaves the student with a very distorted view of the subject. Most books and courses devote an enormous amount</p>
+      <p> PREFACE</p>
+      <p> of time to scheduling algorithms, for example, which in practice are usually less than a page of code, while completely ignoring I/O, which is often 30 percent of the system, or more.</p>
+      <p> To correct this imbalance I have written a new operating system, MINIX, from scratch. MINIX has the same system calls as Version 7 UNIX (except for the omission of a small number of unimportant ones). I have also supplied a shell that is functionally identical to the UNIX shell, along with more than 60 other programs that are similar to their UNIX counterparts (e.g.,  cat, cc, cp, grep, Is, and  make).  In short, to the user, MINIX looks very much like UNIX.</p>
+      <p> On the inside, however, the system is completely new. I have taken great pains to structure the system carefully, to make it easy to understand, and easy for students to modify. The major pieces of the system are written as separate modules that communicate by message passing. Procedures are generally short, and structured programming practice is used throughout. The code contains more than 3000 separate comments.</p>
+      <p> Like all operating systems, MINIX is divided into four major parts: process management, input/output (device drivers), memory management, and the file system. As mentioned above, each of these topics is the subject of a whole chapter in the book. Each chapter first discusses the general principles, and then tells how the subject is handled in MINIX.</p>
+      <p> The complete MINIX source code is available in several forms and can be used in various ways. One version is for the IBM PC, XT, or AT (and true compatibles) and is distributed on diskette (binaries and sources). If a sufficient number of PCs are available for a course, each student can be given a copy of the software to modify and test on his own PC. A good configuration is 640K RAM and two 360K floppy disks, although smaller configurations are also possible. A hard disk is not necessary.</p>
+      <p> An alternative way to use the software is to give each student a copy of the MINIX sources on a VAX or other time-shared computer (the host machine). The student can then modify them and compile them on the host, producing a runnable binary image that can be downloaded to an IBM PC for testing. This arrangement has the advantage that only a few IBM PCs are needed, even for a large group of students. It does, however, require a C compiler for the IBM PC running on the host. Such a compiler, based on the Amsterdam Compiler Kit (see the article by Tanenbaum et al. in the  Communications of the ACM,  Sept. 1983, pp. 654-660) is available from the companies listed on page xvi.</p>
+      <p> The software can also be used for courses, even when no IBM PCs are available. Two possibilities have been provided. First, an IBM PC simulator is included on the magnetic tape available from Prentice-Hall. The simulator interprets the 8088 instructions one at a time, examining and executing them just as a real 8088 does. It also simulates those I/O devices needed to run MINIX.</p>
+      <p> The other possibility is to have the students work with only the file system. The MINIX file system is actually just a big C program that runs outside the operating system as a user program.  It is really a UNIX-compatible remote file</p>
+      <p> PREFACE</p>
+      <p> XV</p>
+      <p> server that communicates with the rest of MINIX by message passing on the same machine (although it is easy to set it up to run as a true network file server).</p>
+      <p> To have a student experiment with the file system on the host computer, the file system and the student's test program should be compiled separately. A main program is needed to set up pipes, fork, and execute the test program and file system, which communicate by passing messages over the pipes. The necessary software for doing all of this on a VAX running UNIX is on the Prentice-Hall tape. Since the file system, set up program, and IBM PC simulator are all written in C, porting them to non-VAX systems should be straightforward.</p>
+      <p> For those situations in which modifying and experimenting with MINIX is not possible (or not desired), students can still learn about MINIX by reading the source code listing provided in this book.</p>
+      <p> Finally, for those readers who are only interested in the principles and not at all interested in MINIX, the sections dealing with the MINIX implementation have been clearly marked as such, and can be skipped without loss of continuity. In this mode, the book can be used as a conventional operating systems text, without reference to MINIX at all.</p>
+      <p> Those readers having access to USENET and wishing to contribute more software, suggest improvements, etc., can do so in comp.os.minix.</p>
+      <p> For classroom use, a problem solutions manual is available. It can be ordered from Prentice-Hall.</p>
+      <p> I have been extremely fortunate in having the help of many people during the course of this project. I would especially like to thank Dick Grune, Wiebren de Jonge, Jan Looyen, Jim van Keulen, Hans van Staveren, Jennifer Steiner, and Peter Weinberger for reading parts of the manuscript and making many helpful suggestions. Special thanks also go to Brian Kernighan for 1.4 readings and constantly reminding me about rule 13.</p>
+      <p> Although I personally wrote the entire 12,000 lines of the operating system proper, a number of other people have contributed utility programs that are included in the distribution. Without their help, MINIX would have been far less useful. In particular, I would like to thank Martin Atkins, Erik Baalbergen, Charles Forsyth, Richard Gregg, Paul Polderman, and Robbert van Renesse. Paul Ogilvie ported the system to MS-DOS. Michiel Huisjes, Patrick van Kleef, and Adri Koppes provided immensely valuable help with many aspects of the software, far above and beyond the call of duty.</p>
+      <p> Finally, I would like to thank Suzanne for her endless patience while I spent untold hours hiding in front of my PC. Without her support and understanding I would never have made it. I also want to thank Barbara and Marvin for using Suzanne's computer, instead of mine, thus making this book possible. I am better  atjove,  but they are better at  Donald Duck's Playground.</p>
+      <p> Andrew S. Tanenbaum</p>
+      <p> PREFACE</p>
+      <p> AVAILABILITY OF THE MINIX SOFTWARE</p>
+      <p> The following MINIX software is available from Prentice-Hall, 200 Old Tappan Road, Old Tappan, NJ 07675. It can be ordered by telephone: (201) 767-5049. The price per set is $79.95 (price subject to change).</p>
+      <p> 1. A set of diskettes for the IBM PC (or true compatible) with 640K RAM. These diskettes contain a bootable system that can be inserted into the PC and run, as well as the system sources. The source diskettes contain the complete operating system sources, and the sources for all the utility programs except the C compiler, which is also available as described below. This package can also be used with 512K, although the user will have to adjust some program sizes. ISBN 0-13-583873-8</p>
+      <p> 2. A set of diskettes for 256K IBM PCs. This package is the same as above, except that the C compiler is not included due to the limited memory and RAM disk space. Everything else, including all the sources, are the same as the 640K version. ISBN 0-13-583881-9</p>
+      <p> 3. A set of diskettes for 512K IBM PC/ATs. This package is identical to the 640K PC package, except that the RAM disk is slightly smaller, and 1.2M instead of 360K diskettes are used. ISBN 0-13-583865-7</p>
+      <p> 4. A nine-track, industry standard 1600 bpi magnetic tape in UNIX "tar" format. This version contains all the sources, as well as the IBM PC simulator and some libraries and programs that make it possible to run the MINIX file system on a VAX or other minicomputer running UNIX. Ports to other systems are up to the user, but since the file system and test programs are entirely written in C, this should not be difficult. ISBN 0-13-583899-1.</p>
+      <p> The only pieces of MINIX software not included in the distributions above are the compiler sources. These were made using the Amsterdam Compiler Kit (see Communications of the ACM,  Sept. 1983, pp. 654-660), which has also been used to make compilers for many other languages and machines. The  compiler sources  can be ordered from the following companies:</p>
+      <p> In North and South America: In Europe and elsewhere</p>
+      <p> UniPress Software Transmediair Utrecht BV</p>
+      <p> 2025 Lincoln Highway Melkweg 3</p>
+      <p> Edison, NJ 08817 3721 RG Bilthoven</p>
+      <p> U.S.A. Holland</p>
+      <p> Telephone: (201) 985-8000 Telephone: (30) 78 18 20</p>
+      <p> Note: MINIX itself is available from Prentice-Hall, not the above companies.</p>
+      <p> INTRODUCTION</p>
+      <p> Without its software, a computer is basically a useless lump of metal. With its software, a computer can store, process, and retrieve information, find spelling errors in manuscripts, play adventure, and engage in many other valuable activities to earn its keep. Computer software can be roughly divided into two kinds: the system programs, which manage the operation of the computer itself, and the application programs, which solve problems for their users. The most fundamental of all the system programs is the operating system, which controls all the computer's resources and provides the base upon which the application programs can be written.</p>
+      <p> A modern computer system consists of one or more processors, some main memory (often known as "core memory," even though magnetic cores have not been used in memories for over a decade), clocks, terminals, disks, network interfaces, and other input/output devices. All in all, a complex system. Writing programs that keep track of all these components and use them correctly, let alone optimally, is an extremely difficult job. If every programmer had to be concerned with how disk drives work, and with all the dozens of things that could go wrong when reading a disk block, it is unlikely that many programs could be written at all.</p>
+      <p> Many years ago it became abundantly clear that some way had to be found to shield programmers from the complexity of the hardware. The way that has gradually evolved is to put a layer of software on top of the bare hardware, to manage all parts of the system, and present the user with an interface or virtual</p>
+      <p> 1</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> machine that is easier to understand and program. This layer of software is the operating system, and forms the subject of this book.</p>
+      <p> The situation is shown in Fig. 1-1. At the bottom is the hardware, which in many cases is itself composed of two or more layers. The lowest layer contains physical devices, consisting of integrated circuit chips, wires, power supplies, cathode ray tubes, and similar physical devices. How these are constructed and how they work is the province of the electrical engineer.</p>
+      <p> ^j-Application programs</p>
+      <p> System programs</p>
+      <p> 1</p>
+      <p> &gt;■ Hardware</p>
+      <p> Fig. 1-1. A computer system consists of hardware, system programs and application programs.</p>
+      <p> Next comes a layer of primitive software that directly controls these devices and provides a cleaner interface to the next layer. This software, called the microprogram, is usually located in read-only memory. It is actually an interpreter, fetching the machine language instructions such as ADD, MOVE, and JUMP, and carrying them out as a series of little steps. To carry out an ADD instruction, for example, the microprogram must determine where the numbers to be added are located, fetch them, add them, and store the result somewhere. The set of instructions that the microprogram interprets defines the machine language, which is not really part of the hard machine at all, but computer manufacturers always describe it in their manuals as such, so many people think of it as being the real "machine." On some machines the microprogram is implemented in hardware, and is not really a distinct layer.</p>
+      <p> The machine language typically has between 50 and 300 instructions, mostly for moving data around the machine, doing arithmetic, and comparing values. In this layer, the input/output devices are controlled by loading values into special device registers. For example, a disk could be commanded to read by loading the values of the disk address, main memory address, byte count, and direction (READ or WRITE) into its registers. In practice, many more parameters are needed, and the status returned by the drive after an operation is highly complex. Furthermore, for many I/O devices, timing plays an important role in the programming.</p>
+      <p> A major function of the operating system is to hide all this complexity and</p>
+      <p> SEC. 1.1</p>
+      <p> WHAT IS AN OPERATING SYSTEM?</p>
+      <p> 3</p>
+      <p> give the programmer a more convenient set of instructions to work with. For example, READ BLOCK FROM FILE is conceptually simpler than having to worry about the details of moving disk heads, waiting for them to settle down, and so on.</p>
+      <p> On top of the operating system is the rest of the system software. Here we find the command interpreter (shell), compilers, editors and similar application-independent programs. It is important to realize that these programs are definitely not part of the operating system, even though they are typically supplied by the computer manufacturer. This is a crucial, but subtle, point. The operating system is that portion of the software that runs in kernel mode or supervisor mode. It is protected from user tampering by the hardware (ignoring for the moment some of the older microprocessors that do not have hardware protection at all). Compilers and editors run in user mode. If a user does not like a particular compiler, hef is free to write his own if he so chooses; he is not free to write his own disk interrupt handler, which is part of the operating system and protected by hardware against attempts by users to modify it.</p>
+      <p> Finally, above the system programs come the application programs. These programs are written by the users to solve their particular problems, such as commercial data processing, engineering calculations, or game playing.</p>
+      <p> 1.1. WHAT IS AN OPERATING SYSTEM?</p>
+      <p> Most computer users have had some experience with an operating system, but it is difficult to pin down precisely what an operating system is. Part of the problem is that operating systems perform two basically unrelated functions, and depending on who is doing the talking, you hear mostly about one function or the other. Let us now look at both.</p>
+      <p> 1.1.1. The Operating System as an Extended Machine</p>
+      <p> As mentioned earlier, the architecture (instruction set, memory organization, I/O and bus structure) of most computers at the machine language level is primitive and awkward to program, especially for input/output. To make this point more concrete, let us briefly look at how floppy disk I/O is done using the NEC PD765 controller chip, which is used on the IBM PC and many other personal computers. (Throughout this book we will use the terms "floppy disk" and "diskette" interchangeably.) The PD765 has 16 commands, each specified by loading between 1 and 9 bytes into a device register. These commands are for reading and writing data, moving the disk arm, and formatting tracks, as well as initializing, sensing, resetting, and recalibrating the controller and the drives.</p>
+      <p> The most basic commands are READ and WRITE, each of which requires 13</p>
+      <p> t "He" should be read as "he or she" throughout the book.</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> parameters, packed into 9 bytes. These parameters specify such items as the address of the disk block to be read, the number of sectors per track, the recording mode used on the physical medium, the intersector gap spacing, and what to do with a deleted-data-address-mark. If you do not understand this mumbo jumbo, do not worry, that is precisely the point—it is rather esoteric. When the operation is completed, the controller chip returns 23 status and error fields packed into 7 bytes. As if this were not enough, the floppy disk programmer must also be constantly aware of whether the motor is on or off. If the motor is off, it must be turned on (with a long start-up delay) before data can be read or written. The motor cannot be left on too long, however, or the floppy disk will wear out. The programmer is thus forced to deal with the trade-off between long start-up delays versus wearing out floppy disks (and losing the data on them).</p>
+      <p> Without going into the  real  details, it should be clear that the average programmer probably does not want to get too intimately involved with the programming of floppy disks (or Winchester disks, which are just as complex and quite different). Instead, what the programmer wants is a simple, high-level abstraction to deal with. In the case of disks, a typical abstraction would be that the disk contains a collection of named files. Each file can be opened for reading or writing, then read or written, and finally closed. Details such as whether or not recording should use modified frequency modulation and what the current state of the motor is should not appear in the abstraction presented to the user.</p>
+      <p> The program that hides the truth about the hardware from the programmer and presents a nice, simple view of named files that can be read and written is, of course, the operating system. Just as the operating system shields the programmer from the disk hardware and presents a simple file-oriented interface, it also conceals a lot of unpleasant business concerning interrupts, timers, memory management, and other low-level features. In each case, the abstraction presented to the user of the operating system is simpler and easier to use than the underlying hardware.</p>
+      <p> In this view, the function of the operating system is to present the user with the equivalent of an extended machine or virtual machine that is easier to program than the underlying hardware. How the operating system achieves this goal is a long story, which we will study in detail throughout this book.</p>
+      <p> 1.1.2. The Operating System as a Resource Manager</p>
+      <p> The concept of the operating system as primarily providing its users with a convenient interface is a top-down view. An alternative, bottom-up, view holds that the operating system is there to manage all the pieces of a complex system. Modern computers consist of processors, memories, timers, disks, terminals, magnetic tape drives, network interfaces, laser printers, and a wide variety of other devices. In the alternative view, the job of the operating system is to provide for an orderly and controlled allocation of the processors, memories, and I/O devices among the various programs competing for them.</p>
+      <p> SEC. 1.1</p>
+      <p> WHAT IS AN OPERATING SYSTEM?</p>
+      <p> 5</p>
+      <p> Imagine what would happen if three programs running on some computer all tried to print their output simultaneously on the same printer. The first few lines of printout might be from program 1, the next few from program 2, then some from program 3, and so forth. The result would be chaos. The operating system can bring order to the potential chaos by buffering all the output destined for the printer on the disk. When one program is finished, the operating system can then copy its output from the disk file where it has been stored to the printer, while at the same time the other program can continue generating more output, oblivious to the fact that the output is not really going to the printer (yet).</p>
+      <p> When a computer has multiple users, the need for managing and protecting the memory, I/O devices, and other resources is even more apparent. This need arises because it is frequently necessary for users to share expensive resources such as tape drives and phototypesetters. Economic issues aside, it is also often necessary for users who are working together to share information. In short, this view of the operating system holds that its primary task is to keep track of who is using which resource, to grant resource requests, to account for usage, and to mediate conflicting requests from different programs and users.</p>
+      <p> 1.2. HISTORY OF OPERATING SYSTEMS</p>
+      <p> Operating systems have been evolving through the years. In the following sections we will briefly look at this development. Since operating systems have historically been closely tied to the architecture of the computers on which they run, we will look at successive generations of computers to see what their operating systems were like. This mapping of operating system generations to computer generations is admittedly crude, but it does provide some structure where there would otherwise be none.</p>
+      <p> The first true digital computer was designed by the English mathematician Charles Babbage (1792-1871). Although Babbage spent most of his life and fortune trying to build his "analytical engine," he never got it working properly because it was a purely mechanical design, and the technology of his day could not produce the wheels, gears, cogs and other mechanical parts to the high precision that he needed. Needless to say, the analytical engine did not have an operating system.</p>
+      <p> 1.2.1. The First Generation (1945-1955): Vacuum Tubes and Plugboards</p>
+      <p> After Babbage's unsuccessful efforts, little progress was made in constructing digital computers until World War II. Around the mid-1940s, Howard Aiken at Harvard, John von Neumann at the Institute for Advanced Study in Princeton, J. Presper Eckert and William Mauchley at the University of Pennsylvania, and Konrad Zuse in Germany, among others, all succeeded in building calculating engines using vacuum tubes.  These machines were enormous, filling up entire</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> rooms with tens of thousands of vacuum tubes, but were much slower than even the cheapest home computer available today.</p>
+      <p> In these early days, a single group of people designed, built, programmed, operated, and maintained each machine. All programming was done in absolute machine language, often by wiring up plugboards to control the machine's basic functions. Programming languages were unknown (not even assembly language). Operating systems were unheard of. The usual mode of operation was for the programmer to sign up for a block of time on the signup sheet on the wall, then come down to the machine room, insert his or her plugboard into the computer, and spend the next few hours hoping that none of the 20,000 or so vacuum tubes would burn out during the run. Virtually all the problems were straightforward numerical calculations, such as grinding out tables of sines and cosines.</p>
+      <p> By the early 1950s, the routine had improved somewhat with the introduction of punched cards. It was now possible to write programs on cards and read them in, instead of using plugboards; otherwise the procedure was the same.</p>
+      <p> 1.2.2. The Second Generation (1955-1965): Transistors and Batch Systems</p>
+      <p> The introduction of the transistor in the mid-1950s changed the picture radically. Computers became reliable enough that they could be manufactured and sold to paying customers with the expectation that they would continue to function long enough to get some useful work done. For the first time, there was a clear separation between designers, builders, operators, programmers, and maintenance personnel.</p>
+      <p> These machines were locked away in specially air conditioned computer rooms, with staffs of professional operators to run them. Only big corporations, or major government agencies or universities could afford the multimillion dollar price tag. To run a job (i.e., a program or set of programs), a programmer would first write the program on paper (in FORTRAN or assembly language), then punch it on cards. He would then bring the card deck down to the input room and hand it to one of the operators.</p>
+      <p> When the computer finished whatever job it was currently running, an operator would go over to the printer and tear off the output and carry it over to the output room, so that the programmer could collect it later. Then he would take one of the card decks that had been brought from the input room and read it in. If the FORTRAN compiler was needed, the operator would have to get it from a file cabinet and read it in. Much computer time was wasted while operators were walking around the machine room.</p>
+      <p> Given the high cost of the equipment, it is not surprising that people quickly looked for ways to reduce the wasted time. The solution generally adopted was the batch system. The idea behind it was to collect a tray full of jobs in the input room, and then read them onto a magnetic tape using a small, (relatively) inexpensive computer, such as the IBM 1401, which was very good at reading</p>
+      <p> SEC. 1.2</p>
+      <p> HISTORY OF OPERATING SYSTEMS</p>
+      <p> 7</p>
+      <p> cards, copying tapes, and printing output, but not at all good at numerical calculations. Other, much more expensive machines, such as the IBM 7094, were used for the real computing. This situation is shown in Fig. 1-2.</p>
+      <p> Tape System</p>
+      <p> drive Input tape Output</p>
+      <p class="illus">
+        <img src="images/picture2.jpg" alt="picture2"/>
+      </p>
+      <p> (t&gt;&gt; (c) (d) (e) (f)</p>
+      <p> Fig. 1-2. An early batch system, (a) Programmers bring cards to 1401. (b) 1401 reads batch of jobs onto tape, (c) Operator carries input tape to 7094. (d) 7094 does computing, (e) Operator carries output tape to 1401. (0 1401 prints output.</p>
+      <p> After about an hour of collecting a batch of jobs, the tape was rewound and brought into the machine room, where it was mounted on a tape drive. The operator then loaded a special program (the ancestor of today's operating system), which read the first job from tape and ran it. The output was written onto a second tape, instead of being printed. After each job finished, the operating system automatically read the next job from the tape and began running it. When the whole batch was done, the operator removed the input and output tapes, replaced the input tape with the next batch, and brought the output tape to a 1401 for printing off line (i.e., not connected to the main computer).</p>
+      <p> The structure of a typical input job is shown in Fig. 1-3. It started out with a $JOB card, specifying the maximum run time in minutes, the account number to be charged, and the programmer's name. Then came a $FORTRAN card, telling the operating system to load the FORTRAN compiler from the system tape. It was followed by the program to be compiled, and then a $LOAD card, directing the operating system to load the object program just compiled. (Compiled programs were often written on scratch tapes and had to be loaded explicitly.) Next came the $RUN card, telling the operating system to run the program with the data following it. Finally, the SEND card marked the end of the job. These control cards, while primitive, were the forerunners of modern job control languages and command interpreters.</p>
+      <p> Large second generation computers were used mostly for scientific and engineering calculations, such as solving partial differential equations. They were largely programmed in FORTRAN and assembly language. Typical operating systems were FMS (the Fortran Monitor System) and IBSYS, IBM's operating system for the 7094.</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> SEND</p>
+      <p> Data for program</p>
+      <p> £</p>
+      <p> SRUN</p>
+      <p> BLOAD</p>
+      <p> Fortran Program_</p>
+      <p> $FORTRAN</p>
+      <p> '$JOB, 10,429754, MARVIN TANENBAUM</p>
+      <p> V</p>
+      <p> /</p>
+      <p> /</p>
+      <p> Fig. 1-3. Structure of a typical FMS job. 1.2.3. The Third Generation (1965-1980): ICs and Multiprogramming</p>
+      <p> By the early 1960s most computer manufacturers had two distinct, and totally incompatible, product lines. On the one hand there were the word-oriented, large-scale scientific computers, such as the 7094, which were used for numerical calculations in science and engineering. On the other hand, there were the character-oriented, commercial computers, such as the 1401, which were widely used for tape sorting and printing by banks and insurance companies.</p>
+      <p> Developing and maintaining two completely different product lines was an expensive proposition for the manufacturers. In addition, many new computer customers initially needed a small machine, but later outgrew it and wanted a bigger machine that would run all their old programs, but faster.</p>
+      <p> IBM attempted to solve both of these problems at a single stroke by introducing the System/360. The 360 was a series of software-compatible machines ranging from 1401-sized to much more powerful than the 7094. The machines differed only in price and performance (maximum memory, processor speed, number of I/O devices permitted, and so forth.). Since all the machines had the same architecture and instruction set, at least in theory, programs written for one machine could run on all the others. Furthermore, the 360 was designed to handle both scientific and commercial computing. Thus a single family of machines could satisfy the needs of all customers. In subsequent years, IBM has come out with compatible successors to the 360 line, using more modern technology, known as the 370, 4300, 3080, and 3090 series.</p>
+      <p> The 360 was the first major computer line to use (small-scale) integrated</p>
+      <p> SEC. 1.2</p>
+      <p> HISTORY OF OPERATING SYSTEMS</p>
+      <p> 9</p>
+      <p> circuits (ICs), thus providing a major price/performance advantage over the second generation machines, which were built up from individual transistors. It was an immediate success, and the idea of a family of compatible computers was soon adopted by all the other major manufacturers. The descendants of these machines are still in use at large computer centers today.</p>
+      <p> The greatest strength of the "one family" idea was simultaneously its greatest weakness. The intention was that all software, including the operating system, had to work on all models. It had to run on small systems, which often just replaced 1401s for copying cards to tape, and on very large systems, which often replaced 7094s for doing weather forecasting and other heavy computing. It had to be good on systems with few peripherals and on systems with many peripherals. It had to work in commercial environments and in scientific environments. Above all, it had to be efficient for all of these different uses.</p>
+      <p> There was no way that IBM (or anybody else) could write a piece of software to meet all those conflicting requirements. The result was an enormous and extraordinarily complex operating system, probably two to three orders of magnitude larger than FMS. It consisted of millions of lines of assembly language written by thousands of programmers, and contained thousands upon thousands of bugs, which necessitated a continuous stream of new releases in an attempt to correct them. Each new release fixed some bugs and introduced new ones, so the number of bugs probably remained constant in time.</p>
+      <p> One of the designers of OS/360, Fred Brooks, subsequently wrote a witty and incisive book (Brooks, 1975) describing his experiences with OS/360. While it would be impossible to summarize the book here, suffice it to say that the cover shows a herd of prehistoric beasts stuck in a tar pit. The cover of Peterson and Silberschatz's book (1985) makes a similar point.</p>
+      <p> Despite its enormous size and problems, OS/360 and the similar third-generation operating systems produced by other computer manufacturers satisfied most of their customers reasonably well. They also popularized several key techniques absent in second generation operating systems. Probably the most important of these was multiprogramming. On the 7094, when the current job paused to wait for a tape or other I/O operation to complete, the CPU simply sat idle until the I/O finished. With heavily CPU-bound scientific calculations, I/O is infrequent, so this wasted time is not significant. With commercial data processing, the I/O wait time can often be 80 or 90 percent of the total time, so something had to be done about it.</p>
+      <p> The solution that evolved was to partition memory into several pieces, with a different job in each partition, as shown in Fig. 1-4. While one job was waiting for I/O to complete, another job could be using the CPU. If enough jobs could be held in main memory at once, the CPU could be kept busy nearly 100 percent of the time. Having multiple jobs in memory at once requires special hardware to protect each job against snooping and mischief by the other ones, but the 360 and other third generation systems were equipped with this hardware.</p>
+      <p> Another major feature present in third-generation operating systems was the</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> Job 3</p>
+      <p> Job 2</p>
+      <p> Job 1</p>
+      <p> Operating system</p>
+      <p> Fig. 1-4. A multiprogramming system with three jobs in memory.</p>
+      <p> ability to read jobs from cards onto the disk as soon as they were brought to the computer room. Then, whenever a running job finished, the operating system could load a new job from the disk into the now-empty partition and run it. This technique is called spooling (from Simultaneous Peripheral Operation On Line) and was also used for output. With spooling, the 1401s were no longer needed, and much carrying of tapes disappeared.</p>
+      <p> Although third-generation operating systems were well-suited for big scientific calculations and massive commercial data processing runs, they were still basically batch systems. Many programmers pined for the first generation days when they had the machine all to themselves for a few hours, so they could debug their programs quickly. With third generation systems, the time between submitting a job and getting back the output was often several hours, so a single misplaced comma could cause a compilation to fail, and the programmer to waste half a day.</p>
+      <p> This desire for quick response time paved the way for time-sharing, a variant of multiprogramming, in which each user has an on-line terminal. In a timesharing system, if 20 users are logged in and 17 of them are thinking or talking or drinking coffee, the CPU can be allocated in turn to the three jobs that want service. Since people debugging programs usually issue short commands (e.g., compile a five-page program) rather than long ones (e.g., sort a million-record tape), the computer can provide fast, interactive service to a number of users and perhaps also work on big batch jobs in the background when the CPU is otherwise idle. Although the first serious time-sharing system (CTSS) was developed at MIT on a specially modified 7094 (Corbato et al., 1962), it did not really become popular until the necessary protection hardware became widespread during the third generation.</p>
+      <p> After the success of the CTSS system, MIT, Bell Labs, and General Electric (then a major computer manufacturer) decided to embark on the development of a "computer utility," a machine that would support hundreds of simultaneous time-sharing users. Their model was the electricity distribution system—when you need electric power, you just stick a plug in the wall, and within reason, as much power as you need will be there. The designers of this system, known as MULTICS (MULTiplexed Information and Computing Service), envisioned one huge machine providing computing power for everyone in Boston. The idea that</p>
+      <p> Memory partitions</p>
+      <p> SEC. 1.2</p>
+      <p> HISTORY OF OPERATING SYSTEMS</p>
+      <p> 11</p>
+      <p> machines as powerful as their GE-645 would be sold as personal computers for a few thousand dollars only 20 years later was pure science fiction at the time.</p>
+      <p> To make a long story short, MULTICS introduced many seminal ideas into the computer literature, but building it was a lot harder than anyone had expected. Bell Labs dropped out of the project, and General Electric quit the computer business altogether. Eventually MULTICS ran well enough to be used in a production environment at MIT and a few dozen sites elsewhere, but the concept of a computer utility fizzled out. Still, MULTICS had an enormous influence on subsequent systems. It is described in (Corbato et al., 1972; Corbato and Vyssot-sky, 1965; Daley and Dennis, 1968; Organick, 1972; Saltzer, 1974).</p>
+      <p> Another major development during the third generation was the phenomenal growth of minicomputers, starting with the DEC PDP-1 in 1961. The PDP-1 had only 4K of 18-bit words, but at 120,000 dollars per machine (less than 5 percent of the price of a 7094), they sold like hotcakes. For certain kinds of nonnumeri-cal work, it was almost as fast as the 7094, and gave birth to a whole new industry. It was quickly followed by a series of other PDPs (unlike IBM's family, all incompatible) culminating in the PDP-11.</p>
+      <p> One of the computer scientists at Bell Labs who had worked on the MULTICS project, Ken Thompson, subsequently found a small PDP-7 that no one was using and set out to write a stripped-down, one-user version of MULTICS. Brian Kernighan somewhat jokingly dubbed this system "UNICS" (UNiplexed Information and Computing Service), but the spelling was later changed to UNIXf. It was later moved to a small PDP-11/20, where it worked well enough to convince Bell Labs' management to invest in a larger PDP-11/45 to continue the work.</p>
+      <p> Another Bell Labs computer scientist, Dennis Ritchie, then teamed up with Thompson to rewrite the system in a high-level language called C, designed and implemented by Ritchie. Bell Labs licensed UNIX to universities almost for free, and within a few years hundreds of them were using it. It soon spread to the Interdata 7/32, VAX, Motorola 68000, and many other computers. UNIX has been moved ("ported") to more computers than any other operating system in history, and its use is still rapidly increasing.</p>
+      <p> 1.2.4. The Fourth Generation (1980-1990): Personal Computers</p>
+      <p> With the development of LSI (Large Scale Integration) circuits, chips containing thousands of transistors on a square centimeter of silicon, the age of the personal computer dawned. In terms of architecture, personal computers were not that different from minicomputers of the PDP-11 class, but in terms of price they certainly were different. Where the minicomputer made it possible for a department in a company or university to have its own computer, the microprocessor chip made it possible for a single individual to have his or her own personal computer.</p>
+      <p> t UNIX is a trademark of AT&amp;T Bell Laboratories.</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> The widespread availability of computing power, especially highly interactive computing power usually with excellent graphics, led to the growth of a major industry producing software for personal computers. Much of this software was user-friendly, meaning that it was intended for users who did not know anything about computers, and furthermore had absolutely no intention whatsoever of learning. This was certainly a major change from OS/360, whose job control language, JCL, was so arcane that entire books have been written about it (e.g., Cadow, 1970).</p>
+      <p> Two operating systems have dominated the personal computer scene: MS-DOS, written by Microsoft, Inc. for the IBM PC and other machines using the Intel 8088 CPU and its successors, and UNIX, which is dominant on the larger personal computers using the Motorola 68000 CPU family. It is perhaps ironic that the direct descendant of MULTICS, designed for a gigantic computer utility, has become so popular on personal computers, but mostly it shows how well thought out the basic ideas in MULTICS and UNIX were. Although the initial version of MS-DOS was relatively primitive, subsequent versions have included more and more features from UNIX, which is not entirely surprising given that Microsoft is a major UNIX supplier, using the trade name of XENIXf.</p>
+      <p> An interesting development that began taking place during the mid-1980s is the growth of networks of personal computers running network operating systems and distributed operating systems. In a network operating system, the users are aware of the existence of multiple computers, and can log in to remote machines and copy files from one machine to another. Each machine runs its own local operating system and has its own user (or users).</p>
+      <p> A distributed operating system, in contrast, is one that appears to its users as a traditional uniprocessor system, even though it is actually composed of multiple processors. In a true distributed system, users should not be aware of where their programs are being run or where their files are located; that should all be handled automatically and efficiently by the operating system.</p>
+      <p> Network operating systems are not fundamentally different from single-processor operating systems. They obviously need a network interface controller and some low-level software to drive it, as well as programs to achieve remote login and remote file access, but these additions do not change the essential structure of the operating system.</p>
+      <p> True distributed operating systems require more than just adding a little code to a uniprocessor operating system, because distributed and centralized systems differ in critical ways. Distributed systems, for example, often allow programs to run on several processors at the same time, thus requiring more complex processor scheduling algorithms in order to optimize the amount of parallelism achieved.</p>
+      <p> Communication delays within the network often mean that these (and other) algorithms must run with incomplete, outdated, or even incorrect information.</p>
+      <p> f  xenix  is a trademark of Microsoft, Inc.</p>
+      <p> SEC. 1.2</p>
+      <p> HISTORY OF OPERATING SYSTEMS</p>
+      <p> 13</p>
+      <p> This situation is radically different from a single-processor system in which the operating system has complete information about the system state.</p>
+      <p> Fault-tolerance is another area in which distributed systems are different. It is common for a distributed system to be designed with the expectation that it will continue running, even if part of the hardware is currently broken. Needless to say, such an additional design requirement has enormous implications for the operating system. For a survey of current research about network and distributed operating systems, see the paper by Tanenbaum and van Renesse (1985).</p>
+      <p> 1.2.5. History of MINIX</p>
+      <p> When UNIX was young (Version 6), the source code was widely available, under AT&amp;T license, and frequently studied. John Lions, of the University of New South Wales in Australia, even wrote a little booklet describing its operation, line by line. This booklet was used (with permission of AT&amp;T) as a text in many university operating system courses.</p>
+      <p> When AT&amp;T released Version 7, it began to realize that UNIX was a valuable commercial product, so it issued Version 7 with a license that prohibited the source code from being studied in courses, in order to avoid endangering its status as a trade secret. Many universities complied by simply dropping the study of UNIX, and teaching only theory.</p>
+      <p> Unfortunately, teaching only theory leaves the student with a lopsided view of what an operating system is really like. The theoretical topics that are usually covered in great detail in courses and books on operating systems, such as scheduling algorithms, are in practice not really that important. Subjects that really are important, such as I/O and file systems, are generally neglected because there is little theory about them.</p>
+      <p> To remedy this situation, I decided to write a new operating system from scratch that would be compatible with UNIX from the user's point of view, but completely different on the inside. By not using even one line of AT&amp;T code, this system avoids the licensing restrictions, so it can be used for class or individual study. In this manner, readers can dissect a real operating system to see what is inside, just as biology students dissect frogs. The name MINIX stands for mini-UNIX because it is small enough that even a nonguru can understand how it works.</p>
+      <p> In addition to the advantage of eliminating the legal problems, MINIX has another advantage over UNIX. It was written a decade after UNIX, and has been structured in a more modular way. The MINIX file system, for example, is not part of the operating system at all, but runs as a user program. Another difference is that UNIX was designed to be efficient; MINIX was designed to be readable (inasmuch as one can speak of any 12,649 line program as being readable). The MINIX code, for example, has over 3000 comments in it.</p>
+      <p> MINIX has been designed for compatibility with Version 7 (V7) UNIX. Version 7 was used as the model because of its simplicity and elegance.  It is</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> sometimes said that Version 7 was not only an improvement over all its predecessors, but also over all its successors.</p>
+      <p> Like UNIX, MINIX is written in the C programming language, and is intended to be easy to port to various computers. The initial implementation was for the IBM PC, because this computer is in widespread use. In keeping with the "Small is Beautiful" philosophy, MINIX does not even require a hard disk to run, thus bringing it within range of many students' budgets.</p>
+      <p> To the average user sitting at an IBM PC, running MINIX is similar to using any UNIX system. Most of the usual programs, such as  cat, grep, Is, make,  and the shell are present and perform the same functions as their UNIX counterparts. Like the operating system itself, all these utility programs have been completely rewritten from scratch by the author, his students, and some other dedicated people. Even the C compiler is completely new, being based on the Amsterdam Compiler Kit (Tanenbaum et al., 1983), rather than on the AT&amp;T portable C compiler.</p>
+      <p> Throughout this book MINIX will be used as an example. Nearly all the comments about MINIX, however, except those about the actual code, also apply to UNIX. Many of them also apply to other systems as well. This should be kept in mind when reading the text.</p>
+      <p> 1.3. OPERATING SYSTEM CONCEPTS</p>
+      <p> The interface between the operating system and the user programs is defined by the set of "extended instructions" that the operating system provides. These extended instructions are known as system calls. To really understand what operating systems do, we must examine these calls closely. The system calls vary from operating system to operating system (although the underlying concepts tend to be similar).</p>
+      <p> We are thus forced to make a choice between (1) vague generalities ("operating systems have system calls for reading files") and (2) some specific system ("MINIX has a READ system call with three parameters: one to specify the file, one to tell where the data are to be put, and one to tell how many bytes to read").</p>
+      <p> We have chosen the latter approach. It's more work that way, but it gives more insight into what operating systems really do. In Sec. 1-4 we will look closely at the system calls present in both UNIX and MINIX. For simplicity's sake, we will refer only to  minix,  but the corresponding UNIX V7 system calls are identical (the corresponding system calls for other versions of UNIX, such as System V, 4.3BSD, and XENIX are very similar, although each of these has some additional system calls that we will not discuss). Before we look at the actual system calls, however, it is worth taking a bird's-eye view of MINIX, to get a general feel for what an operating system is all about. This overview applies equally well to UNIX.</p>
+      <p> SEC. 1.3</p>
+      <p> OPERATING SYSTEM CONCEPTS</p>
+      <p> 15</p>
+      <p> The MINIX system calls fall roughly in two broad categories: those dealing with processes and those dealing with the file system. We will now examine each of these in turn.</p>
+      <p> 1.3.1. Processes</p>
+      <p> A key concept in  minix,  and in all operating systems, is the process. A process is basically a program in execution. It consists of the executable program, the program's data and stack, its program counter, stack pointer, and other registers, and all the other information needed to run the program.</p>
+      <p> We will come back to the process concept in much more detail in Chap. 2, but for the time being, the easiest way to get a good intuitive feel for a process is to think about time-sharing systems. Periodically, the operating system decides to stop running one process and start running another, for example, because the first one has had more than its share of CPU time in the past second.</p>
+      <p> When a process is temporarily suspended like this, it must later be restarted in exactly the same state it had when it was stopped. This means that all information about the process must be explicitly saved somewhere during the suspension. For example, if the process has several files open, the exact position in the files where the process was must be recorded somewhere, so that a subsequent READ given after the process is restarted will read the proper data. In many operating systems, all the information about each process, other than the contents of its own address space, is stored in an operating system table called the process table, which is an array (or linked list) of structures, one for each process currently in existence.</p>
+      <p> Thus, a (suspended) process consists of its address space, usually called the core image (in honor of the magnetic core memories used in days of yore), and its process table entry, which contains its registers, among other things.</p>
+      <p> The key process management system calls are those dealing with the creation and termination of processes. Consider a typical example. A process called the command interpreter or shell reads commands from a terminal. The user has just typed a command requesting that a program be compiled. The shell must now create a new process that will run the compiler. When that process has finished the compilation, it executes a system call to terminate itself.</p>
+      <p> If a process can create one or more other processes (referred to as child processes) and these processes in turn can create child processes, we quickly arrive at the process tree structure of Fig. 1-5.</p>
+      <p> Other process system calls are available to request more memory (or release unused memory), wait for a child process to terminate, and overlay its program with a different one.</p>
+      <p> Occasionally, there is a need to convey information to a running process that is not sitting around waiting for it. For example, a process that is communicating with another process on a different computer does so by sending messages over a network. To guard against the possibility that a message or its reply is</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p class="illus">
+        <img src="images/picture3.jpg" alt="picture3"/>
+      </p>
+      <p> Fig. 1-5. A process tree. Process  A  created two child processes,  B  and C. Process  B  created three child processes,  D, E,  and  F.</p>
+      <p> lost, the sender may request that its own operating system notify it after a specified number of seconds, so that it can retransmit the message if no acknowledgement has been received yet. After setting this timer, the program may continue doing other work.</p>
+      <p> When the specified number of seconds has elapsed, the operating system sends a signal to the process. The signal causes the process to temporarily suspend whatever it was doing, save its registers on the stack, and start running a special signal handling procedure, for example, to retransmit a presumably lost message. When the signal handler is done, the running process is restarted in the state it was just before the signal. Signals are the software analog of hardware interrupts, and can be generated by a variety of causes in addition to timers expiring. Many traps detected by hardware, such as executing an illegal instruction or using an invalid address, are also converted into signals to the guilty process.</p>
+      <p> Each person authorized to use MINIX is assigned a uid (user identification) by the system administrator. Every process started in MINIX has the uid of the person who started it. A child process has the same uid as its parent. One uid, called the super-user, has special power, and may violate many of the protection rules. In large installations, only the system administrator knows the password needed to become super-user, but many of the ordinary users (especially students) devote considerable effort to trying to find flaws in the system that allow them to become super-user without the password.</p>
+      <p> 1.3.2. Files</p>
+      <p> The other broad category of system calls relates to the file system. As noted before, a major function of the operating system is to hide the peculiarities of the disks and other I/O devices, and present the programmer with a nice, clean abstract model of device-independent files. System calls are obviously needed to create files, remove files, read files, and write files. Before a file can be read, it must be opened, and after it has been read it should be closed, so calls are provided to do these things.</p>
+      <p> In order to provide a place to keep files, MINIX has the concept of a</p>
+      <p> SEC. 1.3</p>
+      <p> OPERATING SYSTEM CONCEPTS</p>
+      <p> 17</p>
+      <p> directory as a way of grouping files together. A student, for example, might have one directory for each course he was taking (for the programs needed for that course), another directory for his electronic mail, and still another directory for his computer games. System calls are then needed to create and remove directories. Calls are also provided to put an existing file in a directory, and to remove a file from a directory. Directory entries may be either files or other directories. This model also gives rise to a hierarchy—the file system, as shown in Fig. 1-6.</p>
+      <p> Root directory</p>
+      <p class="illus">
+        <img src="images/picture4.jpg" alt="picture4"/>
+      </p>
+      <p> Fig. 1-6. A file system for a university department.</p>
+      <p> The process and file hierarchies both are organized as trees, but the similarity stops there. Process hierarchies usually are not very deep (more than three levels is unusual), whereas file hierarchies are commonly four, five, or even more levels deep. Process hierarchies are typically short-lived, generally a few minutes at most, whereas the directory hierarchy may exist for years. Ownership and protection also differ for processes and files. Typically, only a parent process may control or even access a child process, but mechanisms nearly always exist to allow files and directories to be read by a wider group than just the owner.</p>
+      <p> Every file within the directory hierarchy can be specified by giving its path name from the top of the directory hierarchy, the root directory. Such absolute path names consist of the list of directories that must be traversed from the root directory to get to the file, with slashes separatingIhe components. In Fig. 1-6,</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> the path for file  CS101  is  /Faculty!Prof.BrownlCourses!CS101.  The leading slash indicates that the path is absolute, that is, starting at the root directory.</p>
+      <p> At every instant, each process has a current working directory, in which path names not beginning with a slash are looked for. In Fig. 1-6, if I Faculty! Prof.Brown  were the working directory, then use of the path name Courses!CS101  would yield the same file as the absolute path name given above. Processes can change their working directory by issuing a system call specifying the new working directory.</p>
+      <p> Files and directories in MINIX are protected by assigning each one a 9-bit binary protection code. The protection code consists of three 3-bit fields, one for the owner, one for other members of the owner's group (users are divided into groups by the system administrator), and one for everyone else. Each field has a bit for read access, a bit for write access, and a bit for execute access. These 3 bits are known as the rwx bits. For example, the protection code  rwxr-x—x means that the owner can read, write, or execute the file, other group members can read or execute (but not write) the file, and everyone else can execute (but not read or write) the file. For a directory,  x  indicates search permission. A dash means that the corresponding permission is absent.</p>
+      <p> Before a file can be read or written, it must be opened, at which time the permissions are checked. If the access is permitted, the system returns a small integer called a file descriptor to use in subsequent operations. If the access is prohibited, an error code is returned.</p>
+      <p> Another important concept in MINIX is the mounted file system. Nearly all microcomputers have one or more floppy disk drives into which floppy disks can be inserted and removed. To provide a clean way to deal with these removable media, MINIX allows the file system on a floppy disk to be attached to the main tree. Consider the situation of Fig. l-7(a). Before the MOUNT call, the RAM disk (simulated disk in main memory) contains the primary, or root file system, and drive 0 contains a floppy disk containing another file system.</p>
+      <p> However, the file system on drive 0 cannot be used, because there is no way to specify path names on it. MINIX does not allow path names to be prefixed by a drive name or number; that would be precisely the kind of device dependence that operating systems ought to eliminate. Instead, the MOUNT system call allows the file system on drive 0 to be attached to the root file system wherever the program wants it to be. In Fig. l-7(b) the file system on drive 0 has been mounted on directory  b,  thus allowing access to files  !b/x  and  Ibly.  If directory  b  had contained any files they would not be accessible while drive 0 was mounted, since  lb  would refer to the root directory of drive 0. (Not being able to access these files is not as serious as it at first seems: file systems are nearly always mounted on empty directories.)</p>
+      <p> Another important concept in MINIX is the special file. Special files are provided in order to make I/O devices look like files. That way, they can be read and written using the same system calls as are used for reading and writing files. Two kinds of special files exist: block special files and character special files.</p>
+      <p> SEC. 1.3</p>
+      <p> OPERATING SYSTEM CONCEPTS</p>
+      <p> 19</p>
+      <p> Root</p>
+      <p> Drive 0</p>
+      <p> R</p>
+      <p class="illus">
+        <img src="images/picture5.jpg" alt="picture5"/>
+      </p>
+      <p> (a)</p>
+      <p> (b)</p>
+      <p> Fig. 1-7. (a) Before mounting, the files on drive 0 are not accessible, (b) After mounting, they are part of the file hierarchy.</p>
+      <p> Block special files are used to model devices that consist of a collection of randomly addressable blocks, such as disks. By opening a block special file and reading, say, block 4, a program can directly access the fourth block on the device, without regard to the structure of the file system contained on it. Programs that do system maintenance often need this facility. Access to special files is controlled by the same  rwx  bits used to protect all files, so the power to directly access I/O devices can be restricted to the system administrator, for example.</p>
+      <p> Character special files are used to model devices that consist of character streams, rather than fixed-size randomly addressable blocks. Terminals, line printers, and network interfaces are typical examples of character special devices. The normal way for a program to read and write on the user's terminal is to read and write the corresponding character special file. When a process is started up, file descriptor 0, called standard input, is normally arranged to refer to the terminal for the purpose of reading. File descriptor 1, called standard output, refers to the terminal for writing. File descriptor 2, called standard error, also refers to the terminal for output, but normally is used only for writing error messages.</p>
+      <p> All special files have a major device number and a minor device number.</p>
+      <p> The major device number specifies the device class, such as floppy disk, hard disk, or terminal. The minor device number specifies which of the devices in the class is being addressed, for example, which floppy disk drive. All devices with the same major device number share the same device driver code within the operating system. The minor device number is passed as a parameter to the device driver to tell it which device to read or write. The device numbers can be seen by listing  I dev.</p>
+      <p> The last feature we will discuss in this overview is one that relates to both processes and files: pipes. A pipe is a sort of pseudo-file that can be used to connect two processes together, as shown in Fig. 1-8. When process  A  wants to send data to process  B,  it writes on the pipe as though it were an output file.</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> Process  B  can read the data by reading from the pipe as though it were an input file. Thus, communication between processes in MINIX looks very much like ordinary file reads and writes. Stronger yet, the only way a process can discover that the output file it is writing on is not really a file, but a pipe, is by making a special system call.</p>
+      <p> Process Process</p>
+      <p class="illus">
+        <img src="images/picture6.jpg" alt="picture6"/>
+      </p>
+      <p> Fig. 1-8. Two processes connected by a pipe.</p>
+      <p> 1.3.3. The Shell</p>
+      <p> The MINIX operating system is the code that carries out the system calls. Editors, compilers, assemblers, linkers, and command interpreters are definitely not part of the operating system, even though they are important and useful. At the risk of confusing things somewhat, in this section we will look briefly at the MINIX command interpreter, called the shell, which, although not part of the operating system, makes heavy use of many operating system features and thus serves as a good example of how the system calls can be used. It is also the primary interface between a user sitting at his terminal and the operating system.</p>
+      <p> When any user logs in, a shell is started up. The shell has the terminal as standard input and standard output. It starts out by typing the prompt, a character such as a dollar sign, which tells the user that the shell is waiting to accept a command. If the user now types</p>
+      <p> date</p>
+      <p> for example, the shell creates a child process and runs the  date  program as the child. While the child process is running, the shell waits for it to terminate. When the child finishes, the shell types the prompt again and tries to read the next input line.</p>
+      <p> The user can specify that standard output be redirected to a file by typing, for example,</p>
+      <p> date &gt;file</p>
+      <p> Similarly, standard input can be redirected, as in sort &lt;filel &gt;file2</p>
+      <p> which invokes the sort program with input taken from  filel  and output sent to file2.</p>
+      <p> The output of one program can be used as the input for another program by connecting them with a pipe. Thus</p>
+      <p> SEC. 1.3</p>
+      <p> OPERATING SYSTEM CONCEPTS</p>
+      <p> 21</p>
+      <p> cat filel file2 file3 j sort &gt;/dev/lp</p>
+      <p> invokes the  cat  program to concatenate three files and send the output to  sort  to arrange all the lines in alphabetical order. The output of  sort  is redirected to the file  Idevllp,  which is a typical name for the special character file for the line printer. (By convention, all the special files are kept in the directory  I dev.)</p>
+      <p> If a user puts an ampersand after a command, the shell does not wait for it to complete. Instead it just gives a prompt immediately. Consequently,</p>
+      <p> cat filel file2 file3 | sort &gt;/dev/lp &amp;</p>
+      <p> starts up the sort as a background job, allowing the user to continue working normally while the sort is going on. The shell has a number of other interesting features that we do not have space to discuss here. See any of the suggested references on UNIX for more information about the shell.</p>
+      <p> 1.4. SYSTEM CALLS</p>
+      <p> Armed with our general knowledge of how MINIX deals with processes and files, we can now begin to look at the system calls in detail. Again we emphasize that although we will constantly refer to MINIX here, the MINIX calls are identical to those of V7 UNIX, and almost identical to those in SYSTEM V, 4.3 BSD, XENIX and other versions of UNIX, although these systems also have additional system calls that are not discussed here. Furthermore, most other modern operating systems have system calls that perform the same functions as the MINIX calls, even if some of the details differ. Since the actual mechanics of issuing a system call are highly machine-dependent, and often must be expressed in assembly code, a procedure library is provided to make it possible to make system calls from C programs.</p>
+      <p> To make the system call mechanism clearer, let us take a quick look at READ. It has three parameters, the first one specifying the file, the second one specifying the buffer, and the third one specifying the number of bytes to read. A call to READ from a C program might look like this:</p>
+      <p> count = read(file, buffer, nbytes);</p>
+      <p> The system call (and the library procedure) return the number of bytes actually read in  count.  This value is normally the same as  nbytes,  but may be smaller, if, for example, end-of-file is encountered while reading.</p>
+      <p> If the system call cannot be carried out, either due to an invalid parameter or a disk error,  count  is set to -1, and the error number is put in a global variable, errno.  Programs should always check the results of a system call to see if an error occurred.</p>
+      <p> MINIX has a total of 41 system calls, all of them identical to UNIX V7 calls in</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> terms of name, function, and parameters. They are listed in Fig. 1-9, grouped for convenience in six categories. In the following sections we will briefly examine each call to see what it does. For more detail, see the UNIX manual or one of the books about UNIX that discusses the system calls. To a large extent, the services offered by these calls determine most of what the operating system has to do, since the resource management on personal computers is minimal (at least compared to big machines with many users).</p>
+      <p> Process Management</p>
+      <p> pid = fork{ ) — create a child process identical to the parent</p>
+      <p> s = waitf&amp;status) — wait for a child to terminate and get its exit status</p>
+      <p> s = execve(name,argv,envp) — replace a process' core image</p>
+      <p> exit(status) — terminate process execution and return exit status j</p>
+      <p> size = brk(addr) — set the size of the data segment to "addr"</p>
+      <p> pid = getpid( } — return the caller's process id</p>
+      <p> Signals</p>
+      <p> oldfunc = signal(sig,func) — arrange for some signal to be caught, ignored etc. s = kill(pid, sig) — send a signal to a process</p>
+      <p> residual = atarm(seconds) — schedule a SIGALRM signal after a certain time s = pausef ) — suspend the caller until the next signal</p>
+      <p> File Management</p>
+      <p> fd = creat{name,mode) — create a new file or truncate an existing file</p>
+      <p> fd = mknod(name,mode,addr) — create a regular, special, or directory i-node</p>
+      <p> fd = open(file,how — open a file for reading, writing or both</p>
+      <p> s = close(fd) — close an open file</p>
+      <p> n = read(fd,buffer,nbytes) — read data from a file into a buffer</p>
+      <p> n = write(fd,buffer,nbytes) — write data from a file into a buffer</p>
+      <p> pos = I seek(fd,offset,whence) — move the file pointer somewhere in the file</p>
+      <p> s = stat(name,&amp;buf} — read and return a file's status from its i-node</p>
+      <p> s = fstat(fd,&amp;buf) — read and return a file's status from its i-node</p>
+      <p> fd = dup(fd1} — allocate another file descriptor for an open file</p>
+      <p> s = pipe(&amp;fd [0]) — create a pipe</p>
+      <p> s = ioctl(fd,request,argp) — perform special operations on special files Directory and File System Management</p>
+      <p> s = Iink{name1,name2} — create a new directory entry, name2 for file namel</p>
+      <p> s = unlink(name) — remove a directory entry</p>
+      <p> s = mount(special,name,rwflag) — mount a file system</p>
+      <p> s = unmount(special) — unmount a file system</p>
+      <p> s = sync( } — flush all disk blocks cached in memory to the disk</p>
+      <p> s = chdir(dirname) — change the working directory</p>
+      <p> s = chroot(dirname) — change the root directory</p>
+      <p> Protection</p>
+      <p> s = chmod(name,mode) — change the protection bits associated with a file uid = getuidf } — get the caller's uid gid = getgidf ) — get the caller's gid s = setuid(uid) — set the caller's uid s = setgid(gid) — set the caller's gid</p>
+      <p> s - chown(name,owner,group} — change a file's owner and group</p>
+      <p> oldmask = umask(complmode) — set a mask used to mask off protection bits</p>
+      <p> Time Management</p>
+      <p> seconds = timef&amp;seconds) — get the elapsed time in seconds since Jan. 1, 1970</p>
+      <p> s = stime(tp) — set the elapsed time since Jan. 1, 1970</p>
+      <p> s = utimeffile, timep) — set the "last access" time for the file</p>
+      <p> s = times(buffer) — get the user and system times used so far</p>
+      <p> Fig. 1-9. The  minix  system calls. The return code 5 is -1 if an error has occurred;^ is a file descriptor,  n  is a byte count. The other return codes are what the name suggests.</p>
+      <p> SEC. 1.4</p>
+      <p> SYSTEM CALLS</p>
+      <p> 23</p>
+      <p> 1.4.1. System Calls for Process Management</p>
+      <p> The first group of calls deals with process management. FORK is a good place to start the discussion. FORK is the only way to create a new process. It creates an exact duplicate of the original process, including all the file descriptors, registers—everything. After the FORK, the original process and the copy (the parent and child) go their separate ways. All the variables have identical values at the time of the FORK, but since the entire parent core image is copied to create the child, subsequent changes in one of them do not affect the other one. The FORK call returns a value, which is zero in the child, and equal to the child's process identifier or pid in the parent. Using the returned pid, the two processes can see which is the parent and which is the child.</p>
+      <p> In most cases, after a FORK, the child will need to execute different code from the parent. Consider the case of the shell. It reads a command from the terminal, forks off a child process, waits for the child to execute the command and then reads the next command when the child terminates. To wait for the child to finish, the parent executes a WAIT system call, which just waits until the child terminates (any child if more than one exists). WAIT has one parameter, the address of a variable that will be set to the child's exit status (normal or abnormal termination and exit value).</p>
+      <p> In the case of the shell, the child process must execute the command typed by the user. It does this by using the EXEC system call, which causes its entire core image to be replaced by the file named in its first parameter. A highly simplified shell illustrating the use of FORK, WAIT, and EXEC is shown in Fig. 1-10.</p>
+      <p> while (TRUE) { /*  repeat   for ever */</p>
+      <p> read_command(command, parameters); /* read input from terminal #</p>
+      <p> if (fork() != 0) { /* f ork  off child process */</p>
+      <p> wait(&amp;status); /* parent code */</p>
+      <p> } }</p>
+      <p> } else {</p>
+      <p> execve(command, parameters, 0); /* child   code */</p>
+      <p> Fig. 1-10. A stripped-down shell. Throughout this book,  TRUE  is assumed to be defined as the constant 1, thus providing for an infinite loop.</p>
+      <p> In the most general case, EXEC has three parameters: the name of the file to be executed, a pointer to the argument array, and a pointer to the environment array. These will be described shortly. Various library routines, including execl, execv, execle,  and  execve  are provided to allow the parameters to be omitted or specified in various ways. Throughout this book we will use the name EXEC to represent the system call invoked by all of these.</p>
+      <p> Let us consider the case of a command such as</p>
+      <p> cp filel file2</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> used to copy  file1  to  file2.  After the shell has forked, the child locates and executes the file  cp  and passes it information about the files to be copied.</p>
+      <p> The main program of  cp  (and many other programs) contains the declaration</p>
+      <p> main(argc, argv, envp)</p>
+      <p> where  argc  is a count of the number of items on the command line, including the program name. For the example above,  argc  is 3.</p>
+      <p> The second parameter,  argv,  is a pointer to an array. Element / of that array is a pointer to the  i-th  string on the command line. In our example,  argv[0] would point to the string "cp." (As an aside, the string pointed to contains  two characters, a "c" and a "p," although, if you look closely at the previous sentence you will also see a period inside the quotes. The period ends the sentence, but the rules of English punctuation require most punctuation marks to be  inside the quotes, even though this is totally illogical. Hopefully, this will not cause any confusion.) Similarly,  argv[l]  would point to the 5-character string "file 1" and argv[2\  would point to the 5-character string "file2."</p>
+      <p> The third parameter of  main, envp,  is a pointer to the environment, an array of strings containing assignments of the form  name = value  used to pass information such as the terminal type and home directory name to a program. In Fig. 1-10, no environment is passed to the child, so the third parameter of  execve is a zero.</p>
+      <p> If EXEC seems complicated, do not despair; it is the most complex system call. All the rest are much simpler. As an example of a simple one, consider EXIT, which processes should use when they are finished executing. It has one parameter, the exit status (0 to 255), which is returned to the parent in the variable  status  of the WAIT system call. The low-order byte of  status  contains the termination status, with 0 being normal termination and the other values being various error conditions. The high-order byte contains the child's exit status (0 to 255). For example, if a parent process executes the statement</p>
+      <p> n = wait(&amp;status);</p>
+      <p> it will be suspended until some child process terminates. If the child exits with, say, 4 as the parameter to  exit,  the parent will be awakened with  n  set to the child's pid and  status  set to 0x0400 (the C convention of prefixing hexadecimal constants with Ox will be used throughout this book).</p>
+      <p> Processes in MINIX have their memory divided up into three segments: the text segment (i.e., the program code), the data segment, and the stack segment. The data segment grows upward and the stack grows downward, as shown in Fig. 1-11. Between them is a gap of unused address space. The stack grows into the gap automatically, as needed, but expansion of the data segment is done explicitly by using the BRK system call. It has one parameter, giving the address where the data segment is to end. This address may be more than the current value (data segment is growing) or less than the current value (data segment is shrinking). The parameter must, of course, be less than the stack pointer</p>
+      <p> SEC. 1.4</p>
+      <p> SYSTEM CALLS</p>
+      <p> 25</p>
+      <p> or the data and stack segments would overlap, something that is forbidden. MINIX supports separate instruction and data spaces, so a program on the IBM PC, for example, can have 64K bytes of text and another 64K bytes for the data and stack segments combined, for a total of 128K bytes for text, data, and stack, total.</p>
+      <p> Address (hex)   FFFF</p>
+      <p> Fig, 1-11. Processes have three segments: text, data, and stack. In this example, all three are in one address space, but separate instruction and data space is also supported.</p>
+      <p> As a convenience to the programmer, a library routine  sbrk  is provided that also changes the size of the data segment, only its parameter is the number of bytes to add to the data segment (negative parameters make the data segment smaller). It works by keeping track of the current size of the data segment, which is the value returned by BRK, computing the new size, and making a call asking for that number of bytes.</p>
+      <p> The last process system call is also the simplest, GETPID. It just returns the caller's pid. Remember that in FORK, only the parent was given the child's pid. If the child wants to find out its own pid, it must use GETPID.</p>
+      <p> 1.4.2. System Calls for Signaling</p>
+      <p> Certain situations exist in which processes need to handle software interrupts. For example, if a user accidently tells a text editor to print the entire contents of a very long file, and then realizes the error, some way is needed to interrupt the editor. In MINIX, the user can hit the DEL key on the keyboard, which sends a signal to the editor. The editor catches the signal and stops the print-out. Signals can also be used to report certain traps detected by the hardware, such as illegal instruction or floating point overflow.</p>
+      <p> When a signal is sent to a process that has not announced its willingness to accept that signal, the process is simply killed without further ado. To avoid this fate, a process can use the SIGNAL system call to announce that it is prepared to accept some signal type, and to provide the address of the signal handling procedure. After a SIGNAL call, if a signal of the relevant type (e.g., the DEL key) is generated, the state of the process is pushed onto its own stack, and then the</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> signal handler is called. It may run for as long as it wants to and perform any system calls it wants to. In practice, though, signal handlers are usually fairly short. When the signal handling procedure is done, it just returns in the usual way. The run time system in the user's address space then restores the process' state from the stack and continues execution from the point where it was interrupted .</p>
+      <p> The signal types are shown in Fig. 1-12. The ones in parentheses are UNIX signals that are not supported by MINIX, mostly because they are not generated by the IBM PC hardware. They are easy to add, however, if the need arises in the future.</p>
+      <p> Fig. 1-12. Signal types. The signals in parentheses are not supported by  minix. The asterisks denote signals that cause core dumps if not caught or ignored.</p>
+      <p> After a signal has been caught, it is necessary to re-enable the signal catching with another SIGNAL call. If another signal of the same type arrives before the signal catching has been re-enabled, the default action is taken (i.e., the process is killed). If you try very hard, you may be able to hit DEL fast enough in succession to cause the shell to get a second signal before it has finished processing the first one, thus killing the shell (and logging yourself out).</p>
+      <p> Instead of providing a function to catch a signal, the program may also specify the constant SIG-IGN to have all subsequent signals of the specified type ignored, or SIG-DFL to restore the default action of killing the process when a signal occurs. As an example of how SIG_IGN is used, consider what happens when the shell forks off a background process as a result of</p>
+      <p> command &amp;</p>
+      <p> It would be undesirable for a DEL signal from the keyboard to affect the background process, so after the FORK but before the EXEC, the shell does</p>
+      <p> signaKSIGINT, SIG_IGN);</p>
+      <p> and</p>
+      <p> SEC. 1.4</p>
+      <p> SYSTEM CALLS</p>
+      <p> 27</p>
+      <p> signaKSIGQUIT, SIG_IGN);</p>
+      <p> to disable the DEL and quit signals. (The quit signal is generated by CTRL-\; it is the same as DEL except that if it is not caught or ignored, it makes a core dump of the process killed.) For foreground processes (no ampersand), these signals are not ignored.</p>
+      <p> Hitting the DEL key is not the only way to send a signal. The KILL system call allows a process to signal another process (provided they have the same uid—unrelated processes cannot signal each other). Getting back to the example of background processes used above, suppose a background process is started up, but later it is decided that the process should be terminated. SIGINT and SIGQUIT have been disabled, so something else is needed. The solution is to use the  kill  program, which uses the KILL system call to send a signal to any process. By sending signal 9 (SIGKILL), to a background process, that process can be killed. SIGKILL cannot be caught or ignored.</p>
+      <p> For many real-time applications, a process needs to be interrupted after a specific time interval to do something, such as to retransmit a potentially lost packet over an unreliable communication line. To handle this situation, the ALARM system call has been provided. The parameter specifies an interval, in seconds, after which a SIGALRM signal is sent to the process. A process may only have one alarm outstanding at any instant. If an ALARM call is made with a parameter of 10 seconds, and then 3 seconds later another ALARM call is made with a parameter of 20 seconds, only one signal will be generated, 20 seconds after the second call. The first signal is canceled by the second call to ALARM. If the parameter to ALARM is zero, any pending alarm signal is canceled. If an alarm signal is not caught, the default action is taken and the signaled process is killed. Technically, alarm signals may be ignored, but that is a pointless thing to do.</p>
+      <p> It sometimes occurs that a process has nothing to do until a signal arrives. For example, consider a computer aided instruction program that is testing reading speed and comprehension. It displays some text on the screen and then calls ALARM to signal it after 30 seconds. While the student is reading the text, the program has nothing to do. It could sit in a tight loop doing nothing, but'that would waste CPU time that a background process or other user might need. A better solution is to use the PAUSE system call, which tells MINIX to suspend the process until the next signal arrives.</p>
+      <p> 1.4.3. System Calls for File Management</p>
+      <p> Many system calls relate to files and the file system. In this section we will look at the system calls that operate on individual files; in the next one we will examine those that involve directories or the file system as a whole. To create a new file, the CREAT call is used (why the call is CREAT and not CREATE has been lost in the mists of time). Its parameters provide the name of the file and the protection mode. Thus</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> fd = creat("abc", 0751);</p>
+      <p> creates a file called  abc  with mode 0751 octal (in C, a leading zero means that a constant is in octal). The low-order 9 bits of 0751 specify the  rwx  bits for the owner (7 means read-write-execute permission), his group (5 means read-execute) , and others (1 means execute only).</p>
+      <p> CREAT not only creates a new file, but also opens it for writing, regardless of the file's mode. The file descriptor returned,  fd,  can be used to write the file. If a CREAT is done on an existing file, that file is truncated to length 0, provided, of course, that the permissions are all right.</p>
+      <p> Special files are created using MKNOD rather than CREAT. A typical call is</p>
+      <p> fd = mknod("/dev/tty2", 020744, 0x0402);</p>
+      <p> which creates a file named  Idevlxtyl  (the usual name for terminal 2), and gives it mode 020744 octal (a character special file with protection bits  rwxr—r—).  The third parameter contains the major device (4) in the high-order byte and the minor device (2) in the low-order byte. The major device could have been anything, but a file named  Idevltty2  ought to be minor device 2. Calls to MKNOD fail unless the caller is the super-user.</p>
+      <p> To read or write an existing file, the file must first be opened using OPEN. This call specifies the file name to be opened, either as an absolute path name or relative to the working directory, and a code of 0, 1, or 2, meaning open for reading, writing, or both. The file descriptor returned can then be used for reading or writing. Afterward, the file can be closed by CLOSE, which makes the file descriptor available for reuse on a subsequent CREAT or OPEN.</p>
+      <p> The most heavily used calls are undoubtedly READ and WRITE. We saw READ earlier. WRITE has the same parameters.</p>
+      <p> Although most programs read and write files sequentially, for some applications programs need to be able to access any part of a file at random. Associated with each file is a pointer that indicates the current position in the file. When reading (writing) sequentially, it normally points to the next byte to be read (written). The LSEEK call changes the value of the position pointer, so that subsequent calls to READ or WRITE can begin anywhere in the file, or even beyond the end of it.</p>
+      <p> LSEEK has three parameters: the first one is the file descriptor for the file, the second one is a file position, and the third one tells whether the file position is relative to the beginning of the file, the current position, or the end of the file. The value returned by LSEEK is the absolute position in the file after the file pointer was changed.</p>
+      <p> For each file, MINIX keeps track of the file mode (regular file, special file, directory, and so on), size, time of last modification, and other information. Programs can ask to see this information via the STAT and FSTAT system calls. These differ only in that the former specifies the file by name, whereas the latter takes a file descriptor, making it useful for inherited files whose names are not known.   Both calls provide as the second parameter a pointer to a structure</p>
+      <p> SEC. 1.4</p>
+      <p> SYSTEM CALLS</p>
+      <p> 29</p>
+      <p> where the information is to be put. The structure is shown in Fig. 1-13. In MINIX the three times are identical. Three of them are provided for compatibility with UNIX, where they are different.</p>
+      <p> /* device where i-node belongs #/</p>
+      <p> /* i-node number */</p>
+      <p> /# mode word #/</p>
+      <p> A number of links */</p>
+      <p> /* user id #/</p>
+      <p> /* group id */</p>
+      <p> /* major/minor device for special files ♦/</p>
+      <p> /* file size */</p>
+      <p> /* same as st_mtime */</p>
+      <p> /# time of last modification #/</p>
+      <p> /* same as stjntinte */</p>
+      <p> Fig. 1-13. The structure used to return information for the  stat  and  fstat  system calls. Three times are present for UNIX compatibility.</p>
+      <p> When manipulating file descriptors, the DUP call is occasionally helpful. Consider, for example, a program that needs to close standard output (file descriptor 1), substitute another file as standard output, call a function that writes some output onto standard output, and then restore the original situation. Just closing file descriptor 1 and then opening a new file will make the new file standard output (assuming standard input, file descriptor 0, is in use), but it will be impossible to restore the original situation later.</p>
+      <p> The solution is first to execute the statement</p>
+      <p> fd = dup(l);</p>
+      <p> which uses the DUP system call to allocate a new file descriptor,  fd,  and arrange for it to correspond to the same file as standard output. Then standard output can be closed and a new file opened and used. When it is time to restore the original situation, file descriptor 1 can be closed, and then</p>
+      <p> n = dup(fd);</p>
+      <p> executed to assign the lowest file descriptor, namely, 1, to the same file as  fd. Finally,  fd  can be closed and we are back where we started.</p>
+      <p> The DUP call has a variant that allows an arbitrary unassigned file descriptor to be made to refer to a given open file. It is called by</p>
+      <p> du P 2(fd, fd2);</p>
+      <p> where  fd  refers to an open file and  fdl  is the unassigned file descriptor that is to be made to refer to the same file  asfd.  Thus if  fd  refers to standard input (file descriptor 0)  and fd2  is 4, after the call, file descriptors 0 and 4 will both refer to standard input.</p>
+      <p> struct stat {</p>
+      <p> short st_dev; unsigned short st_ino; unsigned short st_mode; short st_nlink; short st_uid; short st_gid; short st_rdev; long st_size; long st_atime; long stjntime; long st_ctime;</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> Interprocess communication in MINIX uses pipes, as described earlier. When a user types</p>
+      <p> cat filel file2 | sort</p>
+      <p> the shell creates a pipe and arranges for standard output of the first process to write to the pipe, so standard input of the second process can read from it. The PIPE system call creates a pipe and returns two file descriptors, one for writing and one for reading. The call is</p>
+      <p> pipe(&amp;fd[0]);</p>
+      <p> where  fd  is an array of two integers and  fd[0]  is the file descriptor for reading and  fd[\]  is the one for writing.</p>
+      <p> Figure 1-14 depicts a skeleton procedure that creates two processes, with the output of the first one piped into the second one. (A more realistic example would do error checking and handle arguments.) First a pipe is created, and then the procedure forks, with the parent eventually becoming the first process in the pipeline and the child process becoming the second one. Since the files to be executed,  process!  and  process2,  do not know that they are part of a pipeline, it is essential that the file descriptors be manipulated so that the first process' standard output be the pipe and the second one's standard input be the pipe. The parent first closes off the file descriptor for reading from the pipe. Then it closes standard output and does a DUP call that allows file descriptor 1 to write on the pipe. It is important to realize that DUP always returns the lowest available file descriptor, in this case, 1. Then the program closes the other pipe file descriptor.</p>
+      <p> After the EXEC call, the process started will have file descriptors 0 and 2 be unchanged, and file descriptor 1 for writing on the pipe. The child code is analogous. The parameter to  execl  is repeated because the first one is the file to be executed and the second one is the first parameter, which most programs expect to be the file name.</p>
+      <p> The last system call we will describe in this section. IOCTL, is applicable only to special character files, primarily terminals. It is used to change the characters used for correcting typing errors on the terminal, changing the terminal mode, and so forth. In cooked mode, the erase and kill characters work normally, CTRL-S and CTRL-Q can be used for stopping and starting terminal output, CTRL-D means end of file, DEL generates an interrupt signal, and CTRL-\ generates a quit signal to force a core dump.</p>
+      <p> In raw mode, all of these functions are disabled; every character is passed directly to the program with no special processing. Furthermore, in raw mode, a read from the terminal will give the program any characters that have been typed, even a partial line, rather than waiting for a complete line as in cooked mode.</p>
+      <p> Cbreak mode is in between. The erase and kill characters for editing are disabled, as is CTRL-D, but CTRL-S, CTRL-Q, DEL, and CTRL \ are enabled.</p>
+      <p> SEC. 1.4</p>
+      <p> SYSTEM CALLS</p>
+      <p> 31</p>
+      <p> //define STD_INPUT   0 /* file descriptor for standard input */</p>
+      <p> #define STD_OUTPUT 1 /* file descriptor for standard output */</p>
+      <p> pipeline(processl, process2)</p>
+      <p> char *processl, *process2; /* pointers to program names */ int fd[2];</p>
+      <p> pipe(&amp;fd[0]); /* create a pipe */</p>
+      <p> if (forkO  != 0) {</p>
+      <p> /* The parent process executes these statements. #/</p>
+      <p> close(fd[0]); /* process 1 does not need to read from pipe</p>
+      <p> close(STD_0UTPUT); /# prepare for new standard output */</p>
+      <p> dup(fd[l]); /* set standard output to fd[l] */</p>
+      <p> close(fd[l]); /* pipe not needed any more #/</p>
+      <p> execl(processl, processl, 0);</p>
+      <p> } else {</p>
+      <p> /* The child process executes these statements. */</p>
+      <p> close(fd[l]); /* process 2 does not need to write to pipe</p>
+      <p> close(STD_INPUT); /* prepare for new standard input */</p>
+      <p> dup(fd[0]); /# set standard input to fd[0] #/</p>
+      <p> close(fd[0]); /* pipe not needed any more */ execl(process2, process2, 0);</p>
+      <p> Fig. 1-14. A skeleton for setting up a two-process pipeline.</p>
+      <p> Like raw mode, partial lines can be returned to programs (if intraline editing is turned off, there is no need to wait until a whole line has been received—the user cannot change his mind and delete it, as he can in cooked mode). IOCTL has three parameters, for example</p>
+      <p> ioctl(fd, TIOCSETP, &amp;sgttyb);</p>
+      <p> The first parameter specifies a file, the second one specifies an operation, and the third one is the address of a structure containing various flags. MINIX supports the operation TIOCSETP for setting the terminal parameters to the values in the structure, and TIOCGETP for filling the structure with the current values. The structure is defined in the header file  sgtty.h,  as shown in Fig. 1-15.</p>
+      <p> Bits in  sg-flags  can be set to enter raw or cbreak mode. The XTABS bit should be turned on to have MINIX replace tabs on output with the proper number of spaces. It should be turned off only when using terminals that correctly interpret the tab character in hardware. CRMOD should normally be on to cause line feeds sent to the terminal to also produce carriage returns. Finally, ECHO should be turned on to have the terminal echo characters, except when passwords and other secrets are being typed in.</p>
+      <p> IOCTL also has another call with a data structure,  tchars  (analogous to  sgttyb)</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> /* Data structures for IOCTL calls</p>
+      <p> TIOCGETP/TIOCSETP calls. */</p>
+      <p> struct sgttyb {</p>
+      <p class="illus">
+        <img src="images/picture7.jpg" alt="picture7"/>
+      </p>
+      <p> /* /* /* /* /*</p>
+      <p> input speed (not used at present) */ output speed (not used at present) */ erase character #/ kill character */ mode flags #/</p>
+      <p> /* Fields in sg_flags. */</p>
+      <p> #define XTABS 0006000</p>
+      <p> #define RAW 0000040</p>
+      <p> ^define CRM0D 0000020</p>
+      <p> ^define ECHO 0000010</p>
+      <p> ^define CBREAK 0000002</p>
+      <p> ^define COOKED 0000000</p>
+      <p> A /* /* /* /* A</p>
+      <p> set to cause tab expansion */</p>
+      <p> set to enable raw mode */</p>
+      <p> set to map If to cr + If */</p>
+      <p> set to enable echoing of typed input #/</p>
+      <p> set to enable cbreak mode */</p>
+      <p> neither CBREAK nor RAW */</p>
+      <p> ^define TI0CGETP (('t'«8) ^define TI0CSETP (('t'«8)</p>
+      <p> 8) 9)</p>
+      <p> Fig. 1-15. The data structure used as the third parameter in IOCTL.</p>
+      <p> for changing the interrupt character, quit character, terminal start and stop characters, and terminal end-of-file character.</p>
+      <p> 1.4.4. System Calls for Directory Management</p>
+      <p> In this section we will look at some system calls that relate more to directories or the file system as a whole, rather than just to one specific file as in the previous section. LINK is a good place to start. Although it only refers to one file, it does so under two path names. The purpose of LINK is to allow the same file to appear under two or more names, often in different directories. A typical use is to allow several members of the same programming team to share a common file, with each of them having the file appear in his own directory, possibly under different names. Sharing a file is not the same as giving every team member a private copy, because having a shared file means that changes that any member of the team makes are instantly visible to the other members—there is only one file. When copies are made of a file, subsequent changes made to one copy do not affect the other ones.</p>
+      <p> To see how LINK works, consider the situation of Fig. 116(a). Here are two users,  ast  and  jim,  each having their own directories with some files. If  ast  now executes a program containing the system call</p>
+      <p> link("/usr/jim/memo", "/usr/ast/note");</p>
+      <p> SEC. 1.4</p>
+      <p> SYSTEM CALLS</p>
+      <p> 33</p>
+      <p> the file  memo  in  jim's  directory is now entered into  ast's  directory under the name  note.  Thereafter,  lusrljimlmemo  and  lusrlastlnote  refer to the same file.</p>
+      <p> (a)</p>
+      <p> (b)</p>
+      <p> Fig. 1-16. (a) Two directories before linking  /usr/jim/memo  to ast's directory, (b) The same directories after linking.</p>
+      <p> Understanding how LINK works will probably make it clearer what it does. Every file in MINIX has a unique number, its i-number, that identifies it. A directory is simply a file containing a set of (i-number, ASCII name) pairs. In Fig. 1-16,  mail  has i-number 16, and so on. What LINK does is simply create a new directory entry with a (possibly new) name, using the i-number of an existing file. In Fig. 116(b), two entries have the same i-number (70), and thus refer to the same file. If either one is later removed, using the UNLINK system call, the other one remains. If both are removed, MINIX sees that no entries to the file exist (a field in the i-node keeps track of the number of directory entries pointing to the file), so the file is removed from the disk.</p>
+      <p> As we have mentioned earlier, the MOUNT system call allows two file systems to be merged into one. A common situation is to have the root file system, containing the binary (executable) versions of the common commands and other heavily used files, on the RAM disk. The user can then insert a floppy disk, for example, containing user programs, into drive 0.</p>
+      <p> By executing the MOUNT system call, the drive 0 file system can be attached to the root file system, as shown in Fig. 1-17. A typical statement in C to perform the mount is</p>
+      <p> mount("/dev/fdO", "/mnt", 0);</p>
+      <p> where the first parameter is the name of a block special file for drive 0 and the second parameter is the place in the tree where it is to be mounted.</p>
+      <p> After the MOUNT call, a file on drive 0 can be accessed by just using its path from the root directory or the working directory, without regard to which drive it is on. In fact, second, third and fourth drives can also be mounted anywhere in the tree. The MOUNT command makes it possible to integrate removable media into a single integrated file hierarchy, without having to worry about which device a file is on. Although this example involves floppy disks, hard disks or portions of hard disks (often called partitions or minor devices) can also be mounted this way. When a file system is no longer needed, it can be unmounted with the UMOUNT system call.</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p class="illus">
+        <img src="images/picture8.jpg" alt="picture8"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture9.jpg" alt="picture9"/>
+      </p>
+      <p> bin      dev      lib      mnt usr</p>
+      <p> bin</p>
+      <p> (a)</p>
+      <p> (b)</p>
+      <p> Fig. 1-17. (a) File system before the mount, (b) File system after the mount.</p>
+      <p> MINIX maintains a cache of recently used blocks in main memory to avoid having to read them from the disk if they are used again quickly. If a block in the cache is modified (by a WRITE on a file) and the system crashes before the modified block is written out to disk, the file system will be damaged. To limit the potential damage, it is important to flush the cache periodically, so that the amount of data lost by a crash will be small. The system call SYNC tells MINIX to write out all the cache blocks that have been modified since being read in. When MINIX is started up, a program called  update  is started as a background process to do a SYNC every 30 seconds, to keep flushing the cache.</p>
+      <p> Two other calls that relate to directories are CHDIR and CHROOT. The former changes the working directory and the latter changes the root directory. After the call</p>
+      <p> chdir("/usr/ast/test");</p>
+      <p> an open on the file  xyz  will open  lusrlastltestlxyz.  CHROOT works in an analogous way. Once a process has told the system to change its root directory, all absolute path names (path names beginning with a "/") will start at the new root. Only super-users may execute CHROOT, and even super-users do not do it very often.</p>
+      <p> 1.4.5. System Calls for Protection</p>
+      <p> In MINIX every file has an 11-bit mode used for protection. Nine of these bits are the read-write-execute bits for the owner, group and others. The CHMOD system call makes it possible to change the mode of a file. For example, to make a file read-only by everyone except the owner, one could execute</p>
+      <p> chmod("file", 0644);</p>
+      <p> The other two protection bits, 02000 and 04000, are the SETGID (set-group-id) and SETUID (set-user-id) bits, respectively. When any user executes a program with the SETUID bit on, for the duration of that process the user's effective uid is changed to that of the file's owner. This feature is heavily used to allow users to execute programs that perform super-user only functions, such as creating directories. Creating a directory uses MKNOD, which is for the super-user</p>
+      <p> SEC. 1.4</p>
+      <p> SYSTEM CALLS</p>
+      <p> 35</p>
+      <p> only. By arranging for the  mkdir  program to be owned by the superuser and have mode 04755, ordinary users can be given the power to execute MKNOD but in a highly restricted way.</p>
+      <p> When a process executes a file that has the SETUID or SETGID bit on in its mode, it acquires an effective uid or gid different from its real uid or gid. It is sometimes important for a process to find out what its real and effective uid or gid is. The system calls GETUID and GETGID have been provided to supply this information. Each call returns both the real and effective uid or gid, so four library routines are needed to extract the proper information:  getuid, getgid, geteuid,  and  getegid.  The first two get the real uid/gid, and the last two the effective ones.</p>
+      <p> Ordinary users cannot change their uid, except by executing programs with the SETUID bit on, but the super-user has another possibility: the SETUID system call, which sets both the effective and real uids.  setgid  sets both gids. The super-user can also change the owner of a file with the CHOWN system call. In short, the super-user has plenty of opportunity for violating all the protection rules, which explains why so many students devote so much of their time to trying to become super-user.</p>
+      <p> The last two system calls in this category can be executed by ordinary user processes. The first one, UMASK, sets an internal bit mask within the system, which is used to mask off mode bits when a file is created. After the call</p>
+      <p> umask(022);</p>
+      <p> the mode supplied by CREAT and MKNOD will have the 022 bits masked off before being used. Thus the call</p>
+      <p> creat("file", 0777);</p>
+      <p> will set the mode to 0755 rather than 0777. Since the bit mask is inherited by child processes, if the shell does a UMASK just after login, none of the user's processes in that session will accidently create files that other people can write on.</p>
+      <p> When a program owned by the root has the SETUID bit on, it can access any file, because its effective uid is the super-user. Frequently it is useful for the program to know if the person who called the program has permission to access a given file. If the program just tries the access, it will always succeed, and thus learn nothing.</p>
+      <p> What is needed is a way to see if the access is permitted for the real uid. The ACCESS system call provides a way to find out. The  mode  parameter is 4 to check for read access, 2 for write access, and 1 for execute access. Combinations are also allowed, for example, with  mode  equal to 6, the call returns 0 if both read and write access are allowed for the real uid; otherwise -1 is returned. With  mode  equal to 0, a check is made to see if the file exists and the directories leading up to it can be searched.</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> 1.4.6. System Calls for Time Management</p>
+      <p> MINIX has four system calls that involve the time-of-day clock. TIME just returns the current time in seconds, with 0 corresponding to Jan. 1, 1970 at midnight (just as the day was starting, not ending). Of course the system clock must be set at some point in order to allow it to be read later, so STIME has been provided to let the clock be set (by the super-user). The third time call is UTIME, which allows the owner of a file (or the super-user) to change the time stored in a file's inode. Application of this system call is fairly limited, but a few programs need it, for example,  touch,  which sets the file's time to the current time. Finally, we have TIMES, which returns the accounting information to a process, so it can see how much CPU time it has used directly, and how much CPU time the system itself has expended on its behalf. The accumulated user and system times for its children are also returned.</p>
+      <p> 1.5. OPERATING SYSTEM STRUCTURE</p>
+      <p> Now that we have seen what operating systems look like on the outside (i.e, the programmer's interface), it is time to take a look inside. In the following sections, we will examine four different structures that have been tried, in order to get some idea of the spectrum of possibilities.</p>
+      <p> 1.5.1. Monolithic Systems</p>
+      <p> By far the most common organization, this approach might well be subtitled "The Big Mess." The structure is that there is no structure. The operating system is written as a collection of procedures, each of which can call any of the other ones whenever it needs to. When this technique is used, each procedure in the system has a well-defined interface in terms of parameters and results, and each one is free to call any other one, if the latter provides some useful computation that the former needs.</p>
+      <p> To construct the actual object program of the operating system when this approach is used, one compiles all the individual procedures, or files containing the procedures, and then binds them all together into a single object file with the linker. In terms of information hiding, there is essentially none—every procedure is visible to every other one (as opposed to a structure containing modules or packages, in which much of the information is local to a module, and only officially designated entry points can be called from outside the module).</p>
+      <p> Even in monolithic systems, however, it is possible to have at least a little structure. The services (system calls) provided by the operating system are requested by putting the parameters in well-defined places, such as in registers or on the stack, and then executing a special trap instruction known as a kernel call or supervisor call.</p>
+      <p> SEC. 1.5</p>
+      <p> OPERATING SYSTEM STRUCTURE</p>
+      <p> 37</p>
+      <p> This instruction switches the machine from user mode to kernel mode (also known as supervisor mode), and transfers control to the operating system, shown as event (1) in Fig. 1-18. (Most CPUs have two modes: kernel mode, for the operating system, in which all instructions are allowed; and user mode, for user programs, in which I/O and certain other instructions are not allowed.)</p>
+      <p> User programs ■* run in user mode</p>
+      <p> Operating system runs in kernel mode</p>
+      <p> Fig. 1-18. How a system call can be made: (1) User program traps to the kernel. (2) Operating system determines service number required. (3) Operating system locates and calls service procedure. (4) Control is returned to user program.</p>
+      <p> The operating system then examines the parameters of the call to determine which system call is to be carried out, shown as (2) in Fig. 1-18. Next, the operating system indexes into a table that contains in slot  k  a pointer to the procedure that carries out system call  k.  This operation, shown as (3) in Fig. 1-18, identifies the service procedure, which is then called. Finally, the system call is finished and control is given back to the user program.</p>
+      <p> This organization suggests a basic structure for the operating system:</p>
+      <p> 1. A main program that invokes the requested service procedure.</p>
+      <p> 2. A set of service procedures that carry out the system calls.</p>
+      <p> 3. A set of utility procedures that help the service procedures.</p>
+      <p> In this model, for each system call there is one service procedure that takes care of it. The utility procedures do things that are needed by several service procedures, such as fetching data from user programs. This division of the procedures into three layers is shown in Fig. 1-19.</p>
+      <p> 1.5.2. Layered Systems</p>
+      <p> A generalization of the approach of Fig. 1 19 is to organize the operating system as a hierarchy of layers, each one constructed upon the one below it. The first system constructed in this way was the THE system built at the Technische</p>
+      <p class="illus">
+        <img src="images/picture10.jpg" alt="picture10"/>
+      </p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p class="illus">
+        <img src="images/picture11.jpg" alt="picture11"/>
+      </p>
+      <p> Fig. 1-19. A simple structuring model for a monolithic system.</p>
+      <p> Hogeschool Eindhoven in the Netherlands by E. W. Dijkstra (1968) and his students. The THE system was a simple batch system for a Dutch computer, the Electrologica X8, which had 32K of 27-bit words (bits were expensive in those days).</p>
+      <p> The system had 6 layers, as shown in Fig. 1-20. Layer 0 dealt with allocation of the processor, switching between processes when interrupts occurred or timers expired. Above layer 0, the system consisted of sequential processes, each of which could be programmed without having to worry about the fact that multiple processes were running on a single processor. In other words, layer 0 provided the basic multiprogramming of the CPU.</p>
+      <p> Fig. 1-20. Structure of the  the  operating system.</p>
+      <p> Layer 1 did the memory management. It allocated space for processes in main memory and on a 512K word drum used for holding parts of processes (pages) for which there was no room in main memory. Above layer 1, processes did not have to worry about whether they were in memory or on the drum; the layer 1 software took care of making sure pages were brought into memory whenever they were needed.</p>
+      <p> Layer 2 handled communication between each process and the operator console. Above this layer each process effectively had its own operator console.</p>
+      <p> Layer 3 took care of managing the I/O devices and buffering the information streams to and from them. Above layer 3 each process could deal with abstract</p>
+      <p> SEC. 1.5</p>
+      <p> OPERATING SYSTEM STRUCTURE</p>
+      <p> 39</p>
+      <p> I/O devices with nice properties, instead of real devices with many peculiarities.</p>
+      <p> Layer 4 was where the user programs were found. They did not have to worry about process, memory, console, or I/O management. The system operator process was located in layer 5.</p>
+      <p> A further generalization of the layering concept was present in the MULTICS system. Instead of layers, MULTICS was organized as a series of concentric rings, with the inner ones being more privileged than the outer ones. When a procedure in an outer ring wanted to call a procedure in an inner ring, it had to make the equivalent of a system call, that is, a TRAP instruction whose parameters were carefully checked for validity before allowing the call to proceed. Although the entire operating system was part of the address space of each user process in MULTICS, the hardware made it possible to designate individual procedures (memory segments, actually) as protected against reading, writing, or executing.</p>
+      <p> Whereas the THE layering scheme was really only a design aid, because all the parts of the system were ultimately linked together into a single object program, in MULTICS, the ring mechanism was very much present at run time and enforced by the hardware. The advantage of the ring mechanism is that it can easily be extended to structure user subsystems. For example, a professor could write a program to test and grade student programs and run this program in ring n,  with the student programs running in ring  n +  1 so that they could not change their grades.</p>
+      <p> 1.5.3. Virtual Machines</p>
+      <p> The initial releases of OS/360 were strictly batch systems. Nevertheless, many 360 users wanted to have time-sharing, so various groups, both inside and outside IBM decided to write time-sharing systems for it. The official IBM timesharing system, TSS/360, was delivered late, and when it finally arrived it was so big and slow that few sites converted over to it. It was eventually abandoned after its development had consumed some 50 million dollars (Graham, 1970). But a group at IBM's Scientific Center in Cambridge, MA, produced a radically different system that IBM eventually accepted as a product, and which is now widely used.</p>
+      <p> Virtual 370s</p>
+      <p> I/O instructions here trap here</p>
+      <p class="illus">
+        <img src="images/picture12.jpg" alt="picture12"/>
+      </p>
+      <p> System calls here trap here</p>
+      <p> Fig. 1-21. The structure of  vm/370  with  cms.</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> This system, originally called CP/CMS and now called VM/370 (Meyer and Seawright, 1970; Seawright and MacKinnon, 1979), was based on an astute observation: a time-sharing system provides (1) multiprogramming and (2) an extended machine with a more convenient interface than the bare hardware. The essence of VM/370 is to completely separate these two functions.</p>
+      <p> The heart of the system, known as the virtual machine monitor, runs on the bare hardware and does the multiprogramming, providing not one, but several virtual machines to the next layer up, as shown in Fig. 1-21. However, unlike all other operating systems, these virtual machines are not extended machines, with files and other nice features. Instead, they are  exact  copies of the bare hardware, including kernel/user mode, I/O, interrupts, and everything else the real machine has.</p>
+      <p> Because each virtual machine is identical to the true hardware, each one can run any operating system that will run directly on the hardware. In fact, different virtual machines can, and usually do, run different operating systems. Some run one of the descendants of OS/360 for batch processing, while other ones run a simple, single-user, interactive system called CMS (Conversational Monitor System) for time-sharing users.</p>
+      <p> When a CMS program executes a system call, the call is trapped to the operating system in its own virtual machine, not to VM/370, just as it would if it were running on a real machine instead of a virtual one. CMS then issues the normal hardware I/O instructions for reading its virtual disk or whatever is needed to carry out the call. These I/O instructions are trapped by VM/370, which then performs them as part of its simulation of the real hardware. By making a complete separation of the functions of multiprogramming and providing an extended machine, each of the pieces can be much simpler and more flexible.</p>
+      <p> 1.5.4. Client-Server Model</p>
+      <p> VM/370 gains much in simplicity by moving a large part of the traditional operating system code (implementing the extended machine) into a higher layer, CMS. Nevertheless, VM/370 itself is still a complex program because simulating a number of virtual 370s is not  that  simple (especially if you want to do it efficiently).</p>
+      <p> A trend in modern operating systems is to take this idea of moving code up into higher layers even further, and remove as much as possible from the operating system, leaving a minimal kernel. The usual approach is to implement most of the operating system functions in user processes. To request a service, such as reading a block of a file, a user process (now known as the client process) sends the request to a server process, which then does the work and sends back the answer.</p>
+      <p> In this model, shown in Fig. 1-22, all the kernel does is handle the communication between clients and servers. By splitting the operating system up into parts, each of which only handles one facet of the system, such as file service,</p>
+      <p> SEC. 1.5</p>
+      <p> OPERATING SYSTEM STRUCTURE</p>
+      <p> 41</p>
+      <p> user mode</p>
+      <p> Kernel mode</p>
+      <p> Client obtains service by sending messages to server processes</p>
+      <p> Fig. 1-22. The client-server model.</p>
+      <p> process service, terminal service, or memory service, each part becomes small and manageable. Furthermore, because all the servers run as user-mode processes, and not in kernel mode, they do not have direct access to the hardware. As a consequence, if a bug in the file server is triggered, the file service may crash, but this will not usually bring the whole machine down.</p>
+      <p> Another advantage of the client-server model is its adaptability to use in distributed systems (see Fig. 1-23). If a client communicates with a server by sending it messages, the client need not know whether the message is handled locally in its own machine, or whether it was sent across a network to a server on a remote machine. As far as the client is concerned, the same thing happens in both cases: a request was sent and a reply came back.</p>
+      <p> Machine 1  Machine 2 Machine 3 Machine 4</p>
+      <p> Terminal server Kernel</p>
+      <p> \ Network \ Message from client to server</p>
+      <p> Fig. 1-23. The client-server model in a distributed system.</p>
+      <p> The picture painted above of a kernel that handles only the transport of messages from clients to servers and back is not completely realistic. Some operating system functions (such as loading commands into the physical I/O device registers) are difficult, if not impossible, to do from user-space programs. There are two ways of dealing with this problem. One way is to have some critical server processes (e.g., I/O device drivers) actually run in kernel mode, with complete access to all the hardware, but still communicate with other processes using the normal message mechanism.</p>
+      <p> The other way is to build a minimal amount of mechanism into the kernel, but leave the policy decisions up to servers in user space. For example, the kernel might recognize that a message sent to a certain special address means to take the contents of that message and load it into the I/O device registers for some disk, to start a disk read. In this example, the kernel would not even inspect the</p>
+      <p class="illus">
+        <img src="images/picture13.jpg" alt="picture13"/>
+      </p>
+      <p> Process server</p>
+      <p> Kernel</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> bytes in the message to see if they were valid or meaningful; it would just blindly copy them into the disk's device registers. (Obviously some scheme for limiting such messages to authorized processes only must be used.) The split between mechanism and policy is an important concept; it occurs again and again in operating systems in various contexts.</p>
+      <p> 1.6. OUTLINE OF THE REST OF THIS BOOK</p>
+      <p> Operating systems typically have four major components: process management, I/O device management, memory management and file management. MINIX is also divided into these four parts. The next four chapters deal with these four topics, one topic per chapter. Chap. 6 is a list of suggested readings and a bibliography. The appendices provide an introduction to the C programming language, an introduction to the IBM PC, guides to using and maintaining MINIX, a complete listing of the MINIX source code, and a cross reference map.</p>
+      <p> The chapters on processes, I/O, memory management, and file systems have the same general structure. First the general principles of the subject are laid out. Then comes an overview of the corresponding area of MINIX (which also applies to UNIX). Finally, the MINIX implementation is discussed in detail.</p>
+      <p> The implementation section may be skimmed or skipped without loss of continuity by readers just interested in the principles of operating systems and not interested in the MINIX code. Readers who  are  interested in finding out how a real operating system (MINIX) works, and who are not familiar with C or the IBM PC, should read Appendices A and B before starting with Chap. 2.</p>
+      <p> Although the book does not contain a separate chapter on distributed operating systems, it contains material on distributed systems throughout. For example, the section on interprocess communication discusses message passing and remote procedure calls, and the chapter on file systems has sections on file servers and atomic transactions. More information about distributed operating systems can be found in Tanenbaum and van Renesse (1985).</p>
+      <p> 1.7. SUMMARY</p>
+      <p> In this chapter we started out by looking at operating systems from two viewpoints: resource managers and extended machines. In the resource manager view, the operating system's job is to efficiently manage the different parts of the system. In the extended machine view, the job of the system is to provide the users with a virtual machine that is more convenient to use than the actual machine.</p>
+      <p> We then briefly glanced back at the history of computers and their operating systems, to see how we got where we are now. Then we took a close look at MINIX and its system calls, to see what an operating system really does. We saw</p>
+      <p> SEC. 1.7</p>
+      <p> SUMMARY</p>
+      <p> 43</p>
+      <p> a group of system calls relating to processes and another group relating to files. This information will be important later in the book when it is time to see how the system calls are implemented.</p>
+      <p> Finally, we examined different ways of structuring an operating system: as a monolithic system, as a hierarchy of layers, as a virtual machine system and as a client-server model.</p>
+      <p> PROBLEMS</p>
+      <p> 1. What are the two main functions of an operating system?</p>
+      <p> 2. What is multiprogramming?</p>
+      <p> 3. What is spooling? Do you think that advanced personal computers will have spooling as a standard feature in the future?</p>
+      <p> 4. On early computers, every byte of data read or written was directly handled by the CPU (i.e., there was no DMA—Direct Memory Access). What implications does this organization have for multiprogramming?</p>
+      <p> 5. Why was time-sharing not widespread on second generation computers?</p>
+      <p> 6. Which of the following instructions should be allowed only in kernel mode?</p>
+      <p> (a) Disable all interrupts.</p>
+      <p> (b) Read the time-of-day clock.</p>
+      <p> (c) Set the time-of-day clock.</p>
+      <p> (d) Change the memory map.</p>
+      <p> 7. List some differences between personal computer operating systems and mainframe operating systems.</p>
+      <p> 8. A MINIX file whose owner has uid =12 and gid = 1 has mode  rwxr-x—.  Another user with uid = 6, gid = 1 tries to execute the file. What will happen?</p>
+      <p> 9. In view of the fact that the mere existence of a super-user can lead to all kinds of security problems, why does such a concept exist?</p>
+      <p> 10. The client-server model is popular in distributed systems. Can it also be used in a single-computer system?</p>
+      <p> 11. Why is the process table needed in a time-sharing system? Is it also needed in personal computer systems in which only one process exists, that process taking over the entire machine until it is finished?</p>
+      <p> 12. What is the essential difference between a block special file and a character special file?</p>
+      <p> 13. If you hit DEL (sometimes called RUBOUT) often and fast enough, you may kill the shell. Explain.</p>
+      <p> INTRODUCTION</p>
+      <p> CHAP. 1</p>
+      <p> 14. In MINIX, if user 2 links to a file owned by user 1, then user 1 removes the file, what happens when user 2 tries to read the file?</p>
+      <p> 15. Why is the CHROOT system call limited to the super-user? (Hint: think about protection problems.)</p>
+      <p> 16. Why does MINIX have the program  update  running in the background all the time?</p>
+      <p> 17. Write a program (or series of programs) to test all the MINIX system calls. For each call, try various sets of parameters, including some incorrect ones, to see if they are detected.</p>
+      <p> 18. Write a shell that is similar to Fig. 1-10, but contains enough code that it actually works so you can test it. You might also add some features such as redirection of input and output, pipes, and background jobs.</p>
+      <p> PROCESSES</p>
+      <p> We are now about to embark on a detailed study of how operating systems in general and MINIX in particular are designed and constructed. The most central concept in any operating system is the  process:  an abstraction of a running program. Everything else hinges on this concept, and it is important that the operating system designer (and student) know what a process is as early as possible.</p>
+      <p> 2.1. INTRODUCTION TO PROCESSES</p>
+      <p> All modern computers can do several things at the same time. While running a user program, a computer can also be reading from a disk and printing on a terminal or prnter. In a multiprogramming system, the CPU also switches from program to program, running each for tens or hundreds of milliseconds. While, strictly speaking, at any instant of time, the CPU is running only one program, in the course of 1 second, it may work on several programs, thus giving the users the illusion of parallelism. Sometimes people speak of pseudoparallelism to mean this rapid switching back and forth of the CPU between programs, to contrast it with the true hardware parallelism of the CPU computing while one or more I/O devices are running. Keeping track of multiple, parallel activities is hard to do. Therefore, operating system designers over the years have evolved a model that makes parallelism easier to deal with. That model is the subject of this chapter.</p>
+      <p> 45</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> 2.1.1. The Process Model</p>
+      <p> In this model, all the runnable software on the computer, often including the operating system, is organized into a number of sequential processes, or just processes for short. A process is just an executing program, including the current values of the program counter, registers, and variables. Conceptually, each process has its own virtual CPU. In reality, of course, the real CPU switches back and forth from process to process, but to understand the system, it is much easier to think about a collection of processes running in (pseudo) parallel, than to try to keep track of how the CPU switches from program to program. This rapid switching back and forth is called multiprogramming, as we saw in the previous chapter. In Fig. 2-1 (a) we see a computer multiprogramming four programs in memory.</p>
+      <p> In Fig. 2-1(b) we see how this is abstracted into four processes, each with its own flow of control (i.e., its own program counter), and each one running independent of the other ones. In Fig. 2-1(c) we see that viewed over a long enough time interval, all the processes have made progress, but at any given instant only one process is actually running.</p>
+      <p> One program counter  Four   pr0 g ram  counters</p>
+      <p class="illus">
+        <img src="images/picture14.jpg" alt="picture14"/>
+      </p>
+      <p> (a) (b) (c)</p>
+      <p> Fig. 2-1. (a) Multiprogramming of four programs, (b) Conceptual model of four independent, sequential processes. Only one program is active at any instant.</p>
+      <p> With the CPU switching back and forth among the processes, the rate at which a process performs its computation will not be uniform, and probably not even reproducible if the same processes are run again. Thus, processes must not be programmed with built-in assumptions about timing. Consider, for example, an I/O process that starts a magnetic tape in motion, executes an idle loop 1000 times to let the tape get up to speed, and then issues a command to read the first record. If the CPU decides to switch to another process during the idle loop, the tape process might not run again until after the first record was already past the read head. When a process has critical real-time requirements like this, that is, certain events absolutely must occur within a specified number of milliseconds, special measures must be taken to ensure that they do occur. Normally,</p>
+      <p> SEC. 2.1</p>
+      <p> INTRODUCTION TO PROCESSES</p>
+      <p> 47</p>
+      <p> however, most processes are not affected by the underlying multiprogramming of the CPU or the relative speeds of different processes.</p>
+      <p> The difference between a process and a program is subtle, but crucial. An analogy may help make this point clearer. Consider a culinary-minded computer scientist who is baking a birthday cake for his daughter. He has a birthday cake recipe and a kitchen well-stocked with the necessary input: flour, eggs, sugar, and so on. In this analogy, the recipe is the program (i.e., an algorithm expressed in some suitable notation), the computer scientist is the processor (CPU), and the cake ingredients are the input data. The process is the activity consisting of our baker reading the recipe, fetching the ingredients, and baking the cake.</p>
+      <p> Now imagine that the computer scientist's son comes running in crying, saying that he has been stung by a bee. The computer scientist records where he was in the recipe (the state of the current process is saved), gets out a first aid book, and begins following the directions in it. Here we see the processor being switched from one process (baking) to a higher priority process (administering medical care), each having a different program (recipe vs. first aid book). When the bee sting has been taken care of, the computer scientist goes back to his cake, continuing at the point where he left off.</p>
+      <p> The key idea here is that a process is an activity of some kind. It has a program, input, output, and a state. A single processor may be shared among several processes, with some scheduling algorithm being used to determine when to stop work on one process and service a different one.</p>
+      <p> Process Hierarchies</p>
+      <p> Operating systems that support the process concept must provide some way to create all the processes needed. In very simple systems, or in systems designed for running only a single application, it may be possible to have all the processes that will ever be needed be present when the system comes up. In most systems, however, some way is needed to create and destroy processes as needed during operation. In MINIX, processes are created by the FORK system call, which creates an identical copy of the calling process. The child process can also execute FORK, so it is possible to get a whole tree of processes. In other operating systems, system calls exist to create a process, load its memory, and start it running. Whatever the exact nature of the system call, processes need a way to create other processes. Note that each process has one parent but zero, one, two, or more children.</p>
+      <p> As a simple example of how process trees are used, let us look at how MINIX initializes itself when it is started. A special process, called  init,  is present on the boot diskette. When it starts running, it reads a file telling how many terminals there are. Then it forks off one new process per terminal. These processes wait for someone to log in. If a login is successful, the login process executes a shell to accept commands.  These commands may start up more processes, and so</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> forth. Thus, all the processes in the whole system belong to a single tree, with init  at the root.  {Init  is not listed in the book; neither is the shell. The line had to be drawn somewhere.)</p>
+      <p> Process States</p>
+      <p> Although each process is an independent entity, with its own program counter and internal state, processes often need to interact with other processes. One process may generate some output that another process uses as input. In the shell command</p>
+      <p> cat chapterl chapter2 chapter3 | grep tree</p>
+      <p> the first process, running  cat,  concatenates and outputs three files. The second process, running  grep,  selects all lines containing the word "tree." Depending on the relative speeds of the two processes (which depends on both the relative complexity of the programs and how much CPU time each one has had), it may happen that  grep  is ready to run, but there is no input waiting for it. It must then block until some input is available.</p>
+      <p> When a process blocks, it does so because logically it cannot continue, typically because it is waiting for input that is not yet available. It is also possible for a process that is conceptually ready and able to run to be stopped because the operating system has decided to allocate the CPU to another process for a while. These two conditions are completely different. In Fig. 2-2 we see a state diagram showing the three states a process may be in:</p>
+      <p> 1. Running (actually using the CPU at that instant).</p>
+      <p> 2. Blocked (unable to run until some external event happens).</p>
+      <p> 3. Ready (runnable; temporarily stopped to let another process run).</p>
+      <p class="illus">
+        <img src="images/picture15.jpg" alt="picture15"/>
+      </p>
+      <p> 1. Process blocks for input</p>
+      <p> 2. Scheduler picks another process</p>
+      <p> 3. Scheduler picks this process</p>
+      <p> 4. Input becomes available</p>
+      <p> Fig. 2-2. A process can be in  running, blocked  or  ready  (also called  runnable) state.</p>
+      <p> Four transitions are possible among these three states, as shown. Transition 1 occurs when a process discovers that it cannot continue. In some systems the process must execute a system call, BLOCK, to get into blocked state. In other systems, including MINIX, when a process reads from a pipe or special file (e.g., a terminal) and there is no input available, the process is automatically blocked.</p>
+      <p> SEC. 2.1</p>
+      <p> INTRODUCTION TO PROCESSES</p>
+      <p> 49</p>
+      <p> Transitions 2 and 3 are caused by the process scheduler, a part of the operating system, without the process even knowing about them. Transition 2 occurs when the scheduler decides that the running process has run long enough, and it is time to let another process have some CPU time. Transition 3 occurs when all the other processes have had their share and it is time for the first process to run again. The subject of scheduling, that is, deciding which process should run when and for how long, is an important one; we will look at it later in this chapter. Many algorithms have been devised to try to balance the competing demands of efficiency for the system as a whole and fairness to individual processes.</p>
+      <p> Transition 4 occurs when the external event for which a process was waiting (such as the arrival of some input) happens. If no other process is running at that instant, transition 3 will be triggered immediately, and the process will start running. Otherwise it may have to wait in  ready  state for a little while until the CPU is available.</p>
+      <p> Using the process model, it becomes much easier to think about what is going on inside the system. Some of the processes run programs that carry out commands typed in by a user. Other processes are part of the system and handle tasks such as carrying out requests for file services or managing the details of running a disk or a tape drive. When a disk interrupt occurs, the system makes a decision to stop running the current process and run the disk process, which was blocked waiting for that interrupt. Thus, instead of thinking about interrupts, we can think about user processes, disk processes, terminal processes, and so on, which block when they are waiting for something to happen. When the disk block has been read or the character typed, the process waiting for it is unblocked and is eligible to run again.</p>
+      <p> This view gives rise to the model shown in Fig. 2-3. Here the lowest level of the operating system is the scheduler, with a variety of processes on top of it All the interrupt handling and details of actually starting and stopping processes are hidden away in the scheduler, which is actually quite small. The rest of the operating system is nicely structured in process form. The model of Fig. 2-3 is used in MINK, with the understanding that "scheduler" really means not just process scheduling, but also interrupt handling and all the interprocess communication as well.</p>
+      <p> Processes</p>
+      <p> Fig. 2-3. The lowest layer of a process-structured operating svstem handles interrupts and does scheduling. The rest of the system consists of sequential processes.</p>
+      <p> 50 PROCESSES CHAP. 2</p>
+      <p> 2.1.2. Implementation of Processes</p>
+      <p> To implement the process model, the operating system maintains a table (an array of structures), called the process table, with one entry per process. This entry contains information about the process' state, its program counter, stack pointer, memory allocation, the status of its open files, its accounting and scheduling information, and everything else about the process that must be saved when the process is switched from  running  to  ready  state so that it can be restarted later as if it had never been stopped.</p>
+      <p> In MINIX the process management, memory management, and file management are each handled by separate modules within the system, so the process table is partitioned, with each module maintaining the fields that it needs. Figure 2-4 shows some of the more important fields.</p>
+      <p> Fig. 2-4. Some of the fields in the MINIX process table.</p>
+      <p> Now that we have looked at the process table, it is possible to explain a little more about how the illusion of multiple sequential processes is maintained on a machine with one CPU and many I/O devices. What follows is technically a description of how the "scheduler" of Fig. 2-3 works in MINIX but most modern operating systems work essentially the same way. Associated with each I/O device class (e.g., floppy disks, hard disks, timers, terminals) is a location near the bottom of memory called the interrupt vector. It contains the address of the interrupt service procedure. Suppose user process 3 is running when a disk interrupt occurs. The program counter, program status word, and possibly one or more registers are pushed onto the stack by the interrupt hardware. The computer then jumps to the address specified in the disk interrupt vector. That is all the hardware does. From here on, it is up to the software.</p>
+      <p> The interrupt service procedure starts out by saving all the registers in the process table entry for the current process. The current process number and a pointer to its entry are kept in global variables so they can be found quickly. Then the information deposited by the interrupt is removed from the stack, and</p>
+      <p> SEC. 2.1</p>
+      <p> INTRODUCTION TO PROCESSES</p>
+      <p> 51</p>
+      <p> the stack pointer is set to a temporary stack used by the process handler. Actions such as saving the registers and setting the stack pointer cannot even be expressed in C, so they are performed by a small assembly language routine. When this routine is finished, it calls a C procedure to do the rest of the work.</p>
+      <p> Interprocess communication in MINIX is via messages, so the next step is to build a message to be sent to the disk process, which will be blocked waiting for it. The message says that an interrupt occurred, to distinguish it from messages from user processes requesting disk blocks to be read and things like that. The state of the disk process is now changed from  blocked  to  ready  and the scheduler is called. In MINIX, different processes have different priorities, to give better service to I/O device handlers than to user processes. If the disk process is now the highest priority runnable process, it will be scheduled to run. If the process that was interrupted is just as important or more so, then it will be scheduled to run again, and the disk process will have to wait a little while.</p>
+      <p> Either way, the C procedure called by the assembly language interrupt code now returns, and the assembly language code loads up the registers and memory map for the now-current process and starts it running. The interrupt handling and scheduling are summarized in Fig. 2-5.</p>
+      <p> 1. Hardware stacks program counter, etc.</p>
+      <p> 2. Hardware loads new program counter from interrupt vector.</p>
+      <p> 3. Assembly language procedure saves registers.</p>
+      <p> 4. Assembly language procedure sets up new stack.</p>
+      <p> 5. C procedure marks service process as ready.</p>
+      <p> 6. Scheduler decides which process to run next.</p>
+      <p> 7. C procedure returns to the assembly code.</p>
+      <p> 8. Assembly language procedure starts up current process.</p>
+      <p> Fig. 2-5. Skeleton of what the lowest level of the operating system does when an interrupt occurs.</p>
+      <p> 2.2. INTERPROCESS COMMUNICATION</p>
+      <p> Processes frequently need to communicate with other processes When a user process wants to read from a file, it must tell the file process what it wants. Then the file process has to tell the disk process to read the required block In a shell pipeline, the output of the first process must be passed to the second process. In short, there is a need for communication between processes, preferably in a well-structured way not using interrupts. In the following sections we will look at some of the pitfalls and issues related to this InterProcess Communication or IPC.</p>
+      <p> 2.2.1. Race Conditions</p>
+      <p> In some operating systems, processes that are working together often share some common storage that each one can read and write. The shared storage may</p>
+      <p> PROCESSES</p>
+      <p> CHAP. 2</p>
+      <p> be in main memory or it may be a shared file; the location of the shared memory does not change the nature of the communication or the problems that arise. To see how interprocess communication works in practice, let us consider a simple but common example, a print spooler. When a process wants to print a file, it enters the file name in a special spooler directory. Another process, the printer daemon, periodically checks to see if there are any files to be printed, and if there are it prints them and then removes their names from the directory.</p>
+      <p> Imagine that our spooler directory has a large (potentially infinite) number of slots, numbered 0, 1,2, each one capable of holding a file name. Also imagine that there are two shared variables,  out,  which points to the next file to be printed, and  in,  which points to the next free slot in the directory. These two variables might well be kept on a two-word file available to all processes. At a certain instant, slots 0 to 3 are empty (the files have already been printed) and slots 4 to 6 are full (with the names of files queued for printing). More or less simultaneously, processes  A  and  B  decide they want to queue a file for printing. This situation is shown in Fig. 2-6.</p>
+      <p class="illus">
+        <img src="images/picture16.jpg" alt="picture16"/>
+      </p>
+      <p> Spooler directory</p>
+      <p> prog, c</p>
+      <p> out = 4</p>
+      <p> in = 7</p>
+      <p> Fig. 2-6. Two processes want to access shared memory at the same time.</p>
+      <p> In jurisdictions where Murphy's law is applicable, the following might happen. Process  A  reads  in  and stores the value, 7, in a local variable called next-freeslot.  Just then a clock interrupt occurs and the CPU decides that process  A  has run long enough, so it switches to process  B.  Process  B  also reads  in, and also gets a 7, so it stores the name of its file in slot 7 and updates  in  to be an 8. Then it goes off and does other things.</p>
+      <p> Eventually process  A  runs again, starting from the place it left off. It looks at next-freeslot,  finds a 7 there, and writes its file name in slot 7, erasing the name that process  B  just put there. Then it computes  next-free-.slot +  1, which is 8, and sets  in  to 8. The spooler directory is now internally consistent, so the printer daemon will not notice anything wrong, but process  B  will never jet any output. Situations like this, where two or more processes are reading or writing some shared data and the final result depends on who runs precisely when, are called</p>
+      <p> SEC. 2.2</p>
+      <p> INTERPROCESS COMMUNICATION</p>
+      <p> 53</p>
+      <p> race conditions. Debugging programs containing race conditions is no fun at all. The results of most test runs are usually fine, but once in a rare while something weird and unexplained happens.</p>
+      <p> 2.2.2. Critical Sections</p>
+    </div>
+  </body>
+</html>

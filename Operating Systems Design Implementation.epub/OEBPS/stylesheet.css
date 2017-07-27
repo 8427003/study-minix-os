@@ -1,0 +1,12 @@
+body {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
+}
+h1,h2,h3,h4 {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", serif;
+}
+p {
+    font-family: Georgia,  "Palatino Linotype", "Book Antiqua", Palatino, "Times New Roman", serif;
+}
+img {
+    display: block; text-align: center; margin: 1em auto;
+}

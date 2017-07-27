@@ -1,0 +1,1313 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>part0006</title>
+    <meta content="abbyy to epub tool, v0.2" name="generator"/>
+    <link href="stylesheet.css" type="text/css" rel="stylesheet"/>
+    <meta content="application/xhtml+xml; charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <div class="body">
+      <p> The type int may be qualified with the "adjectives" short, long, or unsigned, which determine the (compiler dependent) range of values. Most 8088 compilers use 16-bit integers for int and short int and 32-bit integers for long int. Unsigned integers on the 8088 range from 0 to 65535, rather than — 32768 to +32767 as ordinary integers do. Characters are 8 bits.</p>
+      <p> The qualifier register is also allowed for both int and char and is a hint to the compiler that the variable being declared might be worth putting in a register instead of in memory, to make the program run faster. Some declarations are shown in Fig. A-2.</p>
+      <p> Conversion between types is allowed. For example, the statement</p>
+      <p> flag_pole = i;</p>
+      <p> is allowed even though / is an integer and  flag^pole  is a long. In many cases when converting between types it is necessary or useful to force one type to</p>
+      <p> INTRODUCTION TO C</p>
+      <p> APPENDIX A</p>
+      <p> int i;</p>
+      <p> short int zl, z2; char c;</p>
+      <p> unsigned short int k; long flag_pole; register int r;</p>
+      <p> /* one integer  */</p>
+      <p> /* two short integers #/</p>
+      <p> /* one character */</p>
+      <p> /* one unsigned short integer */</p>
+      <p> /* the 'int' may be omitted #/</p>
+      <p> /* a register variable */</p>
+      <p> Fig. A-2. Some declarations.</p>
+      <p> another. This can be done by putting the target type in parentheses in front of the expression to be converted, as in</p>
+      <p> p( (long) i);</p>
+      <p> to convert the integer / to a long before passing it as a parameter to a procedure p,  which expects a long.</p>
+      <p> One thing to watch out for when converting between types is sign extension. When converting a character to an integer, some compilers treat characters as being signed, that is, from —128 to +127, whereas others treat them as being unsigned, that is, from 0 to 255. In MINIX one frequently sees statements like</p>
+      <p> i = c &amp; 0377</p>
+      <p> which converts  c  (a character) to an integer and then performs a Boolean AND (the ampersand) with the octal constant 0377. The result is that the upper 8 bits are set to zero, effectively forcing  c  to be treated as an unsigned 8-bit quantity, in the range 0 to 255.</p>
+      <p> A.3. CONSTRUCTED TYPES</p>
+      <p> In this section we will look at four ways of building up more complex data types: arrays, structures, unions, and pointers. An array is a collection of items of the same type. All arrays in C start with element 0. The declaration</p>
+      <p> int atlO];</p>
+      <p> declares an array,  a,  with 10 integers, referred to as  a[0]  through  a[9] .  Two, three, and higher dimensional arrays exist, but they are not used in MINIX.</p>
+      <p> A structure is a collection of variables, usually of different types. A structure in C is similar to a record in Pascal. The declaration</p>
+      <p> struct {int i; char c;} s;</p>
+      <p> declares s to be a structure containing two members, an integer  i,  and a character  c.  To assign the member ( the value 6, one would write</p>
+      <p> s. i = 6;</p>
+      <p> SEC. A.3</p>
+      <p> CONSTRUCTED TYPES</p>
+      <p> 353</p>
+      <p> where the dot operator indicates that a member is being selected from a structure.</p>
+      <p> A union is also a collection of members, except that at any one moment, it can only hold one of them. The declaration</p>
+      <p> union {int i; char c;} u;</p>
+      <p> means that  u  can either hold an integer or a character, but not both. The compiler must allocate enough space for a union to hold the largest member. Unions are only used in two places in  minix  (for the definition of a message as a union of several different structures, and for the definition of a disk block as a union of a data block, an i-node block, a directory block, etc.).</p>
+      <p> Pointers are used to hold machine addresses in C. They are very heavily used. An asterisk is used to indicate a pointer in declarations. The declaration</p>
+      <p> int i, *pi, a[10], *b[10], **ppi;</p>
+      <p> declares an integer  i,  a pointer to an integer  pi,  an array with 10 elements  a,  an array of 10 pointers to integers  b,  and a pointer to a pointer to an integer  ppi. The exact syntax rules for complex declarations combining arrays, pointers, and other types is somewhat complex. Fortunately,  minix  only uses simple declarations.</p>
+      <p> Figure A-3 shows a declaration of an array  z,  of structures, each of which has three members, an integer /, a pointer to a character,  cp,  and a character,  c. Arrays of structures are common in MINIX. The name  table  is defined as the type of the structure, allowing struct table to be used in declarations to mean this structure. For example,</p>
+      <p> register struct table #p;</p>
+      <p> declares  p  to be a pointer to a structure of type  table,  and suggests that it be kept in a register. During program execution,  p  might point, for example, to z[4] or to any of the other elements of  z,  all 20 of which are structures of type  table.</p>
+      <p> struct table { /* each structure is of type table */</p>
+      <p> int i; /* an integer */</p>
+      <p> char *cp, c; /* a pointer to a character and a character</p>
+      <p> } z[20]; /♦ this is an array of 20 structures #/</p>
+      <p> Fig. A-3. An array of structures.</p>
+      <p> To make  p  point to z[4] , we would write p = &amp;z[4];</p>
+      <p> where the ampersand as a unary (monadic) operator means "take the address of what follows." To copy to the integer variable  n  the value of the member (' of the structure pointed to by  p  we would write</p>
+      <p> INTRODUCTION TO C</p>
+      <p> APPENDIX A</p>
+      <p> n = p-&gt;i;</p>
+      <p> Note that the arrow is used to access a member of a structure via a pointer. If we were to use  z  itself, we would use the dot operator:</p>
+      <p> n = z[4].i;</p>
+      <p> The difference is that z[4] is a structure, and the dot operator selects members from structures. With pointers, we are not selecting a member directly. The pointer must first be followed to find the structure; only then can a member be selected.</p>
+      <p> It is sometimes convenient to give a name to a constructed type. For example,</p>
+      <p> typedef unsigned short int unshort;</p>
+      <p> defines  unshort  as an unsigned short integer. It can be used as though it were a basic type. For example,</p>
+      <p> unshort ul, *u2, u3[5];</p>
+      <p> declares an unsigned short integer, a pointer to an unsigned short integer, and an array of unsigned short integers.</p>
+      <p> A.4. STATEMENTS</p>
+      <p> Procedures in C contain declarations and statements. We have already seen the declarations, so now we will look at the statements. The assignment, if, and while statements are essentially the same as in other languages. Figure A-4 shows some examples of them. The only points worth making are that braces are used for grouping compound statements, and the while statement has two forms, the second of which is similar to Pascal's repeat statement.</p>
+      <p> C also has a for statement, but this is unlike the for statement in any other language. It has the general form</p>
+      <p> for (initializer; condition; expression) statement; The meaning of the statement is</p>
+      <p> initializer; while (condition) { statement;</p>
+      <p> expression;</p>
+      <p> }</p>
+      <p> As an example, consider the statement</p>
+      <p> for (i=0; i&lt;n; i=i+l)a[i]=0;</p>
+      <p> SEC. A.4</p>
+      <p> STATEMENTS</p>
+      <p> 355</p>
+      <p> if (x &lt; 0) k = 3;</p>
+      <p> if (x &gt; y) { j = 2; k = j + 1;</p>
+      <p> }</p>
+      <p> if (x + 2 &lt; y) {</p>
+      <p> j = 2;</p>
+      <p> k = j - 1; } else {</p>
+      <p> m = 0;</p>
+      <p> }</p>
+      <p> while (n &gt; 0) { k = k + k; n = n - 1;</p>
+      <p> }</p>
+      <p> do {</p>
+      <p> k = k + k; n = n - 1; } while ( n &gt; 0);</p>
+      <p> /# a simple if statement */ /* a compound if statement  */</p>
+      <p> /# an if-else statement */</p>
+      <p> /* a while statement */</p>
+      <p> /* another kind of while statement */</p>
+      <p> Fig. A-4. Some if and while statements in C.</p>
+      <p> This statement sets the first  n  elements of  a  to zero. It starts out by initializing  i to zero (outside the loop). Then it iterates as long as /' &lt;  n  , executing the assignment and incrementing /. The statement can, of course, be a compound statement enclosed by braces, rather than just a simple assignment, as is shown here.</p>
+      <p> C has a construction that is similar to Pascal's case statement. It is called a switch statement. Figure A-5 shows an example. Depending on the value of the expression following the keyword switch, one clause or another is chosen. If the expression does not match any of the cases, the default clause is selected. If the expression does not match any case and no default is present, control just continues with the next statement following the switch.</p>
+      <p> One thing to note is that after one of the cases has been executed, control just continues with the next one, unless a break statement is present. In practice, the break is virtually always needed.</p>
+      <p> The break statement is also valid inside for and while loops, and when executed causes control to exit the loop. If the break statement is located in the innermost of a series of nested loops, only one level is exited.</p>
+      <p> A related statement is the continue statement, which does not exit the loop, but causes the current iteration to be terminated and the next iteration to start immediately. In effect, it is a jump back to the top of the loop.</p>
+      <p> C  has procedures,  which may  be  called  with  or without parameters.</p>
+      <p> INTRODUCTION TO C</p>
+      <p> APPENDIX A</p>
+      <p> switch (k) {</p>
+      <p> case 10: i = 6;</p>
+      <p> break; /* do not continue with case 20 */</p>
+      <p> case 20: j = 2; k = 4; break;</p>
+      <p> default: J = 5;</p>
+      <p> }</p>
+      <p> Fig. A-5. An example of a switch statement.</p>
+      <p> According to Kernighan and Ritchie (p. 121) it is not permitted to pass arrays, structures, or procedures as parameters, although pointers to all of these are allowed. Book or no book, many C compilers allow structures as parameters.</p>
+      <p> The name of an array, when written without a subscript, is taken to mean a pointer to the array, making it easy to pass an array pointer. Thus if  a  is the name of an array of any type, it can be passed to a procedure  g  by writing</p>
+      <p> g(a);</p>
+      <p> This rule holds only for arrays, not structures.</p>
+      <p> Procedures can return values by executing the return statement. This statement may provide an expression to be returned as the value of the procedure, but the caller may safely ignore it. If a procedure returns a value, the type of the value is written before the procedure name, as shown in Fig. A 6. As with parameters, procedures may not return arrays, structures, or procedures, but may return pointers to them. This rule is designed to make the implementation efficient—all parameters and results always fit in a single machine word. Compilers that allow structures as parameters usually allow them as return values as well.</p>
+      <p> int sum(i, j) /# this procedure returns an integer  */</p>
+      <p> int i,j; /# formal parameters declared before { */</p>
+      <p> {</p>
+      <p> returnd + j); /* add the parameters and return the sum *</p>
+      <p> }</p>
+      <p> Fig. A-6. An example of a simple procedure that returns a value.</p>
+      <p> C does not have any built-in input/output statements. I/O is done by calling library procedures, the most common of which is illustrated below:</p>
+      <p> printf("x  - %d    y =  %o    z = °ox\n", x , y, z);</p>
+      <p> SEC. A.4</p>
+      <p> STATEMENTS</p>
+      <p> 357</p>
+      <p> The first parameter is a string of characters between quotation marks (it is actually a character array). Any character that is not a percent is just printed as is. When a percent is encountered, the next parameter is printed, with the letter following the percent telling how to print it:</p>
+      <p> d - print as a decimal integer</p>
+      <p> o - print as an octal integer</p>
+      <p> u - print as unsigned decimal integer</p>
+      <p> x - print as a hexadecimal integer</p>
+      <p> s - print as a string</p>
+      <p> c - print as a single character</p>
+      <p> The letters  D, O,  and  X  are also allowed, for printing decimal, octal, and hexadecimal longs.</p>
+      <p> A.5. EXPRESSIONS</p>
+      <p> Expressions are constructed by combining operands and operators. The arithmetic operators, such as + and —, and the relational operators, such as &lt; and &gt; are similar to their counterparts in other languages. The  %  operator is used for modulo. It is worth noting that the equality operator is and the not equals operator is ! = .  To see if  a  and  b  are equal, one can write</p>
+      <p> if (a == b) statement;</p>
+      <p> C also allows assignments and operators to be combined, so</p>
+      <p> a += 4;</p>
+      <p> means the same as a = a + 4;</p>
+      <p> The other operators may also be combined this way.</p>
+      <p> Operators are provided for manipulating the bits of a word. Both shifts and bitwise Boolean operations are allowed. The left and right shift operators are « and » respectively. The bitwise Boolean operators &amp;, j, and * are AND, INCLUSIVE OR, and EXCLUSIVE OR, respectively. If / has the value 035 (octal), then the expression i &amp; 06 has the value 04 (octal). As another example, if  i  is 7, then</p>
+      <p> j = (i « 3) | 014;</p>
+      <p> assigns 074 to  j.</p>
+      <p> Another important group of operators is the unary operators, all of which take only one operand. As a unary operator, the ampersand takes the address of</p>
+      <p> INTRODUCTION TO C</p>
+      <p> APPENDIX A</p>
+      <p> a variable. Thus &amp;i has the value of the machine location at which / is located. If  p  is a pointer to an integer and  i  is an integer, the statement</p>
+      <p> P = &amp;i;</p>
+      <p> computes the address of / and stores it in the variable  p.</p>
+      <p> The opposite of taking the address of something (e.g., to put it in a pointer) is taking a pointer as input and computing the value of the thing pointed to. If we have just assigned the address of  i  to  p,  then *p has the same value as  i.  In other words, as a unary operator, the asterisk is followed by a pointer (or an expression yielding a pointer), and yields the value of the item pointed to. If  i has the value 6, then the statement</p>
+      <p> j =  *p;</p>
+      <p> will assign 6 to  j.</p>
+      <p> The ! operator returns 0 if its operand is nonzero and 1 if its operator is 0. It is primarily used in if statements, for example</p>
+      <p> if (!x) k = 8;</p>
+      <p> checks the value of  x.  If  x  is zero (false),  k  is assigned the value 8. In effect, the ! operator negates the condition following it, just as the not operator does in Pascal.</p>
+      <p> The - operator is the bitwise complement operator . Each 0 in its operand becomes a 1 and each 1 becomes a 0. In fact, this is the one's complement of the operand.</p>
+      <p> The sizeof operator tells how big its operand is, in bytes. If applied to an array of 20 integers,  a,  on a machine with 2-byte integers, for example, sizeofa will have the value 40. When applied to a structure, it tells how big the structure is.</p>
+      <p> The last group of operators are the increment and decrement operators. The statement</p>
+      <p> p++;</p>
+      <p> means increment  p.  How much it is incremented by depends on its type. Integers or characters are incremented by 1, but pointers are incremented by the size of the object pointed to. Thus if  a  is an array of structures, and  p  a pointer to one of these structures, and we write</p>
+      <p> P = &amp;a[3];</p>
+      <p> to make  p  point to one of the structures in the array, then after we increment  p  it will point to  a  [4] no matter how big the structures are. The statement</p>
+      <p> P—;</p>
+      <p> is analogous, except that it decrements instead of incrementing. In the assignment</p>
+      <p> SEC. A.5</p>
+      <p> EXPRESSIONS</p>
+      <p> 359</p>
+      <p> n = k++;</p>
+      <p> where both variables are integers, the original value of  k  is assigned to  n  and then the increment happens. In the assignment</p>
+      <p> n = ++k;</p>
+      <p> first k  is incremented,  then  its new value is stored in  n.  Thus the ++ (or --) operator can be written either before or after its operand, with different meanings.</p>
+      <p> One last operator is the ? operator, which selects one of two alternatives separated by a colon. For example,</p>
+      <p> i = (x &lt; y ? 6 : k + 1);</p>
+      <p> compares  x  to  y.  If  x  is less than  y,  then ; gets the value 6; otherwise, it gets the value  k +  1. The parentheses are optional.</p>
+      <p> A.6. PROGRAM STRUCTURE</p>
+      <p> A C program consists of one or more files containing procedures and declarations. These files can be separately compiled, yielding separate object files, which are then linked together (by the linker) to form the executable program. Unlike Pascal, procedure declarations may not be nested, so they all appear at the "top level" in the file.</p>
+      <p> It is permitted to declare variables outside procedures, for example, at the beginning of a file before the first procedure declaration. These variables are global, and can be used in any procedure in the whole program, unless the keyword static precedes the declaration, in which case it is not permitted to use the variables in another file. The same rules apply to procedures. Variables declared inside a procedure are local to the procedure in which they are declared.</p>
+      <p> A procedure may access an integer variable,  v,  declared in a file other than its own (provided that the variable is not static), by saying</p>
+      <p> extern int v;</p>
+      <p> The extern declaration merely serves to tell the compiler what type the variable has; no storage is allocated by extern declarations. Each global variable must be declared exactly once without the attribute extern, in order to allocate storage for it.</p>
+      <p> Variables may be initialized, as in int size = 100;</p>
+      <p> Arrays and structures may also be initialized. Global variables that are not explicitly initialized get the default value of zero.</p>
+      <p> INTRODUCTION TO C</p>
+      <p> APPENDIX A</p>
+      <p> A.7. THE C PREPROCESSOR</p>
+      <p> Before a source file is even given to the C compiler, it is automatically run through a program called the preprocessor. The preprocessor output, not the original program, is what is fed into the compiler. The preprocessor carries out three major transformations on the file before giving it to the compiler:</p>
+      <p> 1. File inclusion.</p>
+      <p> 2. Macro definition and expansion.</p>
+      <p> 3. Conditional compilation.</p>
+      <p> Preprocessor directives all begin with a number sign (#) in column 1. When a directive of the form</p>
+      <p> ^include "file.h"</p>
+      <p> is encountered by the preprocessor, it bodily includes the file, line by line, in the program given to the compiler. When the directive is written as</p>
+      <p> ^include &lt;file.h&gt;</p>
+      <p> the directory  Iusrlinclude  rather than the working directory is searched for the file. It is common practice in C to group declarations used by several files in a header file (usually with suffix .h), and include them where they are needed. The preprocessor also allows macro definitions. For example,</p>
+      <p> ^define BL0CK_SIZE 1024</p>
+      <p> defines a macro  BLOCK-SIZE  and gives it the value 1024. From that point on, every occurrence of the 10-character string "BLOCK_SIZE" in the file will be replaced by the 4-character string "1024" before the compiler sees the file. All that is happening here is that one character string is being replaced by another one. By convention, macro names are written in upper case. Macros may have parameters, but in practice few of them do.</p>
+      <p> The third preprocessor feature is conditional compilation. There are several places in MINIX where the code is special for the 8088, and should not be included when compiling for a different CPU. These sections look something like this:</p>
+      <p> #ifdef i8088</p>
+      <p> statements for the 8088 only #endif</p>
+      <p> If the symbol  i8088  is defined at the time the statements between the two preprocessor directives are included in the preprocessor output; otherwise they are omitted. By calling the compiler with the command</p>
+      <p> SEC. A.7</p>
+      <p> THE C PREPROCESSOR</p>
+      <p> 361</p>
+      <p> cc -c -Di8088 prog.c</p>
+      <p> or by including in the program the statement ^define i8088</p>
+      <p> we force the symbol  i8088  to be defined, hence all the 8088 dependent code to be included. As MINIX evolves, it may acquire special code for 68000s and other processors, which would also be handled like this. As an example of what the preprocessor does, consider the program of Fig. A-7(a) It includes one file, prog.h,  whose contents are as follows:</p>
+      <p> int x;</p>
+      <p> ^define MAX^ELEMENTS 100</p>
+      <p> Imagine that the compiler has been called with the command cc -c -Di8088 file.c</p>
+      <p> After the file has been run through the preprocessor, the output is as shown in Fig. A-7(b). It is this output, not the original file, that is given as input to the C compiler.</p>
+      <p> //include prog.h int x;</p>
+      <p> main() main(); { {</p>
+      <p> int a[MAX_ELEMENTS]; int a[l00];</p>
+      <p> x = 4; x = 4;</p>
+      <p> a[x] = 6; a[x] = 6;</p>
+      <p> flifdef 18088 printf(8088.   a[x]=«d\n,a[x]);</p>
+      <p> printf(8088.    a[x]=«d\n, a[x]); #endif }</p>
+      <p> tfifdef m68000</p>
+      <p> printf(68000.  x-%d\n,  x); #endif }</p>
+      <p> (a) (b)</p>
+      <p> Fig. A-7. (a) Contents of  file.c.  (b) The preprocessor output.</p>
+      <p> Notice that the preprocessor has done its job and removed all the lines starting with the # sign. If the compiler had been called with</p>
+      <p> cc -c -Dm68000 file.c</p>
+      <p> the other print statement would have been included. If it had been called with</p>
+      <p> INTRODUCTION TO C</p>
+      <p> APPENDIX A</p>
+      <p> cc -c file.c</p>
+      <p> neither print statement would have been included. (We will leave it up to the reader to speculate about what would have happened if the compiler had been called with both  -D  flags.)</p>
+      <p> A.8. IDIOMS</p>
+      <p> In this section we will look at a few constructions that are characteristic of C, but are not common in other programming languages. As a starter, consider the loop</p>
+      <p> while (n—) *p++ = *q++;</p>
+      <p> The variables  p  and  q  are typically character pointers, and  n  is a counter. What the loop does is copy an n-character string from the place pointed to by  q  to the place pointed to by  p.  On each iteration of the loop, the counter is decremented, until it gets to 0, and each of the pointers is incremented, so they successively point to higher numbered memory locations. Another common construction is</p>
+      <p> for (i = 0; i &lt; N; i++) a[i] = 0;</p>
+      <p> which sets the first  N  elements of  a  to 0. An alternative way of writing this loop is</p>
+      <p> for (p = &amp;a[0]; p &lt; &amp;a[N]; p++) #p = 0;</p>
+      <p> In this formulation, the integer pointer,  p,  is initialized to point to the zeroth element of the array. The loop continues as long as  p  has not reached the address of  a[N],  which is the first element that is too far. On each iteration, a different element is set to 0. The pointer construction is much more efficient than the array construction, and is therefore commonly used.</p>
+      <p> Assignments may appear in unexpected places. For example,</p>
+      <p> if (a = f(x)) statement;</p>
+      <p> first calls the function /, then assigns the result of the function call to  a,  and finally tests  a  to see if it is true (nonzero) or false (zero). If  a  is nonzero, the statement is executed. The statement</p>
+      <p> if (a = b) statement;</p>
+      <p> is similar, in that it assigns  b  to  a  and then tests  a  to see if it is nonzero. It is totally different from</p>
+      <p> if (a == b) statement;</p>
+      <p> which compares two variables and executes the statement if they are equal.</p>
+      <p> B</p>
+      <p> INTRODUCTION TO THE IBM PC</p>
+      <p> Unlike, say, a program in artificial intelligence that does medical diagnoses and knows nothing whatsoever about the hardware on which it is running, an operating system must know a great deal about its hardware. To handle error recovery on a disk, the operating system needs a fairly detailed knowledge of how the disk works, what kinds of errors it can make, and how the errors can be handled.</p>
+      <p> Despite this need for detailed, low-level information, operating systems can be made fairly portable by constructing them in a modular way, with, say, all the code and data structures for disk handling in one module, all the code and data structures for terminal handling in another module, and so on. MINIX has been carefully constructed this way so the addition or removal of some I/O device affects only a limited portion of the system, usually one module. Nevertheless, to write, or even understand, each of these modules, one must have some knowledge of the relevant hardware. In the following sections, we will look at the hardware and architecture of the IBM PC in a general way, to provide the necessary background information.</p>
+      <p> B.l. The Intel 8088 CPU</p>
+      <p> The heart of the IBM PC is the 8088 CPU, made by the Intel Corp. From the programmer's point of view, the 8088 is a 16-bit CPU, in that the registers</p>
+      <p> INTRODUCTION TO THE IBM PC</p>
+      <p> APPENDIX B</p>
+      <p> are all 16 bits wide and most instructions operate on 16 bit words. Intel also makes several other compatible CPU chips, such as the 8086, 80186, 80286, and 80386, which differ from the 8088 in speed, price, and other ways that will not concern us here.</p>
+      <p> The 8088 has an address space of 1 megabyte, with each byte having a unique address, from 0 to 2 20  - 1. Words may begin at any address, although for compatibility with other CPUs it is good practice to have a word occupy an even byte and the following odd byte, as shown in Fig. B-l. If the byte at address 0 contains the value 0x05 and the byte at address 1 contains 0x77, the word at address 0 contains 0x7705. (Ox followed by a number is the C convention for writing hexadecimal numbers; numbers beginning with a 0 but no x are octal, as in 0777.) The Intel byte numbering scheme is different from the one IBM uses on its large machines and the one that Motorola uses, so be careful to avoid confusion.</p>
+      <p> Fig. B-l. Bytes and words on the 8088.</p>
+      <p> The 8088 has 12 registers, all different. They fall into three groups of four registers each (see Fig. B-2). The first group, AX, BX, CX, and DX are primarily used for arithmetic but also have other purposes. Each of these is 16 bits wide, and is divided into a high part and low part, each of 8 bits. The high-order part of AX is called AH; the low-order part is called AL. Moving a byte to, AH, for example, does not affect the byte in AL, although it does affect the value of AX, of course. Multiplication of two 16-bit values yields a 32-bit value, stored in DX-AX, which for the purposes of multiplication and division are regarded as a single 32-bit register, with DX being the high-order half. Similarly, 32-bit dividends for division also use the DX-AX pair. CX is also used for holding shift and repetition counts.</p>
+      <p> Arithmetic registers</p>
+      <p> Pointer registers</p>
+      <p> Segment registers</p>
+      <p> -16 Bits</p>
+      <p> Fig. B-2. The 8088 has 12 registers, all different. The second group of registers contains four 16-bit pointers. These registers</p>
+      <p> SEC. B.l</p>
+      <p> The Intel 8088 CPU</p>
+      <p> 365</p>
+      <p> are not divided into upper and lower halves. SI and DI are used by the hardware for certain string and block movement and comparison instructions. Since these instructions are relatively rare, many compilers use SI and DI for register variables, saving and restoring them when required. BP is a general pointer register. Many compilers use it to point to the base of the current stack frame. SP is the hardware stack pointer.</p>
+      <p> The third group consists of the four 16-bit segment registers. It is easier to think of them as 20-bit registers, of which the low-order 4 bits are always 0, so only 16 bits need to be stored. The segment registers are relocation registers and are needed because programs may be located anywhere in the 8088's 1 megabyte address space, but instruction addresses are only 16 bits. Look at program 1 in Fig. B 3. Suppose the instruction at the start of program 1 needed to jump to address IK relative to the start of the program. Since program 1 has been loaded at address 100K, just beyond the operating system, the address to jump to is 101K. With only 16 bit addresses, there is no way to express the concept JUMP 101K.</p>
+      <p> 0 100 K 120 K 184 K 210 K m</p>
+      <p class="illus">
+        <img src="images/picture84.jpg" alt="picture84"/>
+      </p>
+      <p> Program 1 Program 2</p>
+      <p> Fig. B-3. 8088 memory layout. Each program has instructions (text), data, and a stack. The area between the data and stack is unused, and can be used when either the stack grows downward or the data grows upward.</p>
+      <p> The solution Intel chose is to make all memory references relative to some segment register. Each one has its low-order four bits permanently set to 0, so only 16 bits are actually stored. CS points to the start of the code segment (program text). When program 1 is running, CS is 100K, and since all program addresses are interpreted by the 8088 chip as relative to CS, then JUMP IK indeed jumps to 101K, as it should.</p>
+      <p> The DS register relocates references Jo data. When a program does MOV AX,25000, the 8088 moves the word at DS + 25000 to AX. Most programs set DS to CS, so the program has a simple address space from 0 to 64K, which maps onto the physical addresses CS to CS + 64K. Large programs can have DS set to the start of the data segment, thus allowing 64K of program and an additional 64K of data.</p>
+      <p> This feature is called separate I(nstruction) and D(ata) space and is supported by MINIX. If program 1 in Fig. B-3 were using separate I and D space (DS = 120K), then to fetch the first data word into AX it would say MOV AX,0. On the other hand, if separate I and D space were not being used, DS would be 100K and the first data word would be fetched by MOV AX,20480</p>
+      <p> INTRODUCTION TO THE IBM PC</p>
+      <p> APPENDIX B</p>
+      <p> (IK = 1024, so 20K = 20480). It is normally up to the compiler and linker to get the addresses right.</p>
+      <p> In theory, the SS register can be used for relocating the stack. For somewhat complex technical reasons, in practice it is always set equal to DS, so the data segment and stack are part of the same 64K address space. Normally the stack pointer is initially set to 65534, so the stack grows downward toward the data segment. The data segment may grow upward, toward the stack. If they collide, the program is terminated.</p>
+      <p> The final segment register, ES, is the Extra Segment register. Programs can set it to any value, to make an occasional reference to any word in the full 1 megabyte address space. Any memory reference instruction can be prefixed by a special code to tell the 8088 to use ES instead of DS for the next memory reference.</p>
+      <p> Because each of the segment registers contains four implicit 0s in the low-order bits, each segment effectively must begin at an address that is a multiple of 16 bytes. A group of 16 bytes beginning at an address that is a multiple of 16 is called a click. The click is the basic unit used for memory allocation. We will hear a lot about clicks when we study memory management in MINIX.</p>
+      <p> The 8088 CPU actually contains one more register, which Intel calls the flags and everybody else calls the program status word, or PSW. It contains the condition code bits (set on compare instructions), a bit telling whether interrupts are enabled or disabled, and a few other bits. On machines with a kernel mode and a user mode, a bit in the PSW tells which mode is current. The 8088 has only one mode (in essence, kernel mode). We are treating the PSW differently from the other 12 registers since it works quite differently from the other registers. Its main function occurs in interrupt processing, something we will deal with later.</p>
+      <p> Most 8088 instructions have a 1-byte opcode followed by a byte specifying the addressing modes and registers. The addressing modes are not as regular as they are on, say, a PDP-11, VAX, or 68000, so we will not look at them in detail. The most important addressing modes are register, register indirect, direct addressing, and indexed addressing. Direct addressing (in the range of 0 to 64K) is used to access global variables whose address is known at compile time. Indexed addressing is used to access variables local to some procedure.</p>
+      <p> Figure B-4 illustrates the normal layout of the address space of a running program. At a certain instant, some procedure is executing and the memory looks like Fig. B-4(a). Now suppose that the running procedure executed the call</p>
+      <p> startup(a,b);</p>
+      <p> The compiler will have generated instructions to first push  b  onto the stack and then push  a  onto the stack. The C calling convention is that the last parameter is always pushed first, and the first parameter is always pushed last. This convention is used because C allows a variable number of parameters (think about printj)  and this way the called procedure can always find the first parameter in a known place.</p>
+      <p> SEC. B.l</p>
+      <p> The Intel 8088 CPU</p>
+      <p> 367</p>
+      <p> Data</p>
+      <p> Text</p>
+      <p> Address 64 K</p>
+      <p> ■SP</p>
+      <p> |—16 Bits—J</p>
+      <p> (a)</p>
+      <p> Data</p>
+      <p> Text</p>
+      <p> Address 64 K</p>
+      <p> ■ SP</p>
+      <p> old BP</p>
+      <p> -16 Bits—|</p>
+      <p> (b)</p>
+      <p> Dl</p>
+      <p> Data</p>
+      <p> Text</p>
+      <p> Address 64 K</p>
+      <p> Actual parameters</p>
+      <p> — BP</p>
+      <p> Saved registers</p>
+      <p> Local variables i  SP</p>
+      <p> -16 Bits —</p>
+      <p> (c)</p>
+      <p> Fig. B-4. The effect of procedure calls on a program's stack.</p>
+      <p> After the parameters have been pushed, the calling procedure executes a CALL instruction to stack the return address and jump to the called procedure. At this point we have the picture of Fig. B-4(b). The called procedure now starts running. It usually first stacks BP and then sets BP to point to the old BP value on the stack. Then it stacks any registers that might be used for register variables (SI and DI in this example). Finally it decrements SP by the number of bytes the called procedure needs for local variables (6 in this example).</p>
+      <p> Since procedures must start out by stacking the old BP, setting the new BP, saving registers, and decrementing the stack pointer, many compilers put the number of bytes of locals in AX and call an internal procedure (usually called csv)  to do the work. Using a procedure saves space but wastes a little time compared to doing the same steps in inline code. While the called procedure is executing, the stack is as shown in Fig. B-4(c).</p>
+      <p> The important thing to see here is how memory is addressed. Global variables are accessed by direct addressing because the compiler knows their position within the address space at compile time. If the compiler puts  n  at 3000, to load it into AX the compiler might generate MOV AX,3000.</p>
+      <p> Actual parameters, such as  a  and  b  in Fig. B-4(c) are addressed using indexed addressing with BP as the index register and positive offsets. To fetch  a into AX, the instruction MOV AX,4(BP) would be used. This instruction adds the contents of BP and the constant 4, storing the result in an internal CPU register not visible to the programmer. This address is then used to locate the word to load into AX.</p>
+      <p> INTRODUCTION TO THE IBM PC</p>
+      <p> APPENDIX B</p>
+      <p> Local variables are also accessed using indexed addressing but with negative offsets. The local variable  x  would be fetched using MOV AX,-6(BP). In all cases, the address computed by adding the contents of BP to a constant is relative to DS (which is always equal to SS in MINIX). In case you are wondering why compilers do not just index off SP for both locals and parameters, thus saving the trouble of managing BP, there is a simple answer: the 8088 does not have an indexed addressing mode that uses SP.</p>
+      <p> When the called procedure is finished, it sets SP to BP, pops the old BP into BP, and then executes a RET instruction. Many C compilers use a little subroutine, usually called  cret,  to do these things. The return instruction pops the return address from the stack and puts it in the program counter, thus returning the calling procedure. The caller then adds a constant to SP to remove the parameters from the stack. This gets the caller back to the state it was in just prior to the call. Notice that calling a procedure is considerably more complex than just a single CALL instruction, and involves work by both the calling and called procedure.</p>
+      <p> The 8088 has a large number of instructions. A few examples of the more important ones are given in Fig. B-5. An important point to realize here is that although all 8088s have exactly the same instruction set, not all assemblers for the 8088 use the same syntax to describe those instructions. One assembler may expect MOV AX,#X to move the address of the variable  X  to AX, and another may expect MOV AX,OFFSET X, or maybe even something more ridiculous. The examples of assembly code in this book all use the notation of the PC-IX assembler, which is probably the simplest of all the assemblers and the easiest to understand. Furthermore, the MINIX assembler accepts the same input notation as the PC-IX assembler. Besides, in a book about a UNIX-like system, it seems appropriate to use the UNIX notation. (PC-IX is IBM's version of UNIX for the PC-XT.)</p>
+      <p> add ax, var and bx,6(bp) call _panic cli</p>
+      <p> add the contents of a memory word var to register ax</p>
+      <p> Boolean AND bx with memory word located at 6(bp)</p>
+      <p> call procedure panic</p>
+      <p> disable interrupts (clear interrupt flag)</p>
+      <p> compare ax to the constant 6 and set condition codes</p>
+      <p> subtract 1 from memory word whose address is given by —4(bp)</p>
+      <p> load register al with a byte from the I/O port named in dx</p>
+      <p> add 1 to register si</p>
+      <p> return from interrupt, popping PC, CS, PSW</p>
+      <p> jump to label if previous compare was "equal"</p>
+      <p> jump if previous compare was "less" (jg, jne, etc. also exist)</p>
+      <p> subtract 1 from cx; if it is now nonzero, jump to label</p>
+      <p> move the contents of the memory word var to ax</p>
+      <p> move the contents of the memory byte varb to ah</p>
+      <p> output contents of register al to I/O port 0x20</p>
+      <p> pop one word from the stack and put it in var</p>
+      <p> push the bx register onto the stack</p>
+      <p> repeat following instruction until cx is 0</p>
+      <p> return from procedure call (pop return address and jump there) enable interrupts (set interrupt flag)</p>
+      <p> cmp ax,#6 dec -4(bp)</p>
+      <p> in</p>
+      <p> nc si</p>
+      <p> iret</p>
+      <p> je label</p>
+      <p> jl label</p>
+      <p> loop label</p>
+      <p> mov ax,var</p>
+      <p> movb ah, varb</p>
+      <p> out 0x20</p>
+      <p> pop var</p>
+      <p> push bx</p>
+      <p> rep</p>
+      <p> ret</p>
+      <p> sti</p>
+      <p> Fig. B-5. Some 8088 instructions.</p>
+      <p> SEC. B.l</p>
+      <p> The Intel 8088 CPU</p>
+      <p> 369</p>
+      <p> B.2. The IBM PC System Architecture</p>
+      <p> The IBM PC consists of more than just the 8088 CPU. It also contains memory, a keyboard, display, diskette (floppy disk) drive, and a variety of other peripherals. The CPU communicates with these components over a set of 62 parallel wires known as the system bus. Some of the bus wires are used for addresses, some for data, and some for control.</p>
+      <p> The CPU gives commands to the I/O devices by executing the OUT instruction, which outputs a byte (or, rarely, a word) to the device's controller (adapter). The controller contains the electronics that convert the digital commands from the CPU into analog control signals to cause the I/O device to move. Each controller has a set of I/O addresses assigned to it. The diskette controller, for example, has I/O addresses 0x3F0 to 0x3F7, and the color display has I/O addresses 0x3D0 to 0x3DF. These I/O addresses belong to a distinct I/O address space, and are unrelated to ordinary memory addresses. There is no memory-mapped I/O.</p>
+      <p> As a simple example, when the CPU outputs a byte to 0x3F2, the byte is loaded into a register on the diskette controller card. The low-order 2 bits select one of the four possible drives. The next bit resets the controller if it is 0. The next bit enables diskette interrupts if it is 1. The high-order 4 bits turn the four drive motors on (1) or off (0). By giving a series of commands like this, the CPU can issue instructions to the I/O devices, read their status, and so on.</p>
+      <p> When an I/O device has finished its command, it can signal the CPU by sending an interrupt signal over the bus. The interrupt signal causes the CPU to push three words onto the current stack: first the PSW, then CS, and finally PC, as shown in Fig. B 6. Next, the interrupt bit in the PSW is turned off, to disable further interrupts. Finally, a new PC and CS are loaded from an address in the first IK of memory. The PSW is not loaded, except that the interrupt enable bit is turned off. The address used depends on the controller that caused the interrupt; each controller has its own, unique address. The 4 bytes containing the new PC and CS are called the controller's interrupt vector.</p>
+      <p> -— SP</p>
+      <p> (a) (b)</p>
+      <p> Fig. B-6. (a) Stack before an interrupt, (b) Stack after an interrupt.</p>
+      <p> Loading PC and CS effectively forces the CPU to jump to an address somewhere in the 1 megabyte address space.   Since each controller has its own</p>
+      <p> -SP</p>
+      <p> PSW</p>
+      <p> CS</p>
+      <p> PC</p>
+      <p> INTRODUCTION TO THE IBM PC</p>
+      <p> APPENDIX B</p>
+      <p> interrupt vector, each one has its own jump address. This address contains the interrupt service procedure for that controller. What happens next is up to the software.</p>
+      <p> As we have mentioned several times, the 8088 has an address space of 1 megabyte. IBM has chosen to allocate the lowest 640K to ordinary RAM for programs and data. The upper 360K is used for various ROMs (BASIC interpreters and the like) and for special RAMs. At address OxFEOOO is a special ROM called the BIOS (Basic Input Output System). It contains a collection of procedures for reading and writing disk blocks, writing characters on the screen, and other I/O.</p>
+      <p> Unfortunately, none of these procedures is interrupt driven. They all wait for the I/O to complete before returning control to the user. Thus, if one program is waiting for input from the keyboard, the entire system, including all the background processes, comes to a screeching halt. In a time-sharing system like MINIX, stopping the entire system because one program needs input is intolerable. Consequently, MINIX makes no use of the BIOS. It does all of its own I/O right down at the controller level. All versions of UNIX for the IBM PC, including IBM's own PC-IX also work this way.</p>
+      <p> c</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> This appendix tells you how to run MINIX. If you are an experienced UNIX user, there will be relatively little new here. Using MINIX is very similar to using UNIX. If you are not familiar with UNIX at all, it is suggested that you first read the papers by Ritchie and Thompson (1974) or Kernighan and Mashey (1981), and then at least glance through one of the many books on UNIX now available. A few of them are: Bourne (1982), Brown (1984), Christian (1983), Foxley (1985), Kernighan and Pike (1984), Lomuto and Lomuto (1983), McGilton and Morgan (1983), Pasternack (1985), Poole and Poole (1986), Rochkind (1985), and Walker (1984). For a detailed description of Version 7 UNIX (as opposed to the various other versions), the best place to look is the official Bell Labs  UNIX Programmer's Manual,  published as a book by Holt, Rinehart, and Winston (1983).</p>
+      <p> This appendix is intended to provide enough information to get you started, and to point out some of the differences between MINIX and UNIX. To begin with, MINIX was designed with the idea of being similar to Version 7 UNIX, the last version of UNIX produced by Ken Thompson, Dennis Ritchie, and the other members of the Computing Science Research Center at Bell Labs. Subsequent versions from AT&amp;T, Berkeley, and other sources have tended to acquire many features, just as ships acquire many barnacles when they have been in the water too long. Features grafted onto UNIX after the release of Version 7 are not present in MINIX. Small is beautiful. The best way to tell if some feature is present in MINIX is to try it.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> C.l. HOW TO START MINIX</p>
+      <p> The first step in running MINIX is to acquire an IBM PC, XT, AT, or true compatible. The latter point deserves some explanation. Many manufacturers have brought out machines that are similar to the IBM PC in some ways, but different in other ways. MINIX will not run on all these machines. Like all versions of UNIX for the IBM PC, MINIX does not use the BIOS (because the BIOS is not interrupt-driven, making it totally unsuitable for time-sharing). Instead, it programs all the I/O chips directly. Therefore it will only run on machines using the same I/O chips as the IBM PC.</p>
+      <p> MINIX comes in several versions, for different memory sizes. Be sure that the version you have is appropriate for your machine. The smallest configuration on which MINIX will run is 256K RAM and one 360K floppy drive, but not all programs will run on this configuration. A system with 640K RAM and two floppy disk drives is better. For information about running  minix  with a hard disk, see I doc  in the software distribution.</p>
+      <p> Before running MINIX for the first time, make a backup of all the floppy disks, to prevent disaster if one of them should be subsequently damaged. They are not copy protected.</p>
+      <p> To boot MINIX, proceed as follows.</p>
+      <p> 1. Turn off the PC and then insert the boot diskette in drive 0. You can also type CTRL-ALT-DEL to boot a running PC, but sometimes the PC is in a peculiar state and the boot message fails to appear or appears in a peculiar way. It does not matter that you cannot see it. Wait 15 seconds and then proceed with step 3. Alternatively, just turn off the PC and start again.</p>
+      <p> 2. You should get a message like: "Booting MINIX 1.1" as soon as the power-on self-tests have finished.</p>
+      <p> 3. About 15 seconds after the above message, you will get a menu on the screen offering you several options. Remove the boot diskette from drive 0, insert the root file system in its place, and hit the = (equal sign) key.</p>
+      <p> 4. MINIX will now erase the screen and display a line at the top telling how much memory the machine has, how large the operating system (including all its tables and buffers) is, how large the RAM disk is, and how much memory is available for user programs (the first number minus the next two). Check to see that the available memory is at least positive. MINIX will not run with negative memory. To do anything useful, however, at least 100K is needed.</p>
+      <p> 5. Now the root file system will be copied from drive 0 to the RAM disk. The MINIX root device is always on the RAM disk, no matter how many disks of what kind are being used.</p>
+      <p> SEC. C.l</p>
+      <p> HOW TO START MINIX</p>
+      <p> 373</p>
+      <p> 6. When the RAM disk has been loaded, the system initialization file, letclrc,  is executed. It asks you to remove the root file system and then insert the  lusr  file system in drive 0 and type a carriage return. Do so.</p>
+      <p> 7. After  lusr  has been mounted, you will next be requested to enter the date (and time). Enter a 12-digit number in the form MMDDYYhhmmss, followed by a carriage return. For example, 3:35 p.m. on July 4, 1976 was 070476153500.</p>
+      <p> 8. You will now get the message login:</p>
+      <p> on the screen. Type ast</p>
+      <p> and wait for the system to ask for your password. Then type Wachtwoord</p>
+      <p> being careful to type the first letter in upper case. Lower and upper case letters are always distinct in MINIX.</p>
+      <p> 9. If you have successfully logged in, the shell will display a prompt (dollar sign) on the screen. Try typing</p>
+      <p> Is -1</p>
+      <p> to see what is in your directory. Then type Is -1 /bin</p>
+      <p> to see what is in the  I bin  directory on the root device. After that, try Is -1 /usr/bin</p>
+      <p> to see what is on the drive 0 diskette. To stop the display from scrolling out of view, type CTRL-S; to restart it, type CTRL-Q. (Note that CTRL-S means depress the "control" key on the keyboard and then hit the 5 key while "control" is still depressed.)</p>
+      <p> 10. If you have two drives, you can mount the  I user  diskette by inserting it into drive 1 and typing</p>
+      <p> /etc/mount /dev/fdl /user</p>
+      <p> Use  Is  to inspect it. The shell script  /user/test/run  runs some tests to see if MINIX is working properly. To use it, first back up the diskette as described in Section C.2.4. Then remove all the source code and documentation (to create more free space) and type</p>
+      <p> cd /user/test; run</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> The tests take a number of minutes. After they have been completed, you can remove the entire  test  directory, leaving only /user/bin.  The rest of the diskette space is for your own files.</p>
+      <p> 11. You can now edit files, compile programs, or do many other things. The reference manuals given later in this chapter give a brief description of the programs available. On the standard  lusr  diskette, there is very little free space. If you have only one 360K drive, it will probably be necessary to delete some files to create more space.</p>
+      <p> 12. When you are finished working, and want to log out, type CTRL-D. The</p>
+      <p> login:</p>
+      <p> message will appear, and you or another user can log in again.</p>
+      <p> 13. When you want to shut the computer down, make sure all processes have finished, if need be, by killing them with  kill.  Then type sync or just log out. When the disk light goes out, you can turn the computer power off. Never turn the system off without first running  sync or logging out (which does an implied  sync).  Failure to obey this rule will generally result in a garbled file system and lost data.</p>
+      <p> C.2. HOW TO USE MINIX</p>
+      <p> In the following sections we will look at some aspects of MINIX that will be of interest to many users. These include the standard file system, mounted file systems, working with disks, printing files, and so on.</p>
+      <p> C. 2.1. Introduction</p>
+      <p> As a general rule, most aspects of MINIX work the same way as they do in UNIX. When you log in, you get a shell, which is functionally similar to the standard V7 shell (Bourne shell). Most programs are called the same way as in UNIX, have the same flags, and perform the same functions as their UNIX counterparts.</p>
+      <p> The MINIX shell, for example, recognizes redirection of standard input and standard output, pipes, magic characters in file names, semicolons to separate multiple commands on a line, and the ampersand, to indicate a background process. The (default) keyboard editing conventions are also similar to UNIX: the backspace key (CTRL-H) is used to correct typing errors, the @ symbol is used to erase the current input line, CTRL-S is used to stop the screen from scrolling out of view, CTRL-Q is used to start the screen moving again, and CTRL-D is used to indicate end-of-file from the keyboard.   These key bindings can be</p>
+      <p> SEC. C.2</p>
+      <p> HOW TO USE MINIX</p>
+      <p> 375</p>
+      <p> changed using the IOCTL system call and  stty  program, the same way as they can be changed in UNIX.</p>
+      <p> One major difference between MINIX and UNIX is the editor. The standard UNIX editor,  ed,  was designed with slow, mechanical, hardcopy terminals in mind. More modern editors, such as  vi  and  emacs  were designed for computers with megabytes of memory and large disks. The MINIX editor,  mined,  was designed and implemented especially for MINIX. It is a small, fast, and easy to learn full-screen editor. Its commands are described later in this chapter.</p>
+      <p> C.2.2. A Tour Through the MINIX File System</p>
+      <p> The MINIX file tree is organized the same way as the standard UNIX file tree. The root directory (which is always located on the RAM disk, in memory) contains the following subdirectories:</p>
+      <p> I bin     - contains the most important binary (executable) programs</p>
+      <p> Idev   -  contains the special files for the I/O devices</p>
+      <p> I etc    -  contains various files and programs for system administration</p>
+      <p> /lib    -  contains some programs called by other programs</p>
+      <p> Itmp    - used to hold temporary files</p>
+      <p> /user  - the user file system is mounted here</p>
+      <p> lusr     - the system disk is mounted here</p>
+      <p> Let us briefly examine these directories one at a time. In  I bin  we find the most heavily used programs such as  cat, cp,  and  Is  as well as some programs such as  login  and  sh  needed to bring the system up. Because access to the RAM disk is much faster than to the rotating disks,  I bin  should be used to hold programs that are frequently used. In principle, MINIX will run with only the root file system (i.e., no disks at all), but the amount of space available for user files will be extremely limited.</p>
+      <p> The directory  Idev  contains the special files for the I/O devices, including:</p>
+      <p> When  Idevlram  is opened and read, for example, by the command od -x /dev/ram</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> the contents of the RAM disk are read out, byte by byte, starting at byte 0. Similarly, reading  Idevlmem  reads out absolute memory, starting at address 0 (the interrupt vectors). The file  Idevlkmem  is similar to  Idevlmem,  except that it starts at the address in memory where the kernel is located (0x600). The next file,  Idevlnull,  is the null device. It is used as a place for redirecting program output that is not needed. Data copied to  Idevlnull  are lost forever.</p>
+      <p> The next two files are for floppy disk drives 0 and 1, respectively. Reading or writing from one of these files reads or writes on the corresponding floppy disk, without regard to the structure of the file system on it. They are normally only used for operations such as copying complete floppy disks, block by block or creating fresh file systems.</p>
+      <p> The character special file  Idevllp  is for the line printer. It is write only. Bytes written to this file are sent to the line printer without modification (to make it possible to send escape sequences to graphics printers). Users normally print files by using the  Ipr  program, rather than copying files directly to  Idevllp.  The latter method takes care of converting line feed to carriage return plus line feed, expanding tabs to spaces, etc., whereas the former method does not.</p>
+      <p> The final group of special files is for the terminal. Both  Idevltty  and IdevlttyO  refer to the terminal (console). In a system with only one terminal, there is no difference, but MINIX has been designed to make it easy to expand to multiple terminals, in which case  Idevlttyl, Idevltty2,  etc. should be added for the new terminals. When more than one terminal is present, a specific terminal can be read or written by using one of the special files of the form  Idev/ttyn.  In contrast,  Idevltty  always accesses the terminal associated with the process making the system call. In this way, a process can refer to its terminal without having to know the terminal number.</p>
+      <p> Another important directory is  /etc.  This directory contains files and programs used for mounting and unmounting file systems, making new file systems, and other forms of system management. We will look at them later.</p>
+      <p> The directory  I lib  holds two pieces of the C compiler that are not normally directly called by users: the C preprocessor,  cpp,  and the front end,  cem.</p>
+      <p> The  Itmp  directory is used by many programs for temporary files. By putting this directory on the RAM disk, these programs are speeded up.</p>
+      <p> The directories  I user  and  lusr  are empty. They should be used for mounting the user disk and system disk, respectively. When the standard  lusr  file system is mounted, the directory  lusrlbin  is where most of the executable binary programs are kept, and  lusr/lib  is where the rest of the C compiler and its libraries are stored.</p>
+      <p> C.2.3. Mounted File Systems</p>
+      <p> When MINIX is started up, the only device present is the root device (on the RAM disk). After the files and directories that belong on the root device are copied there from the root file system diskette, MINIX prints a message asking the</p>
+      <p> SEC. C.2</p>
+      <p> HOW TO USE MINIX</p>
+      <p> 377</p>
+      <p> user to remove the diskette. It then executes the shell script  letclrc  as the final step in bringing up the system.</p>
+      <p> The file  letclrc  first prints a message asking the user to put the  lusr  diskette in drive 0. Then it pauses to allow the diskette to be inserted and the date entered. The shell script now executes the command</p>
+      <p> /etc/mount /dev/fdO /usr</p>
+      <p> to mount the system disk on  lusr.  From this point on, all the files in  lusr, including the binary programs in  I usr I bin,  are available.</p>
+      <p> On PCs with two floppy disk drives, the user should insert a user file system diskette (or any other file system diskette) in drive 1 and type:</p>
+      <p> /etc/mount /dev/fdl /user</p>
+      <p> Users planning to mount the same diskette in drive 1 whenever the system is brought up can modify  letclrc  to perform the mount on drive 1 analogously to the mount on drive 0. Note, however, that changes made to  letclrc  on the RAM disk will be lost when the system is next booted unless they are also made to the root file system diskette, which can be mounted and modified, just like any other diskette.</p>
+      <p> If it is desired to remove the diskette in drive 1 during operation, first type the command:</p>
+      <p> /etc/umount /dev/fdl</p>
+      <p> and wait until it types "ok" before removing the diskette. (Note that the program is called  umount,  just as it is in UNIX, not  unmount.)</p>
+      <p> If you remove a diskette while it is still mounted, the system may hang, but it can be brought back to life by simply re-inserting the same diskette. If you remove a diskette while it is still mounted and insert another in its place, the contents of both file systems will be seriously damaged and information may be irretrievably lost (see below about repairing damaged file systems). During normal MINIX operation, the diskettes are mounted when the system is booted, and not touched thereafter. Experienced MS-DOS users who are used to constantly switching diskettes without telling the operating system should post discrete KEEP OFF signs on their drives as a reminder.</p>
+      <p> Although it is permitted to  insert  a non-MINIX diskette in a drive (e.g., to read an MS-DOS diskette), only MINIX file system diskettes can be  mounted. Attempts to mount a diskette not containing a MINIX file system will be detected and rejected.</p>
+      <p> C.2.4. Helpful Hints</p>
+      <p> In this section we will point out several aspects of MINIX that will frequently be useful. As a starter, it is wise to back up floppy disks periodically. To make a backup, first format a floppy disk with 9 sectors/track. MINIX does not have a</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> format program, but the MS-DOS 2.0 and subsequent format programs can be used. Formatting a floppy disk writes timing information, sector preambles, and similar information on it. The MS-DOS formatter also puts an MS-DOS file system on the floppy disk, but that will be erased when the backup is made. The important thing is getting the timing and preambles onto the disk.</p>
+      <p> Next, unmount the file systems in drives 0 and 1. It is possible to back up a mounted file system, but only if no background processes are running. To be doubly safe, give a  sync  command. Insert the newly formatted diskette in drive 1, and then type</p>
+      <p> cp /dev/fdO /dev/fdl</p>
+      <p> to copy information from drive 0 to drive 1. When the drive lights go out, the floppy disks can be removed.</p>
+      <p> Files can be printed using the  lpr  program. It can be given an explicit list of files, as in</p>
+      <p> lpr filel file2 file3 &amp;</p>
+      <p> If no arguments are supplied,  lpr  prints its standard input, for example pr filel file2 file3 | lpr &amp;</p>
+      <p> Note that  lpr  is not a spooling daemon. It sits in a loop copying files to  Idevllp. For this reason, it should be started off in the background with the ampersand, so the user can continue working while printing is going on. Only one  lpr  at a time may be running.</p>
+      <p> Disk space is always in short supply on floppy disk systems. To find out how much space and how many i-nodes are left on drive 0, type</p>
+      <p> df /dev/fdO</p>
+      <p> Similar commands can be used for other devices, including  Idevlram.</p>
+      <p> When you log in, the shell checks to see if there is a file  .profile  in your home directory. If it finds one, it executes the file as a shell script. This file is commonly used to set shell variables,  stty  parameters, and so on. See Iusrlastl.profile  as a simple example.</p>
+      <p> It is possible to copy files from an MS-DOS disk to MINIX or vice versa. See the description of  dosread  and  doswrite  for details.</p>
+      <p> The ASCII codes produced by the IBM PC keyboard are determined by software, not hardware. A mapping has been chosen to try to produce a unique value for each key, so programs can see the difference between, for example, the + in the top row and the + in the numeric keypad. The codes 1 through 255 are used. To see which code a given key produces, use  od -b,  and then type the key or keys followed by a return and a CTRL-D.</p>
+      <p> The IBM PC does not have any protection hardware. As a result, if a program's stack overruns the area available for it, it will overwrite the data segment.   This usually results in a system crash.   When a program crashes</p>
+      <p> SEC. C.2</p>
+      <p> HOW TO USE MINIX</p>
+      <p> 379</p>
+      <p> unexpectedly or acts strange, it is probably worthwhile to find out how much memory is allocated for it (the "memory" column in the output of  size).  If this is less than 64K, it can be increased using  chmem.  When working with unreliable programs, doing  syncs  frequently is advisable.</p>
+      <p> The 640K version of MINIX can be used on 512K machines, although there are some limitations and problems to watch out for. The main problem is the small amount of memory available for user programs. It will be difficult to run several programs at once. When using the C compiler, it will be necessary to use the -F flag to avoid having the preprocessor and front end run at the same time, connected by a pipe. Running them separately means that enough disk space must be available for the intermediate file. If a program cannot be executed due to its size,  chmem can  sometimes be used to reduce the stack size, to allow it to run with less memory. If the stack is made too small, however, the program may go berserk or crash the system due to stack overrun. Unfortunately the hardware does not detect stack overrun.</p>
+      <p> The problems with memory allocation are due to a large chunk of memory being taken up by the operating system, its buffers, and the RAM disk, plus the fact that multiple programs can be running at once. This, plus the lack of hardware protection, requires that a more economical approach be taken to memory use than the standard MS-DOS method of just giving each program the whole machine to itself. In practice, once the sizes have been set right for a given configuration, they need not be fiddled with any more.</p>
+      <p> Even on 640K machines, it sometimes happens that a program (or a compiler pass) cannot be executed due to lack of memory for it. When this happens, the shell prints a message of the form  program: cannot execute.  The solution is to run fewer programs at once, or reduce the program's size with  chmem.  The amount of stack space assigned to the shell,  make,  etc. in the standard distribution may not be optimal for all applications. Change it if problems arise. To see how much is currently assigned, type</p>
+      <p> size /bin/* /usr/bin/* | mined</p>
+      <p> Several of the utility programs, including the C compiler, create their temporary files in  I imp,  on the RAM disk. If the RAM disk fills up, a message will be printed on the terminal. The first thing to do is check  Itmp  to see if there is any debris left over from previous commands, and if so, remove it. If that does not solve the problem, temporarily removing some of the larger files from  I bin  or I lib  will usually be enough. These files can be restored later by mounting the root file system on any drive and copying the needed files from it.</p>
+      <p> MINIX, like UNIX, will not break off a system call part way through just because the DEL key has been struck. When the system call in question happens to be an EXEC, which is loading a long program from a slow floppy disk, it can take a few seconds before the shell prompt appears. Be patient. Hitting DEL again makes things worse, rather than better.</p>
+      <p> Although it is really intended as a debugging aid, rather than a permanent</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> part of the system, the Fl and F2 function keys cause dumps of some of the internal tables to be printed on the screen. Fl gives a dump like the UNIX  ps command, which is not present in MINIX. Frequently, the system appears to be stopped, but it is actually thinking its little head off and using the RAM disk, which, unlike the other disks, is not accompanied by whirring and clicking noises and flashing lights. The nervous user can press Fl to see the internal process table to verify that progress is still being made. The Fl and F2 keys are intercepted directly by the keyboard driver, so they always work, no matter what the computer is doing. The values in the columns  user  and  sys  are the number of clock ticks charged to each process. By hitting Fl twice, a few seconds apart, it is possible to see where the CPU time is going.</p>
+      <p> Additional documentation can be found in the  I doc  directory on the  I user disk.</p>
+      <p> C.3. HOW TO BEHAVE LIKE A SUPER-USER</p>
+      <p> Your days as an ordinary user are over. You will now have to learn how to be a system administrator as well. In fact, within a minute you will learn how to become a super-user. Fortunately, being a super-user is not difficult. However, super-users have more power than ordinary users. They can violate nearly all of the system's protection rules. Although there is no Hippocratic Oath for super-users (yet), tradition requires them to exercise their great power with care and responsibility. Super-users get a special prompt (#),, to remind them of their awesome power.</p>
+      <p> To become super-user, login as  root  using the password  Geheim.  (Notice the capital  G).  Alternatively, use the  su  program with the same password. Hackers will no doubt enjoy trying to become super-user the hard way—by logging in as ast  and hunting for loopholes in the system that allow one to become super-user without using the super-user password. In fact, I am prepared to offer a rijksdaalder  to the first person reporting each successful new method.</p>
+      <p> C.3.1. Making New File Systems</p>
+      <p> One of the things that super-users do is make new file systems. Two ways are provided. First, when MINIX is booted, the initial menu offers several options. To run the system, type = (equal sign). Another possibility is making an empty file system. This option is exercised by typing the letter  m  instead of =. This file system can be subsequently mounted and files copied to it.</p>
+      <p> It is often convenient to make a file system during normal MINIX operation. This is possible using the program  mkfs  (make file system). To make an empty 360 block file system on drive 1, type</p>
+      <p> mkfs /dev/fdl 360</p>
+      <p> SEC. C.3</p>
+      <p> HOW TO BEHAVE LIKE A SUPER-USER</p>
+      <p> 381</p>
+      <p> When the program finishes, the file system will be ready to mount. On a system with only one disk drive,  mkfs  will first have to be copied to  I bin,  the  IdevlfdO file system unmounted, a blank diskette inserted into drive 0 and then the file system made using  IdevlfdO  as the second argument to  mkfs.</p>
+      <p> It is also possible to make a file system that is initialized with files and directories. A command for doing this is</p>
+      <p> mkfs /dev/fdl proto</p>
+      <p> where  proto  is a prototype file. The description of  mkfs  later in this chapter gives an example of a prototype file.</p>
+      <p> C.3.2. File System Checking</p>
+      <p> File systems can be damaged by system crashes, by accidently removing a mounted file system, by forgetting to run  sync  before shutting the system down and in other ways. Repairing a file system by hand is a tricky business (see the discussion in Chap. 5), so a program has been provided to automate the job.</p>
+      <p> When  minix  is booted, one of the choices on the initial menu is to check a file system. To use this option, first insert the file system to be checked in drive 0, and then type /. The file system checker,  fsck,  then reads the i-nodes, bit maps, and directories to see if the file system is consistent. If it is,  fsck  prints some statistics and then redisplays the menu. At this point another file system can be checked, or MINIX can be started (after first inserting the root file system diskette in drive 0).</p>
+      <p> If  fsck  finds a problem, it will display a message. Before making changes to the file system, it always asks permission. In general, if you type  y  (followed by a carriage return) ,/sdr will do its best to repair the system. It will always yield a correct file system, but if the file system has been badly damaged, files may be lost.</p>
+      <p> C.3.3. The /etc Directory</p>
+      <p> The  letc  directory contains several files that super-users should know about. One of these is the password file,  letclpasswd.  You can enter new users by editing this file and adding a line for each new user. The entry for a user named kermit  might be</p>
+      <p> kermit::15:1:Kermit the Frog:/user/kermit:/bin/sh</p>
+      <p> The entry contains seven fields, separated by colons. These fields contain the login name, password (initially null), uid, gid, name, home directory, and shell for the new user. When a new user is entered, the corresponding home directory must also be created, using  mkdir,  and its owner set correctly, using  chown. Each user must have a unique uid, but the numerical values are unimportant. It is probably adequate to put all ordinary users in group 3, unless there really are</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> distinct groups of users. When the new user logs in for the first time, he should choose a password and enter it using  passwd.</p>
+      <p> Another important file is  letclrc.  Each time the system is booted, this file is run as a shell script just before the login: message is printed. It can be used to mount file systems, request the date, erase temporary files, and anything else that needs to be done before starting the system. It also forks off  update,  which runs in the background and issues a SYNC system call every 30 seconds to flush the buffer cache.</p>
+      <p> If you have two drives, it may be convenient to modify  letclrc  to mount Idevlfdl  on  luser  during system boot. If you do this, you can also change letc/passwd  to put your home directory on  luser  instead of  lusr.</p>
+      <p> The file  letclttys  contains one line for each terminal in the system. During startup,  init  reads this file and forks off a login process for each terminal. When the console is the only terminal,  ttys  contains only 1 line.</p>
+      <p> Also contained in  /etc  are the programs  mount,  and  umount  for mounting and unmounting file systems, respectively.</p>
+      <p> When any of the files on the RAM disk, such as  letc/passwd,  are modified, the changes will be lost when the system is shut down unless the modified files are explicitly copied back to the root file system. This can be done by mounting the root file system diskette and then copying the files with  cp.</p>
+      <p> C.3.4. Modifying File Systems</p>
+      <p> As distributed, MINIX comes with three file system diskettes: the root file system,  lusr,  and  luser.  When the system is booted, the root file system diskette is copied to the RAM disk, and not used thereafter. One implication of this design is that changes made to the RAM disk during system operation will be lost when the system is shut down. To modify the root file system, it should be mounted, for example, by putting it in drive 1 and typing</p>
+      <p> /etc/mount /dev/fdl /user</p>
+      <p> Programs can then be copied to or from it, files can be removed, and so on. When the modification is done, it must be unmounted and removed from the drive.</p>
+      <p> More generally, the contents of the three file systems can be reorganized by mounting and copying. Programs that are heavily used should be put on the root file system, but at least 50K should be left unused for  Itmp.  Once a root file system diskette has been made, its size cannot be changed, but a new one can always be made using  mkfs,  as discussed in Appendix D.</p>
+      <p> One simple way to build a new  lusr  or  luser  file system is to make an empty file system using the "m" option of the initial menu, or  mkfs,  mount this file system, and then copy files to it from one or more other file systems, possibly mounting and unmounting several of them during the process.</p>
+      <p> SEC. C.3</p>
+      <p> HOW TO BEHAVE LIKE A SUPER-USER</p>
+      <p> 383</p>
+      <p> For systems containing only one floppy disk drive, a careful choice has to be made about which programs will be on the root file system and which will be on lusr  since together they are too small to hold all the programs.</p>
+      <p> One way to build a file system is to start with an empty file system. Programs that are currently on the root device that are to go on the new file system are copied to it. Then,  I lib  and  I bin,  are emptied, except for  rm  and  cp,  to make more space on the root device. Next, the file system being built is unmounted, and another one mounted in its place. Useful programs from it are copied to the now-empty root device. Then the file system being built is remounted, and files copied to it from the root device. This process may have to be repeated several times, depending on how many files are being copied and from where.</p>
+      <p> C.3.5. Miscellaneous Notes</p>
+      <p> A number of  minix  programs can only be executed by the super-user. These include:  mkfs, chown,  and  mknod.  Other programs, such as  mkdir,  can be executed by any user, but are owned by the root and have the SETUID bit on, so that when they are executed, the effective uid is that of the super-user, even though the real uid is not.</p>
+      <p> In general, if a program,  prog,  needs to run as the super-user but is to be made generally available to all users, it can be made into a SETUID program owned by the root by the command line:</p>
+      <p> chown root prog;   chmod 4755 prog</p>
+      <p> Needless to say, only the super-user can execute these commands.</p>
+      <p> C.4. MINIX COMMANDS</p>
+      <p> In this section the MINIX commands (programs) that are supplied with the system are summarized. Books on UNIX should be consulted for more detail, especially (Bell Telephone Laboratories, 1983). Most MINIX commands have the same flags and arguments as their UNIX counterparts. A few of the programs listed below are on the  I user  diskette, and will not be available unless that diskette is mounted.</p>
+      <p> In the notation used, square brackets denote optional quantities and the ellipsis (...) is used to indicate that the previous item may be present 1 or more times. In the Syntax lines, words and flags printed in boldface type must be entered exactly as shown. Words and symbols printed in lightface type are arguments, and must be replaced by file names, numeric arguments, and so forth. In the examples, all the information following a number sign (#) is a comment.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Command: ar - archiver</p>
+      <p> Syntax:      ar [adprtvx] archive file ...</p>
+      <p> Flags:        a    Append files to the archive</p>
+      <p> d    Delete files from the archive</p>
+      <p> p   Print the files on standard output</p>
+      <p> r    Replace files (append when not present)</p>
+      <p> t    List archive's table of contents</p>
+      <p> v    Verbose mode (give more information)</p>
+      <p> x    Extract files from the archive Examples:  ar r clib *.c # Replace all the C files</p>
+      <p> ar d lib.a file.s # Remove  file, s  from the archive</p>
+      <p> Ar  maintains archives and libraries. An archive can be created with the r flag by listing a nonexistent archive name. Members of the archive can be replaced, deleted, printed, or extracted.</p>
+      <p> Command: asld - assembler-loader</p>
+      <p> Syntax:      asld [-d] [-s] [-o name] file ...</p>
+      <p> Flags:        -L A listing is produced on standard output</p>
+      <p> -T Used to specify a directory for the temporary file -o Output goes to file named by next argument -s  A symbol table is produced on standard output Examples:  asld-s file.s # Assemble  file.s and  list symbols</p>
+      <p> asld -o output file.s # Assemble  file.s,  put binary on  output asld -T. filel.s file2.s # Use current directory for temporary file Asld  is the MINIX assembler and loader combined. It accepts a language similar to that accepted by the PC-IX assembler. Symbols are made up of letters, digits and underscores. The machine instructions and addressing modes are the same as those used by PC-IX, except that modes using multiple registers are written like this example:  mov ax,(bxsi).  Constant operands are denoted by a number sign. Local labels are permitted in the usual UNIX style: the instruction jmp  7/jumps forward to the closest label  1:</p>
+      <p> The pseudoinstructions accepted by the assembler are listed below:</p>
+      <p> .align n Align to a multiple of  n  bytes</p>
+      <p> .ascii str Assemble a string</p>
+      <p> .asciz str Assemble a zero-terminated string</p>
+      <p> .bss What follows goes in the bss segment</p>
+      <p> .byte n Assemble one or more bytes</p>
+      <p> .data What follows goes in the data segment</p>
+      <p> .define sym Export  sym  from the file</p>
+      <p> .errnz n Force error if  n  is nonzero</p>
+      <p> .even Align to an even address</p>
+      <p> .extern sym Declare  sym  external</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 385</p>
+      <p> In the above pseudoinstructions,  adr  is an expression yielding a machine address, n  is a numeric expression,  str  is a quoted string, and  sym  is a symbol. The library  lusrllibllibc.a  is a packed archive of assembly code. To see some examples of it, extract some files from the archive with  ar  and then use the filter  libu-pack  to convert them to readable ASCII.</p>
+      <p> MINIX does not use  .o  files. Compiler output is packed assembly language, as are the modules in an archive. This scheme requires reassembling archive modules all the time, but it saves precious diskette space. Unfortunately, the strategy also makes assembling and linking slow.</p>
+      <p> It is not possible at present to have the assembler (hence the C compiler) produce separate I &amp; D program, even though the operating system supports such programs compiled with other compilers.</p>
+      <p> Command: basename - strip off file prefixes and suffixes Syntax:      basename file [suffix] Flags: (none)</p>
+      <p> Examples:  basename /user/ast/file    # Strips path to yield  file</p>
+      <p> basename /user/file.c .c   # Strips path and  .c  to yield  file The initial directory names (if any) are removed yielding the name of the file itself.  If a second argument is present, it is interpreted as a suffix and is also stripped, if present. This program is primarily used in shell scripts.</p>
+      <p> Command: cat - concatenate files and write them to standard output Syntax:      cat [-u] file ... Flags: -u Unbuffered output</p>
+      <p> Examples:  cat file # Display file on the terminal</p>
+      <p> cat file 1 file2 | lpr # Concatenate 2 files and print result</p>
+      <p> Cat  concatenates its input files and copies the result to standard output. If no input file is named, or - is encountered as a file name, standard input is used. Output is buffered in 512 byte blocks unless the -u flag is given.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Command: cc - C compiler Syntax:      cc [option] ... file ...</p>
+      <p> Flags:        -D The flag  -Dx =y  defines a macro  x  with value  y</p>
+      <p> -F Use a file instead of a pipe for preprocessor output -I   -\dir  searches  dir  for include files -LIB Produce a library module</p>
+      <p> -R Complain about all non Kernighan &amp; Ritchie code -S Produce an assembly code file, then stop -T The flag  -Tdir  tells  cem  to use  dir  for temporary files -U Undefine a macro</p>
+      <p> -c  Compile only. Do not link. (Same as -S) -o Put output on file named by next arg -v Verbose. Print pass names -w Suppress warning messages Examples:  cc-c flle.c  #  Compile  file.c</p>
+      <p> cc -Di8088 file.c # Treat the symbol  i8088  as defined</p>
+      <p> cc -c —LIB file.c # Make a module for the library</p>
+      <p> cc -R -o out file.c # Check for K &amp; R; output to  out</p>
+      <p> This is the C compiler. It has five passes, as follows:</p>
+      <p> Operation performed C  preprocessor: #include, #define, #ifdef Parsing and semantic analysis Optimization of the intermediate code Code generation Assembly and linking</p>
+      <p> The main program,  cc,  forks appropriately to call the passes, transmitting flags and arguments. The -v flag causes the passes to be listed as they are called.</p>
+      <p> The -c or -S flags stop compilation when  eg  has produced an assembly code file (in packed format) because the current assembler-loader expects that (see under File Formats later in this appendix). The libraries are also archives of packed assembly code files, except that defined symbols must be declared by .define  statements at the beginning. To make modules for inclusion in the library, use the -c and -LIB options. There is no way to get  .0  files; the packed assembly language files are used as a substitute. They can be unpacked with the filter  libupack.</p>
+      <p> The -R flag gives warnings about all constructions not permitted by official Kernighan and Ritchie C. The average garden-variety C program that has been flawlessly acceptedly by most C compilers contains surprisingly many illegal constructions. Try it.</p>
+      <p> The compiler normally keeps  epp  and  cem  in memory at the same time, transferring the output of  epp  to  cem  using a pipe. However, if there is insufficient memory available to hold both at once, the -F flag can be given to cause these two passes to be run strictly sequentially, with the preprocessor output being stored on a file in  Imp  (unless -T is used). When available memory</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 387</p>
+      <p> is very limited (e.g., a 512K machine), it may be necessary to run  chmem  to reduce the sizes of the compiler passes that do not fit, typically  cem.</p>
+      <p> The other passes, especially  asld,  can create large temporary files in  Itmp. To compile very large programs, first type</p>
+      <p> cc -c *.c</p>
+      <p> to get  .s  files. Then remove  lliblcpp  and  lliblcem  and possibly other files from the RAM disk to make more space for  itmp.  Finally, type</p>
+      <p> cc *.s</p>
+      <p> which results in</p>
+      <p> asld /usr/lib/crtso.s *.s /usr/lib/libc.a /usr/lib/end.s</p>
+      <p> to produce the  a.out  file. The files removed from the RAM disk can be restored by mounting the root file system and copying them from there, or the system can be shut down and rebooted.</p>
+      <p> If the compiler (or, in fact, almost any program) begins acting strange, it is almost always due to its running out of space, either stack space or scratch file space. The relevant pass can be given more stack space using  chmem.  More space for scratch files can be obtained by removing other files on the device.</p>
+      <p> The compiler is derived from the ACK system (Tanenbaum et al., 1983), not from the AT&amp;T portable C compiler. It has been shoehorned onto the PC with some loss of performance.</p>
+      <p> Command: chmem - change memory allocation Syntax:      chmem [+] [-] [ = ] amount file ... Flags: (none)</p>
+      <p> Examples:  chmem =50000 a.out     # Give  a.out  50K of stack space</p>
+      <p> chmem -4000 a.out        # Reduce the stack space by 4000 bytes chmem +1000 file 1 file2 # Increase each stack by 1000 bytes</p>
+      <p> When a program is loaded into memory, it is allocated enough memory for the text and data + bss segments, plus an area for the stack. Data segment growth using  malloc, brk,  or  sbrk  eats up stack space from the low end. The amount of stack space to allocate is derived from a field in the executable program's file header. If the combined stack and data segment growth exceeds the stack space allocated, the program will be terminated.</p>
+      <p> It is therefore important to set the amount of stack space carefully. If too little is provided, the program may crash. If too much is provided, memory will be wasted, and fewer programs will be able to fit in memory and run simultaneously. MINIX does not swap, so that when memory is full, subsequent attempts to fork will fail. The compiler sets the stack space to the largest possible value (64K  - text - data).   For many programs, this value  is far too large.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Nonrecursive programs that do not call  brk, sbrk,  or  malloc,  and do not have any local arrays usually do not need more than IK of stack space.</p>
+      <p> The  chmem  command changes the value of the header field that determines the stack allocation, and thus indirectly the total memory required to run the program. The = option sets the stack size to a specific value; the + and - options increment and decrement the current value by the indicated amount. The old and new stack sizes are printed.</p>
+      <p> Command: chmod - change file mode Syntax:      chmod mode file ... Flags: (none)</p>
+      <p> Examples:  chmod 754 file # Owner: rwx; Group r-x; Others r-</p>
+      <p> chmod 4755 filel file2     # Turn on SETUID bit The permission bits for each file are set to  mode  (octal). The 04000 bit is the SETUID bit.  The 02000 bit is the SETGID bit.  The low-order 9 bits are the rwx  bits for the owner, group, and others.</p>
+      <p> Command: chown - change owner Syntax:      chown user file ... Flags: (none)</p>
+      <p> Example:    chown ast filel file2        # Make  ast  the owner of the files</p>
+      <p> The owner field of the named files is changed to  user  (i.e., login name specified). Only the super-user may execute this command.</p>
+      <p> Command: clr - clear the screen Syntax: clr Flags: (none)</p>
+      <p> Example:    clr # Clear the screen</p>
+      <p> The screen is cleared to blanks.</p>
+      <p> Command: cmp - compare two files Syntax:      cmp [-Is] filel file2</p>
+      <p> Flags: -1   Loud mode. Print bytes that differ (in octal)</p>
+      <p> -s   Silent mode. Print nothing, just return exit status</p>
+      <p> Examples:  cmp filel file2 # Tell whether the files are the same</p>
+      <p> cmp -1 filel file2 # Print all corresponding bytes that differ</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 389</p>
+      <p> Two files are compared. If they are identical, exit status 0 is returned. If they differ, exit status 1 is returned. If the files cannot be opened, exit status 2 is returned.  \{ filel  is - , standard input is compared to  file!.</p>
+      <p> Command: comm - print lines common to two sorted files</p>
+      <p> Syntax:     comm [-123] file 1 file2</p>
+      <p> Flags:        -1  Suppress column 1 (lines only in  filel)</p>
+      <p> -2 Suppress column 2 (lines only in  filel)</p>
+      <p> -3  Suppress column 3 (lines in both files) Examples:   comm filel file2 # Print all three columns</p>
+      <p> comm -12 filel file2       # Print only lines common to both files Two sorted files are read and compared. A three column listing is produced. Files only in  filel  are in column 1; files only  in filel  are in column 2; files common to both files are in column 3. The file name - means standard input.</p>
+      <p> Command: cp - copy file Syntax:      cp filel file2</p>
+      <p> cp file ... directory Flags: (none)</p>
+      <p> Examples:  cp oldfile newfile # Copy  oldfile  to  newfile</p>
+      <p> cp filel file2 /user/ast     # Copy two files to a directory Cp  copies one file to another, or copies one or more files to a directory. A file cannot be copied to itself.</p>
+      <p> Command: date - print or set the date and time</p>
+      <p> Syntax:      date [[MMDDYY]hhmm[ss]]</p>
+      <p> Flags:        -q Read the date from standard input</p>
+      <p> Examples:   date # Print the date and time</p>
+      <p> date 0221881610 # Set date to Feb 21, 1988 at 4:10 p.m.</p>
+      <p> Without an argument,  date  prints the current date and time. With an argument, it sets the date and time.  MMDDYY  refers to the month, day, and year; hhmmss  refers to the hour, minute and second. Each of the six fields must be two digits.</p>
+      <p> Command: dd - disk dumper Syntax:      dd [option = value] Flags: (none)</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Examples: dd if=/dev/fd0 of=/dev/fdl     #  Copy disk 0 to disk 1</p>
+      <p> dd if=x of=y bs=lw skip = 4  # Copy  x  to  y,  skipping 4 words dd if=x of=y count = 3       # Copy three 512-byte blocks This command is intended for copying partial files.  The block size, skip</p>
+      <p> count, and number of blocks to copy can be specified. The options are:</p>
+      <p> Where sizes are expected, they are in bytes. However, the letters w, b, or k may be appended to the number to indicate words (2 bytes), blocks (512 bytes), or K (1024 bytes), respectively. When  dd  is finished, it reports the number of full and partial blocks read and written.</p>
+      <p> Command: df - report on free disk space and i-nodes Syntax:      df special ... Flags: (none)</p>
+      <p> Examples:  df /dev/ram  #  Report on free RAM disk space</p>
+      <p> df /dev/fdO /dev/fdl       # Report on floppy disk space The amount of disk space and number of i-nodes, both free and used is reported.</p>
+      <p> Command: dosdir - list an MS-DOS diskette directory Syntax:      dosdir [-lr] drive Flags:        -1   Long listing</p>
+      <p> -r  Recursively descend and print subdirectories Examples:   dosdir -1 1 # List root directory on drive 1</p>
+      <p> dosdir -r 0 x/y # Recursively list directory  xly</p>
+      <p> Dosdir  reads standard IBM PC diskettes in MS-DOS format and lists their contents on standard output. Directory names should contain slashes to separate components, even though MS-DOS uses backslashes. The names  dosdir, dosread, and  doswrite  are all links to the same program. The program sees which function to perform by seeing how it was called.</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 391</p>
+      <p> Command: dosread - read a file from an MS-DOS diskette Syntax: dosread Flags:        -a ASCII file</p>
+      <p> Examples:  dosread 1 g/adv &gt;adv     # Read file  gladv  from drive 1</p>
+      <p> dosread 0 -a prog.c &gt;x   # Read ASCII file  prog.c  from drive 0 Dosread  reads one file from an MS-DOS diskette and writes it on standard output. The file name should use slash, not backslash as a separator. ASCII files have the final CTRL-Z stripped, and carriage return plus line feed are mapped to line feed only, the usual MINIX convention.</p>
+      <p> Command: doswrite - write a file onto an MS-DOS diskette Syntax:      doswrite [-a] drive file Flags:        -a ASCII file</p>
+      <p> Examples:   doswrite 1 x/y &lt;z # Write file  z  to disk as  xly</p>
+      <p> doswrite -a 0 f  #  Copy standard input to MS-DOS file/</p>
+      <p> Doswrite  writes its standard input to an MS-DOS diskette. The diskette must be formatted and have an MS-DOS file system already in place, including all the directories leading up to the file.</p>
+      <p> Command: echo - print the arguments Syntax:      echo [-n] argument ... Flags:        -n No line feed is output when done Examples:  echo Start Phase 1 # "Start Phase 1" is printed</p>
+      <p> echo -n Hello  #  "Hello"</p>
+      <p> Echo  writes its arguments to standard output. They are separated by blanks and terminated with a line feed unless -n is present. This command is used mostly in shell scripts.</p>
+      <p> Command: getlf - wait until a line has been typed Syntax:      getlf [argument] Flags: (none)</p>
+      <p> Example:    getlf # Wait for a line</p>
+      <p> In shell scripts it is sometimes necessary to pause to give the user a chance to perform some action, such as inserting a diskette. This command prints its argument, if any, and then waits until a carriage return has been typed, at which time it terminates. It is used in  letclrc.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Command: grep - search a file for lines containing a given pattern</p>
+      <p> Syntax: Flags:</p>
+      <p> Examples:</p>
+      <p> grep [-ensv] pattern [file] ... -e  -e  pattern  is the same as  pattern -n Print line numbers -s   Status only, no printed output -v Select lines that do not match</p>
+      <p> grep mouse file # Find lines in  file  containing  mouse</p>
+      <p> grep [0-9] file # Print lines containing a digit</p>
+      <p> Grep  searches one or more files (by default, standard input) and selects out all the lines that match the pattern. All the regular expressions accepted by mined  are allowed. In addition, + can be used instead of * to mean 1 or more occurrences, ? can be used to mean 0 or 1 occurrences, and | can be used between two regular expressions to mean either one of them. Parentheses can be used for grouping. If a match is found, exit status 0 is returned. If no match is found, exit status 1 is returned. If an error is detected, exit status 2 is returned.</p>
+      <p> Command: gres - grep and substitute</p>
+      <p> Syntax:      gres [-g] pattern string [file] ...</p>
+      <p> Flags:        -g Only change the first occurrence per line</p>
+      <p> Examples:  gres bug insect  #  Replace  bug  with  insect</p>
+      <p> gres '"TA-Z]+$" CAPS  ft  Replace capital-only lines with  CAPS Gres  is a poor man's  sed.  It looks for the same patterns as  grep,  and replaces each one by the given string.</p>
+      <p> Command: head - print the first few lines of a file</p>
+      <p> Syntax:      head [-n] [file] ...</p>
+      <p> Flags:         -n  How many lines to print</p>
+      <p> Examples:  head -6 # Print first 6 lines of standard input</p>
+      <p> head -1 file 1 file2  #  Print first line of two files</p>
+      <p> The first few lines of one or more files are printed. The default count is 10 lines. The default file is standard input.</p>
+      <p> Command: kill - send a signal to a process</p>
+      <p> Syntax:</p>
+      <p> Flags:</p>
+      <p> Examples:</p>
+      <p> kill [-signal] process</p>
+      <p> (none)</p>
+      <p> kill 35</p>
+      <p> kill -9 40</p>
+      <p> kill -2 0</p>
+      <p> # Send signal 15 to process 35</p>
+      <p> # Send signal 9 to process 40</p>
+      <p> # Send signal 2 to whole process group</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 393</p>
+      <p> A signal is sent to a given process. By default signal 15 (SIGTERM) is sent. Process 0 means all the processes in the sender's process group.</p>
+      <p> Command: libpack - pack an ASCII assembly code file Syntax: libpack Flags: (none)</p>
+      <p> Example:    libpack &lt;x.s &gt;y.s  ttPackx.s</p>
+      <p> This program is a filter that reads an ASCII assembly code file from standard input and writes the corresponding packed file on standard output. The compiler libraries are archives of packed assembly code files.</p>
+      <p> Command: libupack - convert a packed assembly code file to ASCII Syntax: libupack Flags: (none)</p>
+      <p> Example:    libupack &lt;y.s &gt;x.s         H  Unpack  y.s</p>
+      <p> This program is a filter that reads a packed assembly code file from standard input and writes the corresponding ASCII file on standard output.</p>
+      <p> Command: In - create a link to a file Syntax:      In file [name] Flags: (none)</p>
+      <p> Examples:  In file newname # Make  newname  a synonym  fox file</p>
+      <p> In /usr/games/chess        # Create a link called  chess A directory entry is created for  name.  The entry points to  file.  Henceforth, name  and  file  can be used interchangeably.  If  name  is not supplied, the last component of  file  is used as the link name.</p>
+      <p> Command: lpr - copy a file to the line printer Syntax:      lpr [file] ... Flags: (none)</p>
+      <p> Examples:  lpr file &amp; # Print  file  on the line printer</p>
+      <p> pr file | lpr &amp; # Print standard input  (pr's  output)</p>
+      <p> Each argument is interpreted as a file to be printed.  Lpr  copies each file to Idev/lp,  without spooling. It inserts carriage returns and expands tabs. Only one lpr  at a time may be running.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Command: Is - list the contents of a directory</p>
+      <p> Syntax:      Is [-adfgilrst] name ...</p>
+      <p> Flags:        -a All entries are listed, even . and ..</p>
+      <p> -d Do not list contents of directories</p>
+      <p> -f List argument as unsorted directory</p>
+      <p> -g Group id given instead of user id</p>
+      <p> -i   I-node number printed in first column</p>
+      <p> -1   Long listing: mode, links, owner, size and time</p>
+      <p> -r  Reverse the sort order</p>
+      <p> -s  Give size in blocks (including indirect blocks)</p>
+      <p> -t   Sort by time, latest first Examples:  Is -1 # List files in working directory</p>
+      <p> Is -lis  #  List with i-nodes and sizes</p>
+      <p> For each file argument, list it. For each directory argument, list its contents, unless -d is present. When no argument is present, the working directory is listed.</p>
+      <p> Command: make - a program for maintaining large programs Syntax:      make [-f file] [-ikns] [option] ... [target] Flags:        -f  Use  file  as the makefile</p>
+      <p> -i   Ignore status returned by commands</p>
+      <p> -k Kill branch on error</p>
+      <p> -n Report, but do not execute</p>
+      <p> -s  Silent mode</p>
+      <p> Examples:  make kernel # Make  kernel  up to date</p>
+      <p> make -n -f file # Tell what needs to be done</p>
+      <p> Make  is a program that is normally used for developing large programs consisting of multiple files. It keeps track of which object files depend on which source and header files. When called, it does the minimum amount of recompi-lation to bring the target file up to date.</p>
+      <p> The file dependencies are expected in  makefile  or  Makefile,  unless another file is specified with -f.  Make  has some default rules built in, for example, it knows how to make  .s  files from  .c  files. Here is a sample  makefile.</p>
+      <p> d = /user/ast #  d  is a macro</p>
+      <p> program: head.s tail.s #  program  depends on these</p>
+      <p> cc -o program head.s tail.s # tells how to make  program echo Program done.  #  announce completion</p>
+      <p> head.s:     $d/def.h head.c #  head.s  depends on these</p>
+      <p> tail.s:       $d/var.h tail.c #  tail.s  depends on these</p>
+      <p> A complete description of  make  would require too much space here. For more information, see Feldman (1979). Many books on UNIX also discuss  make.</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 395</p>
+      <p> Command: mined - MINIX editor Syntax:      mined [file] Flags: (none)</p>
+      <p> Examples: mined /user/ast/book.3   # Edit an existing file</p>
+      <p> mined # Call editor to create a new file</p>
+      <p> Is -1 j mined # Use  mined  as a pager to inspect listing</p>
+      <p> Mined  (pronounced min-ed) is a simple full-screen editor. When editing a file, it holds the file in memory, thus speeding up editing, but limiting the editor to files of up to about 43K. Larger files must first be cut into pieces by  split. Lines may be arbitrarily long. Output from a command may be piped into mined  so it can be viewed without scrolling off the screen.</p>
+      <p> At any instant, a window of 24 lines is visible on the screen. The current position in the file is shown by the cursor. Ordinary characters typed in are inserted at the cursor. Control characters and keys on the numeric keypad (at the right-hand side of the keyboard) are used to move the cursor and perform other functions.</p>
+      <p> Commands exist to move forward and backward a word, and delete words. A word in this context is a sequence of characters delimited on both ends by white space (space, tab, line feed, start of file, or end of file). The commands for deleting characters and words also work on line feeds, making it possible to join two consecutive lines by deleting the line feed between them.</p>
+      <p> The editor maintains one save buffer (not displayed). Commands are present to move text from the file to the buffer, from the buffer to the file, and to write the buffer onto a new file. If the edited text cannot be written out due to a full disk, it may still be possible to copy the whole text to the save buffer and then write it to a different file on a different disk with CTRL-Q. It may also be possible to escape from the editor with CTRL-S and remove some files.</p>
+      <p> Some of the commands prompt for arguments (file names, search patterns, etc.). All commands that might result in loss of the file being edited prompt to ask for confirmation.</p>
+      <p> A key (command or ordinary character) can be repeated  n  times by typing ESC n key  where  ESC  is the "escape" key.</p>
+      <p> Forward and backward searching requires a regular expression as the search pattern. Regular expressions follow the same rules as in the UNIX editor,  ed:</p>
+      <p> 1. Any displayable character matches itself.</p>
+      <p> 2. . (period) matches any character except line feed.</p>
+      <p> 3. " (circumflex) matches the start of the line.</p>
+      <p> 4. $ (dollar sign) matches the end of the line.</p>
+      <p> 5. \c matches the character  c  (including period, circumflex, etc).</p>
+      <p> 6. [string] matches any of the characters in the string.</p>
+      <p> 7. ["string] matches any of the characters except those in the string.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> 8. [x-y] matches any characters between  x  and  y  (e.g., [a-z]).</p>
+      <p> 9. Pattern* matches any number of occurrences of  pattern.</p>
+      <p> Some examples of regular expressions are:</p>
+      <p> The boy matches the string "The boy"</p>
+      <p> A $ matches any empty line.</p>
+      <p> A A.*\.$ matches any line starting with an  A,  ending with a period.</p>
+      <p> A [A-Z]*$ matches any line containing only capital letters (or empty).</p>
+      <p> [A-ZO-9] matches any line containing either a capital letter or a digit.</p>
+      <p> Control characters cannot be entered into a file simply by typing them because all of them are editor commands. To enter a control character, depress the ALT key, and then while holding it down, hit the ESC key. Release both ALT and ESC and type the control character. Control characters are displayed in reverse video.</p>
+      <p> The  mined  commands are as follows.</p>
+      <p> CURSOR MOTION</p>
+      <p> arrows Move the cursor in the indicated direction</p>
+      <p> CTRL-A Move cursor to start of current line</p>
+      <p> CTRL-Z Move cursor to end of current line</p>
+      <p> CTRL-" Move cursor to top of screen</p>
+      <p> CTRL-_ Move cursor to end of screen</p>
+      <p> CTRL-F Move cursor forward to start of next word</p>
+      <p> CTRL-B Move cursor backward to start of previous word</p>
+      <p> SCREEN MOTION</p>
+      <p> Home key Move to first character of the file</p>
+      <p> End key Move to last character of the file</p>
+      <p> PgUp key Scroll window up 23 lines (closer to start of the file)</p>
+      <p> PgDn key Scroll window down 23 lines (closer to end of the file)</p>
+      <p> CTRL-U Scroll window up 1 line</p>
+      <p> CTRL-D Scroll window down 1 line</p>
+      <p> MODIFYING TEXT</p>
+      <p> Del key Delete the character under the cursor Backspace   Delete the character to left of the cursor</p>
+      <p> CTRL-N Delete the next word</p>
+      <p> CTRL-P Delete the previous word</p>
+      <p> CTRL-T Delete tail of line (all characters from cursor to end of line)</p>
+      <p> CTRL-O Open up the line (insert line feed and back up)</p>
+      <p> CTRL-G Get and insert a file at the cursor position</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 397</p>
+      <p> BUFFER OPERATIONS</p>
+      <p> CTRL-®     Set mark at current position for use with CTRL C and CTRL-K CTRL-C     Copy the text between the mark and the cursor into the buffer CTRL-K     Delete text between mark and cursor; also copy it to the buffer CTRL-Y     Yank contents of the buffer out and insert it at the cursor CTRL-Q     Write the contents of the buffer onto a file</p>
+      <p> MISCELLANEOUS</p>
+      <p> numeric + Search forward (prompts for regular expression)</p>
+      <p> numeric — Search backward (prompts for regular expression)</p>
+      <p> numeric 5 Display the file status</p>
+      <p> CTRL-] Go to specific line</p>
+      <p> CTRL-R Global replace  pattern  with  string  (from cursor to end)</p>
+      <p> CTRL-L Line replace  pattern  with  string</p>
+      <p> CTRL-W Write the edited file back to the disk</p>
+      <p> CTRL-X Exit the editor</p>
+      <p> CTRL-S Fork off a shell (use CTRL-D to get back to the editor)</p>
+      <p> CTRL-\ Abort whatever the editor was doing and wait for command</p>
+      <p> CTRL-E Erase screen and redraw it</p>
+      <p> CTRL-V Visit (edit) a new file</p>
+      <p> Command: mkdir - make a directory Syntax:      mkdir directory ... Flags: (none)</p>
+      <p> Examples:  mkdir dir # Create  dir  in the current directory</p>
+      <p> mkdir /user/ast/dir # Create the specified directory</p>
+      <p> The specified directory or directories are created. The entries . and .. are inserted into the new directory.</p>
+      <p> Command: mkfs - make a file system</p>
+      <p> Syntax:      mkfs special prototype</p>
+      <p> Flags:        -L Make a listing on standard output</p>
+      <p> Examples:  mkfs /dev/fdl proto       # Make a file system on  Idevlfdl</p>
+      <p> mkfs /dev/fdl 360 # Make empty 360 block file system</p>
+      <p> Mkfs  builds a file system and copies specified files to it. The prototype file tells which directories and files to copy to it. If the prototype file cannot be opened, and its name is just a string of digits, an empty file system will be made with the specified number of blocks. A sample prototype file follows. The text following the # sign is comment. In the real prototype file, comments are not allowed.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> The first entry on each line (except the first 3 and the $ lines, which terminate directories) is the name the file or directory will get on the new file system. Next comes its mode, with the first character being -dbc for regular files, directories, block special files and character special files, respectively. The next two characters are used to specify the SETUID and SETGID bits, as shown above. The last three characters of the mode are the  rwx  protection bits.</p>
+      <p> Following the mode are the uid and gid. For special files, the major and minor devices are needed. The size in blocks must also be specified for block special files (the MINIX block size is IK; this can only be changed by changing BLOCKSIZE  and then recompiling the operating system).</p>
+      <p> Command: mknod - create a special file Syntax:      mknod file [b] [c] major minor Flags: (none)</p>
+      <p> Example:    mknod /dev/plotter c 7 0 # Create special file for a plotter</p>
+      <p> Mknod  creates a special file named  file,  with the indicated major and minor device numbers. The second argument specifies a block or character file.</p>
+      <p> Command: mount - mount a file system</p>
+      <p> Syntax: /etc/mount special file [-r]</p>
+      <p> Flags: -r  File system is mounted read-only</p>
+      <p> Example: /etc/mount /dev/fdl /user# Mount floppy disk 1 on  /user</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 399</p>
+      <p> The file system contained on the special file is mounted on  file.  In the example above, the root directory of the file system in drive 1 can be accessed as  I user after the mount. When the file system is no longer needed, it must be unmounted before being removed from the drive.</p>
+      <p> Command: mv - move or rename a file Syntax:      mv filel file2</p>
+      <p> mv file ... directory Flags: (none)</p>
+      <p> Examples:  mv oldname newname     ft  Move  oldname  to  newname mv filel file2 /user/ast      ft  Move two files to  luserlast Mv  moves one or more files from one place in the file system to another. If the old path and new path are on the same device, it is done by linking and unlinking, otherwise by copying.</p>
+      <p> Command: od - octal dump</p>
+      <p> Syntax:      od [-bcdhox] [file] [ [ + ] offset [.][b] ]</p>
+      <p> Flags:        -b Dump bytes in octal</p>
+      <p> -c Dump bytes as ASCII characters</p>
+      <p> -d Dump words in decimal</p>
+      <p> -h Print addresses in hex (default is octal)</p>
+      <p> -o Dump words in octal (default)</p>
+      <p> -x Dump words in hex Examples:  od -ox file  ft  Dump  file  in octal and hex</p>
+      <p> od -d file +1000  ft  Dump  file  starting at byte 01000</p>
+      <p> od -c file +10.b  ft  Dumpy?/e starting at block 10</p>
+      <p> Od  dumps a file in one or more formats. If  file  is missing, standard input is dumped. The  offset  argument tells  od  to skip a certain number of bytes or blocks before starting. The offset is in octal bytes, unless it is followed by a "." for decimal or b for blocks or both.</p>
+      <p> Command: passwd - change a login password Syntax:      passwd [name] Flags: (none)</p>
+      <p> Examples:  passwd  ft  Change current user's password</p>
+      <p> passwd ast  ft  Change ast's password (super-user only)</p>
+      <p> Passwd  is used to change your password. It prompts for the old and new passwords. It asks for the new password twice, to reduce the effect of a typing</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> error. Do not forget to copy the modified password file back to the root file system diskette, or the changes will be lost when the system is rebooted.</p>
+      <p> Command: pr - print a file</p>
+      <p> Syntax:      pr [option] ... [-columns] [+page] [file] ... Flags:        -h Take next argument as page header</p>
+      <p> -1   Sets page length in lines</p>
+      <p> -n Number the output lines</p>
+      <p> -t   Do not print page header or trailer</p>
+      <p> -w Sets line length in characters Examples:  pr -w72 -160 file # Use 72 character line, 60 line page</p>
+      <p> pr -3 file # List  file  three columns to a page</p>
+      <p> pr +4 file # Start printing with page 4</p>
+      <p> Pr  formats one or more files for printing. If no files are specified, standard input is printed. Options are provided for setting the width and height of the page, the number of columns to use (default 1), and the page to start with, among others.</p>
+      <p> Command: pwd - print working directory Syntax: pwd Flags: (none)</p>
+      <p> Example:   pwd # Print the name of the working directory</p>
+      <p> The full path name of the current working directory is printed.</p>
+      <p> Command: rev - reverse the characters on each line of a file Syntax:      rev [file] ... Flags: (none)</p>
+      <p> Example:    rev file # Reverse each line</p>
+      <p> Each file is copied to standard output with all the characters of each line reversed, last one first and first one last.</p>
+      <p> Command: rm - remove a file</p>
+      <p> Syntax:      rm [-fir] name ...</p>
+      <p> Flags: -f  Forced remove: no questions asked</p>
+      <p> -i   Interactive remove: ask before removing</p>
+      <p> -r Remove directories too</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 401</p>
+      <p> Examples:  rm file # Remove  file</p>
+      <p> rm -i *.c # Remove  .c  files, asking about each</p>
+      <p> Rm  removes one or more files. If a file has no write permission,  rm  asks for permission (type "y" or "n") unless -f is specified. If the file is a directory, it will be recursively descended and removed if and only if the -r flag is present.</p>
+      <p> Command: rmdir - remove a directory Syntax:      rmdir directory ... Flags: (none)</p>
+      <p> Examples:   rmdir /user/ast/foobar     # Remove directory  foobar</p>
+      <p> rmdir /user/ast/f* # Remove 0 or more directories</p>
+      <p> The specified directories are removed. Ordinary files are not removed.</p>
+      <p> Command: roff - text formatter</p>
+      <p> Syntax:      roff [-hs] [+n] [-n] file ...</p>
+      <p> Flags:        -h Expand tabs to spaces in output</p>
+      <p> -s  Stop before each page; continue on DEL</p>
+      <p> + n  Start printing with page  n</p>
+      <p> n     Stop after page  n Examples:  roff file # Run off  file</p>
+      <p> roff +5 file # Run  off file  starting at page 5</p>
+      <p> Roff  is a text formatter. Its input consists of the text to be output, intermixed with formatting commands. A formatting command is a line containing the control character followed by a two character command name, and possibly one or more arguments. The control character is initially "." (dot). The formatted output is produced on standard output.</p>
+      <p> The formatting commands are listed below, with  n  being a number,  c  being a character, and  t  being a title. A + before  n  means it may be signed, indicating a positive or negative change from the current value. Initial values for  n,  where relevant, are given in parentheses.</p>
+      <p> •ad Adjust right margin,</p>
+      <p> .ar Arabic page numbers.</p>
+      <p> .br Line break. Subsequent text will begin on a new line,</p>
+      <p> •bl n Insert  n  blank lines.</p>
+      <p> .bp +n Begin new page and number it  n.  No  n  means +1.</p>
+      <p> .cc c Control character is set to  c.</p>
+      <p> .ce n Center the next  n  input lines.</p>
+      <p> .de zz Define a macro called  zz.  A line with       ends definition.</p>
+      <p> •ds Double space the output. Same as .Is 2.</p>
+      <p> .ef t Even page footer title is set to /.</p>
+      <p> .eh t Even page header title is set to  t.</p>
+      <p> •fi Begin filling output lines as full as possible.</p>
+      <p> 402 MINIX USERS GUIDE APPENDIX C</p>
+      <p> .fo t Footer titles (even and odd) are set to  t.</p>
+      <p> .he c The character  c  (e.g., %) tells  roff  where hyphens are permitted,</p>
+      <p> .he t Header titles (even and odd) are set to  t.</p>
+      <p> .hx Header titles are suppressed.</p>
+      <p> •hy n Hyphenation is done if  n  is 1, suppressed if it is 0. Default is 1.</p>
+      <p> .ig Ignore input lines until a line beginning with       is found.</p>
+      <p> .in n Indent  n  spaces from the left margin; force line break.</p>
+      <p> .ix n Same as  .in  but continue filling output on current line.</p>
+      <p> .li n Literal text on next  n  lines. Copy to output unmodified.</p>
+      <p> .11 +n Line length (including indent) is set to  n  (65).</p>
+      <p> .Is +n Line spacing:  n  (1) is 1 for single spacing, 2 for double, etc.</p>
+      <p> .ml n Insert  n  (2) blank lines between top of page and header.</p>
+      <p> •m2 n Insert  n  (2) blank lines between header and start of text.</p>
+      <p> .m3 n Insert  n  (1) blank lines between end of text and footer.</p>
+      <p> .m4 n Insert  n  (3) blank lines between footer and end of page.</p>
+      <p> .na No adjustment of the right margin.</p>
+      <p> .ne n Need  n  lines. If fewer are left, go to next page.</p>
+      <p> .nn +n The next  n  output lines are not numbered.</p>
+      <p> .nl Number output lines in left margin starting at 1.</p>
+      <p> •n2 n Number output lines starting at  n.  If 0, stop numbering.</p>
+      <p> .ni +n Indent line numbers by  n  (0) spaces.</p>
+      <p> .nf No more filling of lines.</p>
+      <p> .nx f Switch input to file /.</p>
+      <p> .of t Odd page footer title is set to  t.</p>
+      <p> .oh t Odd page header title is set to  t.</p>
+      <p> •pa +n Page adjust by  n  (1). Same as .bp</p>
+      <p> .pi +n Paper length is  n  (66) lines.</p>
+      <p> •po +n Page offset. Each line is started with  n  (0) spaces.</p>
+      <p> .ro Page numbers are printed in Roman numerals.</p>
+      <p> •sk n Skip  n  pages (i.e., make them blank), starting with next one.</p>
+      <p> •sp n Insert  n  blank lines, except at top of page.</p>
+      <p> •ss Single spacing. Equivalent to .Is 1.</p>
+      <p> .ta Set tab stops, e.g., .ta 9 17 25 33 41 49 57 65 73 (default),</p>
+      <p> •tc c Tabs are expanded into  c.  Default is space,</p>
+      <p> .ti n Indent next line  n  spaces; then go back to previous indent,</p>
+      <p> .tr ab Translate  a  into  b  on output.</p>
+      <p> .ul n Underline the letters and numbers in the next  n  lines.</p>
+      <p> Command: sh - shell Syntax:      sh [file] Flags: (none)</p>
+      <p> Example:   sh &lt; script # Run a shell script</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 403</p>
+      <p> Sh  is the shell. It permits redirection of input and output, pipes, magic characters, background processes, shell scripts and most of the other features of the V7 (Bourne) shell. A few of the more common commands are listed below:</p>
+      <p> date</p>
+      <p> sort &lt;file</p>
+      <p> sort &lt;filel &gt;nle2</p>
+      <p> cc file.c 2&gt;error</p>
+      <p> a.out &gt;f 2&gt;&amp;1</p>
+      <p> sort &lt;filel &gt; &gt;file2</p>
+      <p> sort &lt;filel  &gt;file2 &amp;</p>
+      <p> (Is -1; a.out) &amp;</p>
+      <p> sort &lt;file | wc</p>
+      <p> sort &lt;f | uniq | wc</p>
+      <p> Is -1 *.c</p>
+      <p> Is -1 [a-c]*</p>
+      <p> Is -1 ?</p>
+      <p> Is \?</p>
+      <p> Is '???'</p>
+      <p> v=/usr/ast</p>
+      <p> Is -1 $v</p>
+      <p> PSl = 'Hi! '</p>
+      <p> PS2='More: '</p>
+      <p> Is -1 $HOME</p>
+      <p> echo $PATH</p>
+      <p> if ... then ... else ... fi</p>
+      <p> for ... do ... done</p>
+      <p> while ... case ... echo $? echo $$ echo $# echo $2 echo $*</p>
+      <p> do .. esac</p>
+      <p> done</p>
+      <p> # Regular command</p>
+      <p> # Redirect input</p>
+      <p> # Redirect input and output</p>
+      <p> # Redirect standard error</p>
+      <p> # Combine standard output and standard error</p>
+      <p> # Append output to  file2</p>
+      <p> #  Background job</p>
+      <p> # Run two background commands sequentially</p>
+      <p> # Two-process pipeline</p>
+      <p> # Three-process pipeline</p>
+      <p> # List all files ending in  .c</p>
+      <p> # List all files beginning with  a, b,  or  c</p>
+      <p> # List all one-character file names</p>
+      <p> # List the file whose name is question mark</p>
+      <p> # List the file whose name is three question marks</p>
+      <p> # Set shell variable v</p>
+      <p> # Use shell variable v</p>
+      <p> # Change the primary prompt to  Hi!</p>
+      <p> # Change the secondary prompt to  More:</p>
+      <p> # List the home directory</p>
+      <p> # Echo the search path</p>
+      <p> # If statement</p>
+      <p> # Iterate over argument list</p>
+      <p> # Repeat while condition holds</p>
+      <p> # Select clause based on condition</p>
+      <p> # Echo exit status of previous command</p>
+      <p> # Echo shell's pid</p>
+      <p> # Echo number of parameters (shell script)</p>
+      <p> # Echo second parameter (shell script)</p>
+      <p> # Echo all parameters (shell script)</p>
+      <p> Command: shar - shell archiver Syntax:      shar file ... Flags: (none)</p>
+      <p> Examples:  shar *.c &gt;s # Collect C programs in shell archive</p>
+      <p> sh &lt;s # Extract files from a shell archive</p>
+      <p> The named files are collected together into a shell archive written onto standard output. The individual files can be extracted by redirecting the shell archive into the shell. The advantage of  shar  over  ar  is that  shar  archives can be read on</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> almost any UNIX system, whereas numerous, incompatible versions of  ar  are in widespread use. Extracting the files from a shell archive requires that  gres  is accessible. In the distribution,  gres  is in  /user/bin  rather than  lusrlbin.</p>
+      <p> Command: size - print text, data, and bss size of a program Syntax:      size [file] ... Flags: (none)</p>
+      <p> Example:   size file # Print the size of  file</p>
+      <p> The text, data, bss, and total sizes for each argument are printed. If no arguments are present,  a.out  is assumed. The amount of memory available for combined stack and data segment growth is printed in the column "stack." This is the value manipulated by the  chmem  command. The total amount of memory allocated to the program when it is loaded is listed under "memory." This value is just the sum of the other four columns.</p>
+      <p> Command: sleep - suspend execution for a given number of seconds Syntax:      sleep seconds Flags: (none)</p>
+      <p> Example:   sleep 10 # Suspend execution for 10 sec.</p>
+      <p> The caller is suspended for the indicated number of seconds. This command is typically used in shell scripts.</p>
+      <p> Command: sort - sort a file of ASCII lines</p>
+      <p> Syntax:      sort [-bcdfimnru] [-tx] [-o name] [+posl] [-pos2] file ... Flags:        -b Skip leading blanks when making comparisons Check to see if a file is sorted Dictionary order: ignore punctuation Fold upper case onto lower case Ignore nonASCII characters Merge presorted files Numeric sort order Next argument is output file Reverse the sort order Following character is field separator Unique mode (delete duplicate lines) Examples:  sort -nr file # Sort keys numerically, reversed</p>
+      <p> -c -d -f -i -in -n -o -r -t -u sort sort +2 -sort +2 -sort +.3</p>
+      <p> ■4 file # Sort using fields 2 and 3 as key</p>
+      <p> t: -o out # Field separator is :</p>
+      <p> -.6 # Characters 3 through 5 form the key</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 405</p>
+      <p> Sort  sorts one or more files. If no files are specified, standard input is sorted. Output is written on standard output, unless -o is specified. The options  +posl -pos2  use only fields  posl  up to but not including  pos2  as the sort key, where a field is a string of characters delimited by spaces and tabs, unless a different field delimiter is specified with -t. Both  posl  and  pos2  have the form  m.n  where  m tells the number of fields and  n  tells the number of characters. Either  m  or  n may be omitted.</p>
+      <p> Command: split - split a large file into several smaller files Syntax:      split [-n] [file [prefix]]</p>
+      <p> Flags:  -n   Number of lines per piece (default: 1000)</p>
+      <p> Examples:  split -200 file # Split  file  into pieces of 200 lines each</p>
+      <p> split file z # Split  file  into  zaa, zab,  etc.</p>
+      <p> Split  reads  file  and writes it out in n-line pieces. By default, the pieces are called  xaa, xab,  etc. The optional second argument can be used to provide an alternative prefix for the output file names.</p>
+      <p> Command: stty - set terminal parameters Syntax:      stty [option ...] Flags: (none)</p>
+      <p> Examples:  stty -echo # Suppress echoing of input</p>
+      <p> stty erase # # Set the erase character to #</p>
+      <p> When given no arguments,  stty  prints the current terminal parameters. It can also be used to set the parameters, as follows:</p>
+      <p> cbreak - Enter  cbreak  mode; erase and kill disabled</p>
+      <p> echo - Echo input on the terminal</p>
+      <p> nl - Accept only line feed to end lines</p>
+      <p> raw - Enter  raw  mode; no input processing at all</p>
+      <p> tabs - Output tabs (do not expand to spaces)</p>
+      <p> erase c - Set erase character (initially backspace)</p>
+      <p> int c - Set interrupt (SIGINT) character (initially DEL)</p>
+      <p> kill c - Set kill line character (initially @)</p>
+      <p> quit c - Set quit (SIGQUIT) character (initially CTRLA)</p>
+      <p> default - Set options back to original values</p>
+      <p> The first five options may be prefixed by - as in -tabs to turn the option off. The next four options each have a single character parameter separated by a space from the option. The default option sets the mode and the four settable characters back to the values they had when the system was booted. It is useful when a rogue program has messed them up.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Command: su - temporarily log in as super-user or another user Syntax:      su [name] Flags: (none)</p>
+      <p> Examples:  su # Become super-user</p>
+      <p> su ast # Become  ast</p>
+      <p> Su  can be used to temporarily login as another user. It prompts for the super-user password. If the correct password is entered,  su  creates a shell with the desired uid. If no name is specified,  root  is assumed. To exit the temporary shell, type CTRL-D.</p>
+      <p> Command: sum - compute the checksum and block count of a file Syntax:      sum file Flags: (none)</p>
+      <p> Examples:  sum /user/ast/xyz  ft  Checksum  luserlastlxyz</p>
+      <p> Sum  computes the checksum of one or more files. It is most often used to see if a file copied from another machine has been correctly received. This program works best when both machines use the same checksum algorithm.</p>
+      <p> Command: sync - flush the cache to disk Syntax: sync Flags: (none)</p>
+      <p> Example:   sync # Write out all modified cache blocks</p>
+      <p> MINIX maintains a cache of recently used disk blocks. The  sync  command writes any modified cache blocks back to the disk. This is essential before stopping the system, and should be done before running any  a.out  program that might crash the system.</p>
+      <p> Command: tail - print the last few lines of a file</p>
+      <p> Syntax:      tail [-n] [file] ...</p>
+      <p> Flags:         -n  How many lines to print</p>
+      <p> Examples:  tail -6 # Print last 6 lines of standard input</p>
+      <p> tail -1 filel file2 # Print last line of two files</p>
+      <p> The last few lines of one or more files are printed. The default count is 10 lines. The default file is standard input.</p>
+      <p> SEC. C.4</p>
+      <p> MINIX COMMANDS</p>
+      <p> 407</p>
+      <p> Command: tar - tape archiver Syntax:      tar [cxtv] tarfile file ... Flags:        -c Create a new archive</p>
+      <p> -t   Print a table listing the archive's contents -v Verbose mode-tell what is going on as it happens -x The named files are extracted from the archive Examples:  tar c /dev/fdl filel file2   # Create a two-file archive</p>
+      <p> tar xv /dev/fdl filel file2  ft  Extract two files from the archive Tar  is an archiver in the style of the standard tape archiver, except that it does not use tape. It's primary advantage over  ar  is that the  tar  format is somewhat more standardized than the  ar  format, making it theoretically possible to transport MINIX files to another computer, but do not bet on it. If the target machine runs MS-DOS, try  doswrite.</p>
+      <p> Command: tee - divert standard input to a file Syntax:      tee [-ai] file ...</p>
+      <p> Flags:        -a Append to the files, rather than overwriting</p>
+      <p> -i   Ignore interrupts Examples:  cat filel file2 | tee x        # Save and display two files</p>
+      <p> pr file | tee x | lpr # Save the output of  pr  on  x</p>
+      <p> Tee  copies standard input to standard output. It also makes copies on all the files listed as arguments.</p>
+      <p> Command: time - report how long a command takes Syntax:      time command Flags: (none)</p>
+      <p> Examples:  time a.out # Report how long  a. out  takes</p>
+      <p> time Is -1 *.c # Report how long the command takes</p>
+      <p> The command is executed and the real time, user time, and system time (in seconds) are printed.</p>
+      <p> Command: touch - update a file's time of last modification Syntax:      touch [-c] file ... Flags:        -c  Do not create the file</p>
+      <p> Example:   touch *.h # Make the  .h  files look recent</p>
+      <p> The time of last modification is set to the current time. This command is mostly used to trick  make  into thinking that a file is more recent than it really is. If the file being touched does not exist, it is created, unless the -c flag is present.</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Command: tr - translate character codes</p>
+      <p> Syntax:      tr [-cds] [string 1] [string2]</p>
+      <p> Flags:        -c  Complement the set of characters in  stringl -d Delete all characters specified in  stringl -s  Squeeze all runs of characters in  stringl  to one character</p>
+      <p> Examples:  tr "[a-z]" "[A-Z]" &lt;x &gt;y     # Convert upper case to lower case tr -d "0123456789" &lt;fl &gt;f2 # Delete all digits from// Tr  performs simple character translation.  When no flag is specified, each</p>
+      <p> character in  stringl  is mapped onto the corresponding character in  stringl.</p>
+      <p> Command: true - exit with the value true Syntax: true Flags: (none)</p>
+      <p> Example:    while true # List the directory until DEL is hit</p>
+      <p> do Is -1 done</p>
+      <p> This command returns the value  true.  It is used for shell programming.</p>
+      <p> Command: umount - unmount a mounted file system Syntax:      /etc/umount special Flags: (none)</p>
+      <p> Example:    /etc/umount /dev/fdl      # Unmount floppy disk 1</p>
+      <p> A mounted file system is unmounted after the cache has been flushed to disk. A floppy disk should never be removed while it is mounted. If this happens, and is discovered before another floppy disk is inserted, the original one can be replaced without harm. Attempts to unmount a file system holding working directories or open files will be rejected with a "device busy" message.</p>
+      <p> Command: uniq - delete consecutive identical lines in a file Syntax:      uniq [-cdu] [ + n] [-n] [input [output]] Flags:        -c  Give count of identical lines in the input</p>
+      <p> -d Only duplicate lines are written to output</p>
+      <p> -u Only unique lines are written to output Examples:   uniq +2 file # Ignore first 2 fields when comparing</p>
+      <p> uniq -d inf outf # Write duplicate lines to  outf</p>
+      <p> Uniq  examines a file for consecutive lines that are identical. All but duplicate entries are deleted, and the file is written to output. The  +n  option skips the first  n  fields, where a field is defined as a run of characters separated by white space. The  -n  option skips the first  n  spaces. Fields are skipped first.</p>
+      <p> SEC. C.4 MINIX COMMANDS 409</p>
+      <p> Command: update - periodically write the buffer cache to disk Syntax: /etc/update Flags: (none)</p>
+      <p> Example:    /etc/update &amp;  #  Start a process that flushes the cache</p>
+      <p> When the system is booted,  update  is started up in the background from letclrc  to issue a SYNC system call every 30 sec.</p>
+      <p> Command</p>
+      <p> Syntax:</p>
+      <p> Flags:</p>
+      <p> Examples:</p>
+      <p> wc - count characters, words, and lines in a file wc [-clw] file ... -c  Print character count -1   Print line count -w Print word count</p>
+      <p> wc file 1 flle2 # Print all three counts for both files</p>
+      <p> wc -1 file # Print line count only</p>
+      <p> Wc  reads each argument and computes the number of characters, words and lines it contains. A word is delimited by white space (space, tab, or line feed). If no flags are present, all three counts are printed.</p>
+      <p> C.5. LIBRARIES</p>
+      <p> The MINIX distribution contains a substantial number of library procedures, including the system call library, stdio, and many others. The procedures are contained in the archive  lusrllibllibc.a.</p>
+      <p> The archive contains several kinds of procedures, among them procedures called by the compiler that are not normally explicitly called by user programs. For example, when the compiler has to generate code to do multiplication or division on longs, it does not generate in-line code. It calls library procedures instead.</p>
+      <p> The archive also contains user-callable procedures. The ones corresponding to the system calls have the same parameters as their UNIX counterparts, as do the  stdio  procedures for the most part. However, there are a few minor exceptions to this rule.</p>
+      <p> For one thing, to keep them small, many of the standard MINIX programs do not use  stdio.  To avoid having the  stdio  package loaded with these (and all) programs, the C run-time start-off routine,  crtso,  (which is loaded with all C programs), does not flush  stdio's  internal buffers when the main program returns to it after completion. User programs that use  stdio  should therefore make the call</p>
+      <p> _cleanup();</p>
+      <p> before exiting or returning 1  from the main program. (Note the underscore, which is part of the name.)</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> Another minor difference between MINIX  stdio  and UNIX  stdio  is how buffering of  stdout  is done. The MINIX version collects all the characters generated by each call to  printf  (or  fprintf)  and makes one WRITE system call per printf.</p>
+      <p> For noninteractive programs such as  Is  it is more efficient not to flush the buffer per  printf,  but to wait until it fills up. To disable the flushing of  stdout  on each  printf,  put the statement</p>
+      <p> setbuf(stdout, buffer);</p>
+      <p> at the beginning of the program, where  buffer  is an array of characters of size BUFSIZ  (defined in  stdio.h).  When the program exits, it is then essential to make the call</p>
+      <p> fflush(stdout);</p>
+      <p> to flush the final bytes, or alternatively, to call  -cleanup  to flush all the buffers if more than one output file has been used.</p>
+      <p> The header file  stdio. h  is located in  Iusrlinclude,  along with several other common header files.</p>
+      <p> The version of  printf  provided lacks some of the more exotic options of V7. One clear difference however, is that V7 accepts both %D and %ld for printing longs. MINIX only accepts the former. Similarly, MINIX only accepts %0 and %X for printing longs in octal and hex.</p>
+      <p> The other library procedures, such as  abs, tnalloc,  and  strcmp,  have the same parameters as the corresponding V7 procedures, and they perform the same function. Space limitations make it impossible to provide detailed documentation here about them. To see which procedures are available, type</p>
+      <p> ar tv /usr/lib/libc.a I mined</p>
+      <p> C.6. FILE FORMATS</p>
+      <p> In this section we will describe the format of several important files: executable files, archives, and library modules.</p>
+      <p> C.6.1. Executable File Format (a.out files)</p>
+      <p> An executable file consists of three parts: a header, the program text and the initialized data. The uninitialized data (the so-called bss segment) is not present in the executable file.</p>
+      <p> Two memory models are supported by the operating system. The small model has up to 64K memory total, for text, data, and stack. The separate I and D space model has 64K for the text and an additional 64K for data plus stack.</p>
+      <p> There is no space between the header and text or between the text and data,</p>
+      <p> SEC. C.6</p>
+      <p> FILE FORMATS</p>
+      <p> 411</p>
+      <p> except that for a separate I and D program, the text size must be a multiple of 16 bytes, the last 0 to 15 of which may be padding. The normal header is 32 bytes and is the same as that of PC-IX. It consists of eight longs as follows:</p>
+      <p> 0: Ox04100301L (small model), or 0x04200301L (separate I and D) 1: 0x00000020L (32-byte header), or Ox00000030L (48-byte header) 2: size of text segment in bytes 3: size of initialized data in bytes 4: size of bss in bytes 5: OxOOOOOOOOL</p>
+      <p> 6: total memory allocated to program 7: OxOOOOOOOOL</p>
+      <p> An alternative 48-byte header is also acceptable, and consists of the standard header followed by 16 bytes that are ignored. The longs are stored with the low-order byte first, so the first byte of the file is 0x01 and the next one is 0x03.</p>
+      <p> One of the fields in the header is the total amount of space that the program will be allocated when it is executed. It is equal to the sum of the text, data, bss, and dynamic allocation. (For separate I and D programs, it is the sum of the data, bss, and dynamic allocation only). The dynamic allocation is the total amount of memory reserved for the stack plus growth of the data segment. The dynamic allocation can be changed with the  chmem  command, which just updates long 6 in the header.</p>
+      <p> C.6.2. Archive Format</p>
+      <p> The archive format consists of a sequence of (header, file) pairs, with the magic number 0177545 prepended to the beginning of the file. Each file header consists of 26 bytes as follows (sizes in parentheses):</p>
+      <p> If a file has an odd number of bytes, a zero byte is added at the end so that each header begins at an even address. The zero byte is not included in the size field. The two longs in the header are stored with the high-order word first, in order to be V7 compatible.</p>
+      <p> C.6.3. Library Format</p>
+      <p> The MINIX library format consists of an archive of compact assembly code files. Each file in the archive normally contains just one procedure, although in a few cases two or three closely related procedures are in the same file. Each</p>
+      <p> MINIX USERS GUIDE</p>
+      <p> APPENDIX C</p>
+      <p> symbol that is to be visible outside the file must be declared in a  .define  statement. All the  .define  statements must occur at the start of the file, with no other statements before them. These statements are generated only when the C compiler is called with the -LIB flag.</p>
+      <p> Compact assembly code can be generated from ordinary ASCII assembly code by using the filter  libpack.  Compact assembly code can be turned back into ASCII by using the filter  libupack.  If a file is packed and then unpacked, the result will not be identical to the original because comments and excess white space are removed during the packing and cannot be restored. The resulting file will assemble into exactly the same binary file, however.</p>
+      <p> The packing algorithm relies on the fact that input to the assembler is a sequence of bytes, but only codes 0 to 127 (the ASCII character set) are used. What  libpack  does is recognize commonly occurring strings, and replace them with codes 128 to 255. For example, code 128 is  push ax,  code 129 is  ret,  code 130 is  mov bp,sp,  and so on. The exact list of strings mapped can be found by looking at the source of  libpack  or  libupack.  In theory, any file can be compacted, but if none of the approximately 120 built in strings occur in the file, the output will be identical to the input.</p>
+      <p> The advantage of this scheme over, say, a Huffman code is that an archive may contain some packed files and some unpacked files. They need not be distinguished in any way.  Asld  has been programmed to expand code 128 into  push ax  whenever it occurs, and so forth. If only ASCII codes appear in the input, no expansion occurs and no harm is done.</p>
+      <p> □</p>
+      <p> MINIX</p>
+      <p> IMPLEMENTERS' GUIDE</p>
+      <p> This appendix is intended for those readers who wish to modify MINIX or its utilities. In the following pages we will tell what the various files do and how the pieces are put together to form the whole.</p>
+      <p> One major problem is that some readers will undoubtedly want to use MINIX itself as the development system, others will want to use MS-DOS, and yet others will want to use one of the many UNIX systems available for the IBM PC (or even for other computers). Unfortunately, these systems all differ slightly, which gives rise to problems.</p>
+      <p> As a simple example, no two C compilers accept exactly the same dialect of C, and no two of them produce the same  a.out  file format. Furthermore, each assembler for the 8088 has its own input syntax and pseudoinstructions. Consequently this appendix is not a cookbook  (Joy of MINIX).  All we can do is try to provide enough background information to enable the aspiring implementer to tackle any problems that arise.</p>
+      <p> MINIX was developed on an IBM PC-XT using PC-IX. If that system is used as the development system, few problems will be encountered. If a 640K PC with two 360K drives is available, MINIX itself can be used as the development system. With a little bit of work, other systems can also be used. MS-DOS is not needed, except for formatting new diskettes.</p>
+      <p> Before modifying MINIX it is strongly recommended that you gain experience using it. Try running the programs in Appendix C, especially  cp, df, mkdir, mkfs, mount, rm,  and  umount,  all of which will be heavily used during</p>
+      <p> MINIX IMPLEMENTERS GUIDE</p>
+      <p> APPENDIX D</p>
+      <p> implementation. Try to recompile the original system in your own environment, to see how that is done. Only then is it sensible to begin modifying MINIX. It is probably easiest to work as root when modifying the system.</p>
+      <p> D.l. INTRODUCTION</p>
+      <p> A running MINIX system consists of three or four diskettes: the boot diskette, the root file system, the  lusr  file system (normally mounted on drive 0), and optionally the  /user  file system (mounted on drive 1, if available). All of these pieces are independent. You can construct one or more new file systems to use with the original operating system, which is on the boot diskette, or you can build a new operating system to use with the original file systems. You can also modify some, but not all, of the file systems. Each one is self contained.</p>
+      <p> The boot diskette contains the executable image of the operating system, as well as the file system checker,  fsck.  When the PC is booted from it, the operating system is loaded into memory at address 1536 and  fsck  is loaded just after it, typically at an address of about 85K.</p>
+      <p> Control is initially passed to  fsck,  which displays the menu and waits for a command. If the command specifies that a file system is to be checked or an empty file system is to be built,  fsck  performs the work and then displays the menu again. If the command is an equal sign,  fsck  jumps to address 1536 to start MINIX. The memory occupied by  fsck  will shortly be overwritten by the root file system on the RAM disk.</p>
+      <p> The boot diskette is built by a program called  build,  which concatenates six programs in a special way, removing headers, padding pieces out to multiples of 16 bytes, and making certain patches to the resulting file. The six programs are: (1) the boot block, (2) the kernel, (3) the memory manager, (4) the file system, (5) the system initializer, and (6) the file system checker. Each of these programs is compiled and linked independently of the others. It is thus possible to change the file system, for example, without having to touch the kernel at all, not even to relink it. We will discuss how each of these programs is made and how build  works later in this appendix.</p>
+      <p> File systems, including the root file system,  lusr,  and  /user,  can be made using  mkfs.  It is also possible to make an empty file system using the  fsck  menu, mount the file system, and then copy files to it. Existing file systems can be modified by mounting them, and then copying files to them or removing files from them.</p>
+      <p> The only difference between a file system intended as the root file system and one intended as  lusr  or  /user  is the size. When a file system is created, either by mkfs  or by  fsck,  the number of blocks and i-nodes is written into its super-block and cannot be changed. A file system intended for  lusr  or  laser  will normally use 360 blocks, but one intended as the root file system will usually be smaller, to avoid tying up so much memory for RAM disk.   The RAM disk size is</p>
+      <p> SEC. D.l</p>
+      <p> INTRODUCTION</p>
+      <p> 415</p>
+      <p> determined dynamically when the system is booted by simply reading the root file system's super-block to see how big it is. (Throughout this appendix it will be assumed that both the block size and zone size are IK, and little distinction will be made between blocks and zones.)</p>
+      <p> The MINIX sources contain nine directories with code and header files, and one directory,  doc,  containing some documentation. The code and header directories are as follows:</p>
+      <p> kernel - process, message, and I/O device handling</p>
+      <p> mm - the memory manager</p>
+      <p> fs - the file system</p>
+      <p> h - the headers used by the operating system</p>
+      <p> lib - the library routines</p>
+      <p> tools - miscellaneous tools and utilities</p>
+      <p> commands - the commands (e.g.,  cp, grep, Is)</p>
+      <p> test - programs for testing MINIX</p>
+      <p> include - the headers used by the commands</p>
+      <p> We will look at each of these directories in detail as we need them. Some of the directories contain subdirectories containing assembly code or other files specific to one compiler or operating system.</p>
+      <p> Setting Up</p>
+      <p> Before trying to carry out the instructions contained in this appendix, you should read it all the way through to get a reasonable grasp of what you have to do and why. In fact, it is a good idea to run  build  to make a new boot diskette using the binaries supplied (see Section D.5) before trying to recompile any of the parts of the operating system.</p>
+      <p> It will be tacitly assumed throughout this appendix that the development is being done on a PC with two 360K diskettes. For PC/ATs with a single 1.2M diskette, the procedure is slightly different, as noted in a few places. Furthermore, all references to diskette sizes of 360 blocks should be replaced by 1200 blocks for 1.2M diskettes.</p>
+      <p> MINIX is a large program. Unless you are a professional software developer, it is likely to be an order of magnitude larger than any program you have ever written. Many of the complications involved in recompiling it occur because the sources do not fit on a single diskette. This fact permeates every facet of the implementer's work.</p>
+      <p> To start with, you will need a large number of blank diskettes to hold the sources, intermediate files, executable programs, and new file systems. These diskettes should be standard IBM-compatible, double-sided, double-density, 360K diskettes. Before starting, format at least 10 diskettes with the format program of MS-DOS 2.0 or a later version. Format more diskettes as you need them. All diskettes must be formatted before being used.</p>
+      <p> MINIX IMPLEMENTERS GUIDE</p>
+      <p> APPENDIX D</p>
+      <p> The MINIX sources as distributed contain 9 directories with programs in them. As mentioned above, they are called  kernel, mm, fs, h, lib, tools, commands, test,  and  include.  To rebuild the operating system, you will need the first six; to rebuild the file systems you will need the last six. The directories  h, lib,  and tools  are needed for both.</p>
+      <p> Before starting work, you should copy the information from the source diskettes to the newly formatted blank diskettes in a special way. The originals can then be put away for safe keeping. For each source diskette, make as many copies of it as there are directories on it. For example, for a diskette containing directories  a, b, c,  make three copies of it. This can be done by inserting the source diskette in drive 0 and the blank diskette in drive 1 (unmounted), and typing</p>
+      <p> cp /dev/fdO /dev/fdl</p>
+      <p> Now remove directories  b  and  c  from the first copy, directories  a  and  c  from the second copy, and directories  a  and  b  from the third copy. The result will be that each directory will be on a diskette all by itself. Finally, copy the  h  directory and all its files to the  kernel, mm,  and  fs  diskettes. The  h  directory should be at the top level, not a subdirectory of  kernel  etc. because files are included as ..I hi const.h  and so on.</p>
+      <p> On a system with only 1 drive, first put an empty MINIX file system on each blank diskette using  mkfs.  Then remove everything from the root file system except  cp,  mount a source diskette, and copy as much of it as possible to the RAM disk. The  df  program can be put in  I bin  to keep track of available space. Then unmount the source diskette and mount the new (empty) diskette in its place, copying the files from the root device to it. Repeat several times until everything has been copied.</p>
+      <p> When doing the development on a single drive PC/AT, it will also be necessary to create directories  bin  and  lib  on each source diskette, and copy some files from  lusrlbin  and  lusrllib  to each one. That way, no matter which source diskette is mounted on  lusr  at any instant, all the necessary binaries and libraries will be available.</p>
+      <p> Some directories contain subdirectories called  MINIX, PCIX,  and  C86.  These directories contain assembly language files, makefiles, etc. that differ from system to system. If you are going to use MINIX as the development system, move all the files in the  MINIX  directory into the directory one level above it. For example,  kernel/MINIX/makefile  becomes  kernel/makefile.</p>
+      <p> Similarly, if you are going to use PC-IX (or some other version of UNIX such as XENIX), use the files from  PCIX.  If you plan to use MS-DOS, use the  C86 directory. Although these files are specifically for the Computer Innovations C86 compiler, they are a better starting point for other MS-DOS compilers than the MINIX or PC-IX files. If you are using a system other than MINIX, PC-IX or MS-DOS with the C86 compiler, you will probably have to make minor changes to some of these files.</p>
+      <p> SEC. D.l</p>
+      <p> INTRODUCTION</p>
+      <p> 417</p>
+      <p> Once you have made a choice of subdirectory and moved its files one level up, remove all the subdirectories because every block of space will be needed later.</p>
+      <p> We now encounter the first obstacle thrown up by the large size of MINIX. The  commands  directory is too large to fit on a single diskette. Logically, it is a single directory, but when using floppy disks it will be necessary to split it up onto multiple diskettes, each one having a single directory,  commands,  at the top level, and holding some of the programs. Do not fill the diskettes completely full; at least 100K should be left unused on each one. The choice of which commands go on which diskette is unimportant.</p>
+      <p> A few programs need files from the  include  directory that are not contained in  Iusrlliblinclude.  These are contained on one of the source diskettes. Other programs need files from  h.  These should be copied to the relevant diskette when their absence is noted by the compiler.</p>
+      <p> Implementers with a hard disk should create a directory  minix  on the hard disk and then create and load the nine subdirectories. As with the floppy disk systems, for each directory with subdirectories, one of them should be chosen and its contents placed in the directory. None of the subdirectories should be created on the hard disk.</p>
+      <p> The  tools  directory contains two or three programs that may be needed during the development process:  dos2out, build,  and  mkfs.  The first one,  dos2out,  converts MS-DOS  .EXE  files to MINIX format. It is only needed when MS-DOS is being used as the development system. The second one,  build,  puts together the compiled and linked pieces of MINIX to form the boot diskette. The third one, mkfs,  builds MINIX file systems. To build a MINIX file system, you must use  this version of  mkfs.  Accept no substitutes. Although  mkfs  is needed in both  commands  and in  tools,  its source is only included in the distribution once, so you have to get it into both directories by copying it.</p>
+      <p> Compile these programs to run on your development system, and use as directed. If your development system is MINIX or PC-IX, you will not need dos2out.  If it is MS-DOS, compile these three programs with the flag  -DDOS,  for example,</p>
+      <p> cc -c -DDOS mkfs.c</p>
+      <p> After all these steps have been carried out, the original diskette distribution should be put away and all subsequent work done with the directory-per-diskette copies.</p>
+      <p> D.2. THE LIBRARY</p>
+      <p> The operating system and many of the commands use library procedures. These procedures must be linked in when the binary (i.e., executable) program is made. To speed up linking, they are precompiled, and kept in a library from</p>
+      <p> MINIX IMPLEMENTERS GUIDE</p>
+      <p> APPENDIX D</p>
+      <p> which the linker extracts them. The following sections deal with how the library is built and maintained.</p>
+      <p> It you are using  minix  as the development system, it is not necessary to build the library. A complete, properly ordered MINIX library is already present as the archive  lusrllibllibc.a.  Just use it.</p>
+      <p> D.2.1. Internal Compiler Procedures</p>
+      <p> The necessary library procedures can be divided into two disjoint categories: user-callable procedures and internal compiler procedures. The user-callable procedures include the system call library procedures such as  open, read,  and fork,  the standard I/O library procedures, such as  fopen, getc,  and  printf,  and miscellaneous procedures, such as  atoi, isatty,  and  strcmp.  The sources for all these procedures are provided in the distribution. They merely need to be compiled and put in the library.</p>
+      <p> The other category is much harder to deal with. Nearly all C compilers use library procedures as part of the generated code. For example, many C compilers do not compile in-line code for multiplication and division on longs. Instead they call the library routines  Imul  and  Idiv.  Similarly, the first or second instruction of each compiled C procedure is often a call to  csv,  which saves the registers and reserves storage for the local variables on the stack.</p>
+      <p> These internal procedures are written for use with one specific compiler. The version of  Imul  provided in the library that comes with compiler  X  is almost guaranteed not to work with compiler  Y  due to different calling conventions, assumptions about which registers it may and may not destroy, and so on. For this reason, none of the sources for the internal procedures are provided in the distribution. You have to use those that come with your compiler.</p>
+      <p> However, using the library that comes with your compiler can lead to serious problems. That library not only contains the small internal procedures, such as Imul,  which are basically harmless, but it also contains the system call procedures such as  read,  which make foreign operating system calls. For example, if you were to compile and link one of the  minix  utilities with an MS-DOS compiler, the binary program produced might contain MS-DOS system calls, which would not work when the program ran on MINIX.</p>
+      <p> Thus we are faced with a situation in which the user-callable procedures must be derived from the supplied sources, but the internal procedures must be those that go with the particular compiler being used. The solution is to first compile the MINIX library sources and put them in the MINIX library. Then the necessary internal compiler procedures are extracted from the library supplied with the compiler and added to the MINIX library. When a MINIX program is linked, only the MINIX library is specified, thus preventing accidental use of a procedure that might make a foreign system call.</p>
+      <p> One problem with this approach is that in order to extract the compiler's internal procedures from the library, you must know which ones they are. For</p>
+      <p> SEC. D.2</p>
+      <p> THE LIBRARY</p>
+      <p> 419</p>
+      <p> the PC-IX and C86 compilers, the necessary procedures are listed below. For other compilers, the only way to find out is to initially assume that none are needed, and try compiling some programs. If the compiler generates calls to internal procedures, these will be flagged by the linker as undefined external symbols. The necessary procedures can then be extracted from the compiler's library, inspected to make sure they contain no system calls, and added to the MINIX library. This process may have to be iterated several times before all of them have been pinpointed. To speed up the process, write a test program that does addition, subtraction, multiplication, division, and modulo on short integers, unsigned integers, and long integers, and try compiling and linking it.</p>
+      <p> This is an important point, so we will repeat it. Never link a MINIX program with any library other than the MINIX library, and never put any procedure in the MINIX library unless you are sure that it makes no system calls. Accidentally linking into a MINIX program a procedure that makes an MS-DOS, PC-IX, XENIX, or other foreign system call will lead to sure disaster. (Modifying MINIX so that it can handle not only all its own system calls, but also those of MS-DOS, PC-IX, and XENIX as well is left as an exercise for the reader who has a spare decade to kill.)</p>
+      <p> The directory  lusrllib  contains three assembly language files,  crtso.s, end.s, and  head.s.  The first one,  crtso.s,  is the C run-time start-off procedure. It must be the first procedure in any binary program. When a program gets control after an EXEC system call, execution always begins at address 0, which must be the start of  crtso.  This little routine puts  argc, argv,  and  envp  on the stack properly, and calls  -main.</p>
+      <p> It also defines some compiler-dependent labels needed to mark the start of the text, data, and bss segments. The file  end.s  defines the labels needed at the end of these segments. When  cc  is called with the argument  file, s,  the command that is actually executed is</p>
+      <p> asld /usr/lib/crtso.s file.s /usr/lib/libc.a /usr/lib/end.s</p>
+      <p> The file  head.s  is analogous to  crtso.s,  but is only used for linking the memory manager, the file system, and  ink,  because they are started off directly by the kernel, not by an EXEC system call.</p>
+      <p> D.2.2. Ordering the Procedures in the Library</p>
+      <p> Another issue that arises when building the library is the ordering of the procedures in it. Some linkers do not care about the order, but others do. Most linkers are one pass, which means that as the linker examines each procedure in the library, it makes the decision to extract it or not based on the information it has at that instant.</p>
+      <p> To see what consequences this strategy has for library ordering, consider a program that calls  getc  to get the next input character. The procedure  getc  calls read.   If  read  happens to be placed before  getc  in the library, when the linker</p>
+      <p> MINIX IMPLEMENTERS GUIDE</p>
+      <p> APPENDIX D</p>
+      <p> processes  read  while scanning the library, it will not extract it because it is not used in the user's program. When the linker comes to  getc,  it will extract it and see that  getc  calls  read.  As it continues to scan the library, the linker will keep an eye out for  read,  but it will never find it and will eventually terminate the link with a message saying that  read  is an undefined symbol.</p>
+      <p> The obvious solution is to order all library procedures in such a way that if  X calls  Y,  then  X  is located before  Y  in the library. It is easy to dream up situations where such an ordering is impossible, for example,  X  calls  Y, Y  calls Z, and Z calls  X.  Fortunately, in practice such situations rarely occur. On UNIX systems, the  lorder  command can be used to order the modules in a library.</p>
+      <p> Another factor to be taken into account when ordering the library is performance. Some linkers stop scanning a library when they have found all the procedures that they need. This observation leads to the goal of placing the most commonly used procedures as early as possible in the library.</p>
+      <p> D.2.3. Assembly Language Procedures</p>
+      <p> Although nearly all of the MINIX library is written in C, a handful of procedures had to be written in assembly language. Some of these procedures are not located in the directory  lib  itself, but in one of its subdirectories. If you have followed the instructions given above, you will have already copied the files from one of the subdirectories into  lib.</p>
+      <p> Another point concerning the assembly code is the peculiar property that some C compilers have of not handling long names the same way as their own assemblers. When confronted with the name  catchsig,  for example, virtually all C compilers will prepend an underscore and then truncate the result to eight characters, yielding  ^catchsi  as the external symbol. When the name  -.catchsig  is used in an assembly routine, most assemblers will also truncate it to eight characters, yielding the same name, but a few of them do not truncate it, resulting in an undefined symbol  -catchsig  used by the assembly language file but defined nowhere. If you discover undefined symbols of this kind, the solution is to edit the assembly code files and truncate all symbols to eight characters by hand.</p>
+      <p> At least one compiler does not prepend the underscore, but attaches it  after the name. In the above example, the external symbol would be  catchsig.  Again, the assembly code files must then be manually edited to make the names agree with what the C compiler generates.</p>
+      <p> D.2.4. Step-by-Step Instructions</p>
+      <p> The library sources are contained in the archive  libsrc.a  rather than as separate files (to save space on the distribution diskette). Extract them and delete the archive by typing:</p>
+      <p> ar x libsrc.a; rm libsrc.a</p>
+      <p> SEC. D.2</p>
+      <p> THE LIBRARY</p>
+      <p> 421</p>
+      <p> Compile all the C files and assemble all the assembly code files in  lib,  but do not link them. If the work is being done on UNIX, the shell script  run  can be used. If the work is being done on MINIX, nothing needs to be done. The library lusrllibllibc.a  on the  lusr  diskette is complete and ready for use.</p>
+      <p> At this point you will have over 100 object files. The next step is to augment this collection by extracting the necessary internal compiler routines from the compiler's own library. Below is a list of files that probably need to be extracted for the PC-IX and C86 compilers:</p>
+      <p> PC-IX    -  Idiv.o, Imul.o, Irem.o, aldiv.o, almul.o, alrem.o, divsub.o</p>
+      <p> C86      -  zldivmod, ziswitch, zfloatpp, zlrsshift, zllshift, zlmul, zlrushift zsswitch, zentry</p>
+      <p> If the MINIX C compiler is being used, no procedures need to be extracted since everything that is needed is already in the library.</p>
+      <p> The procedures  csv  and  cret  need special care. Some compilers use them for procedure entry and exit, and others do not. If your compiler uses them, be sure to check to see that they do not make system calls. Some versions of  csv  check for stack overflow, and call  write  to report the problem. If this is the case, you will have to program new versions that do not do the checking. In most cases these procedures are only a few instructions. An example is given in the file csv.s,  which can be used with PC-IX.</p>
+    </div>
+  </body>
+</html>

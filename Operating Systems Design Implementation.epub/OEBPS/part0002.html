@@ -1,0 +1,875 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>part0002</title>
+    <meta content="abbyy to epub tool, v0.2" name="generator"/>
+    <link href="stylesheet.css" type="text/css" rel="stylesheet"/>
+    <meta content="application/xhtml+xml; charset=utf-8" http-equiv="Content-Type"/>
+  </head>
+  <body>
+    <div class="body">
+      <p> The controller card usually has a connector on it, into which a cable leading to the device itself can be plugged. Many controllers can handle two, four, or even eight identical devices. If the interface between the controller and device is a standard interface, either an official standard such as ANSI, IEEE or ISO, or a defacto one, then companies can make controllers or devices that fit that interface. Many companies, for example, make disk drives that match the IBM disk controller interface.</p>
+      <p> We mention this distinction between controller and device because the operating system nearly always deals with the controller, not the device. Nearly all microcomputers and minicomputers use the single bus model of Fig. 3-1 for communication between the CPU and the controllers. Large mainframes often use a different model, with multiple buses and specialized I/O computers called I/O channels taking some of the load off the main CPU.</p>
+      <p> Disk drives</p>
+      <p> Printer</p>
+      <p> Controller-device interface</p>
+      <p> CPU</p>
+      <p class="illus">
+        <img src="images/picture24.jpg" alt="picture24"/>
+      </p>
+      <p> Printer controller</p>
+      <p> Other controllers</p>
+      <p> System bus</p>
+      <p> Fig. 3-1. A model for connecting the CPU, memory, controllers, and I/O devices.</p>
+      <p> The interface between the controller and the device is often a very low-level interface. A disk, for example, might be formatted with 8 sectors of 512 bytes per track. What actually comes off the drive, however, is a serial bit stream, starting with a preamble, then the 4096 bits in a sector, and finally a checksum or error-correcting code (ECC). The preamble is written when the disk is formatted, and contains the cylinder and sector number, the sector size, and similar data.</p>
+      <p> The controller's job is to convert the serial bit stream into a block of bytes</p>
+      <p> SEC. 3.1</p>
+      <p> PRINCIPLES OF I/O HARDWARE</p>
+      <p> 113</p>
+      <p> and perform any error correction necessary. The block of bytes is typically first assembled, bit by bit, in a buffer inside the controller. After its checksum has been verified and the block declared to be error free, it can then be copied to main memory.</p>
+      <p> The controller for a CRT terminal also works as a bit serial device at an equally low level. It reads bytes containing the characters to be displayed from memory, and generates the signals used to modulate the CRT beam to cause it to write on the screen. The controller also generates the signals for making the CRT beam do a horizontal retrace after it has finished a scan line, as well as the signals for making it do a vertical retrace after the entire screen has been scanned. If it were not for the CRT controller, the operating system programmer would have to explicitly program the analog scanning of the tube. With the controller, the operating system initializes the controller with a few parameters, such as the number of characters per line and number of lines per screen, and lets the controller take care of actually driving the beam.</p>
+      <p> Each controller has a few registers that are used for communicating with the CPU. On some computers, these registers are part of the regular memory address space. The PDP-11, for example, reserves addresses 0160000 to 0177777 for device registers. Other computers, including the IBM PC, use a special address space for I/O, with each controller allocated a certain portion of it. Figure 3-2 shows the I/O addresses and interrupt vectors allocated to some of the controllers on the IBM PC. The assignment of I/O addresses to devices is made by bus decoding logic associated with the controller. Some manufacturers of so-called IBM PC compatibles use different I/O addresses from what IBM uses. Programs that actually use I/O addresses (including MINIX) must be modified to run on these machines.</p>
+      <p> Fig. 3-2. Some examples of controllers, their I/O addresses and their interrupt vectors on the IBM PC.</p>
+      <p> The operating system performs I/O by writing commands into the controllers' registers. The IBM PC floppy disk controller, for example, accepts 15 different commands, such as READ, WRITE, SEEK,  format,  and  recalibrate.  Many of</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> the commands have parameters, which are also loaded into the controller's registers. When a command has been accepted, the CPU can leave the controller alone and go off to do other work. When the command has been completed, the controller causes an interrupt in order to allow the operating system to gain control of the CPU and test the results of the operation. The CPU gets the results and device status by reading one or more bytes of information from the controller's registers.</p>
+      <p> Direct Memory Access (DMA)</p>
+      <p> Many controllers, especially those for block devices, support direct memory access or DMA. To explain how DMA works, let us first look at how disk reads occur when DMA is not used. First the controller reads the block (one or more sectors) from the drive serially, bit by bit, until the entire block is in the controller's internal buffer. Next, it performs the checksum computation to verify that no read errors have occurred. The checksum can be computed only after the entire block has been read. Then the controller causes an interrupt. When the operating system starts running, it can read the disk block from the controller's buffer a byte or a word at a time by executing a loop, with each iteration reading one byte or word from a controller device register and storing it in memory.</p>
+      <p> Naturally, a programmed CPU loop to read the bytes one at a time from the controller wastes CPU time. DMA was invented to free the CPU from this low-level work. When it is used, the CPU gives the controller two items of information, in addition to the disk address of the block: the memory address where the block is to go, and the number of bytes to transfer, as shown in Fig. 3-3.</p>
+      <p> CPU</p>
+      <p> Memory</p>
+      <p> Drive</p>
+      <p class="illus">
+        <img src="images/picture25.jpg" alt="picture25"/>
+      </p>
+      <p> Memory address Count</p>
+      <p> System bus</p>
+      <p> Fig. 3-3. A DMA transfer is done entirely by the controller.</p>
+      <p> After the controller has read the entire block from the device into its buffer and verified the checksum, it copies the first byte or word into the main memory at the address specified by the DMA memory address. Then it increments the DMA address and decrements the DMA count by the number of bytes just transferred.  This process is repeated until the DMA count becomes zero, at</p>
+      <p> SEC. 3.1</p>
+      <p> PRINCIPLES OF I/O HARDWARE</p>
+      <p> 115</p>
+      <p> which time the controller causes an interrupt. When the operating system starts up, it does not have to copy the block to memory: it is already there.</p>
+      <p> You may be wondering why the controller does not just store the bytes in main memory as soon as it gets them from the disk. In other words, why does it need an internal buffer? The reason is that once a disk transfer has started, the bits keep arriving from the disk at a constant rate, whether the controller is ready for them or not. If the controller tried to write data directly to memory, it would have to go over the system bus for each word transferred. If the bus were busy due to some other device using it, the controller would have to wait. If the next disk word arrived before the previous one had been stored, the controller would have to store it somewhere. If the bus were very busy, the controller might end up storing quite a few words and having a lot of administration to do as well. When the block is buffered internally, the bus is not needed until the DMA begins, so the design of the controller is much simpler because the DMA transfer to memory is not time critical. (Some controllers do, in fact, go directly to memory with only a small amount of internal buffering, but if the bus is very busy, a transfer may have to be terminated with an overrun error.)</p>
+      <p> The two-step buffering process described above has important implications for I/O performance. While the data are being transferred from the controller to the memory, either by the CPU or by the controller, the next sector will be passing under the disk head and the bits arriving in the controller. Simple controllers just cannot cope with doing input and output at the same time, so while a memory transfer is taking place, the sector passing under the disk head is lost.</p>
+      <p> As a result, the controller will be able to read only every other block. Reading a complete track will then require two full rotations, one for the even blocks and one for the odd blocks. If the time to transfer a block from the controller to memory over the bus is longer than the time to read a block from the disk, it may be necessary to read one block and then skip two (or more) blocks.</p>
+      <p> Skipping blocks to give the controller time to transfer data to memory is called interleaving. When the disk is formatted, the blocks are numbered to take account of the interleave factor. In Fig. 3-4(a) we see a disk with 8 blocks per track and no interleave. In Fig. 3-4(b) we see the same disk with single interleaving. In Fig. 3-4(c) double interleaving is shown.</p>
+      <p class="illus">
+        <img src="images/picture26.jpg" alt="picture26"/>
+      </p>
+      <p> Fig. 3-4. (a) No interleaving, (b) Single interleaving, (c) Double interleaving.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> The idea of numbering the blocks this way is to allow the operating system to read consecutively numbered blocks and still achieve the maximum speed the hardware is capable of. If the blocks were numbered as in Fig. 3-4(a) but the controller could read only alternate blocks, an operating system that allocated an 8-block file in consecutive disk blocks would require eight disk rotations to read blocks 0 through 7 in order. (Of course, if the operating system knew about the problem and allocated its blocks differently, it could solve the problem in software, but it is better to have the controller worry about the interleaving.)</p>
+      <p> 3.2. PRINCIPLES OF I/O SOFTWARE</p>
+      <p> Let's turn away from the hardware and now look at how the I/O software is structured. The general goals of the I/O software are easy to state. The basic idea is to organize the software as a series of layers, with the lower ones concerned with hiding the peculiarities of the hardware from the upper ones, and the upper ones concerned with presenting a nice, clean, regular interface to the users. In the following sections we will look at these goals and how they are achieved.</p>
+      <p> 3.2.1. Goals of the I/O Software</p>
+      <p> A key concept in the design of I/O software is device independence. It should be possible to write programs that can be used with files on a floppy disk or a hard disk, without having to modify the programs for each device type. In fact, it should be possible to move the program without even recompiling it. One should be able to type the command</p>
+      <p> sort &lt;input &gt;output</p>
+      <p> and have it work with input and output on floppy disk or on hard disk or even coming from, or going to, the terminal. It is up to the operating system to take care of the problems caused by the fact that these devices really are different and require very different device drivers.</p>
+      <p> Closely related to device independence is the goal of uniform naming. The name of a file or a device should simply be a string or an integer and not depend on the device in any way. In MINIX, floppy disks, hard disks and all other block devices can be mounted in the file system hierarchy in arbitrary places, so the user need not be aware of which name corresponds to which device. All files and devices are addressed the same way: by a path name.</p>
+      <p> Another important issue for I/O software is error handling. In general, errors should be handled as close to the hardware as possible. If the controller discovers a read error, it should try to correct the error itself if it can. If it cannot, then the device driver should handle it, perhaps by just trying to read the block again. Many errors are transient, such as read errors caused by specks of</p>
+      <p> SEC. 3.2</p>
+      <p> PRINCIPLES OF I/O SOFTWARE</p>
+      <p> 117</p>
+      <p> dust on the read head, and will go away if the operation is repeated. Only if the lower layers are not able to deal with the problem should the upper layers be told about it.</p>
+      <p> Still another key issue is synchronous (blocking) versus asynchronous (interrupt-driven) transfers. Most physical I/O is asynchronous—the CPU starts the transfer and goes off to do something else until the interrupt arrives. User programs are much easier to write if the I/O operations are blocking—after a READ command the program is automatically suspended until the data are available in the buffer. It is up to the operating system to make operations that are actually interrupt-driven look blocking to the user programs.</p>
+      <p> The final concept that we will deal with here is sharable versus dedicated devices. Some I/O devices, such as disks, can be used by many users at the same time. No problems are caused by multiple users having open files on the same disk at the same time. Other devices, such as printers, have to be dedicated to a single user until that user is finished. Having five users printing lines intermixed at random on the printer just would not work. Introducing dedicated devices also introduces a variety of problems, including deadlock. Again, the operating system must handle both shared and dedicated devices in a way that avoids problems.</p>
+      <p> These goals can be achieved in a comprehensible and efficient way by structuring the I/O software in four layers:</p>
+      <p> 1. Interrupt handlers.</p>
+      <p> 2. Device drivers.</p>
+      <p> 3. Device-independent operating system software.</p>
+      <p> 4. User level software.</p>
+      <p> These four layers are (not accidently) the same four layers that we saw in Fig. 2-26. In the following sections we will look at each one in turn, starting at the bottom. The emphasis in this chapter is on the device drivers (layer 2), but we will summarize the rest of the I/O software to show how the various pieces of the I/O system fit together.</p>
+      <p> 3.2.2. Interrupt Handlers</p>
+      <p> Interrupts are an unpleasant fact of life. They should be hidden away, deep in the bowels of the system, so that as little of the system as possible knows about them. The way to hide them is to have a process, typically a device driver (an I/O task in MINIX terms), be blocked whenever an I/O command has been issued and an interrupt is expected.</p>
+      <p> When the interrupt happens, the interrupt procedure does whatever it has to in order to unblock the driver. In some systems it will do an UP on a semaphore. In others it will do a SIGNAL on a condition variable in a monitor. In still others,</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> it will send a message to the blocked process. In all cases the net effect of the interrupt will be that a process that was previously blocked will now be able to run. Having studied the implementation of interrupt handling in detail in the previous chapter, let us now proceed with the device drivers themselves.</p>
+      <p> 3.2.3. Device Drivers</p>
+      <p> All the device-dependent code goes in the device drivers. Each device driver handles one device type, or at most, one class of closely related devices. For example, it would probably be a good idea to have a single terminal driver, even if the system supported several different brands of terminals, all slightly different. On the other hand, a dumb, mechanical hardcopy terminal and an intelligent bit map graphics terminal with a mouse are so different that different drivers should be used.</p>
+      <p> Earlier in this chapter we looked at what device controllers do. We saw that each controller has one or more device registers used to give it commands. The device drivers issue these commands and check that they are carried out properly. Thus, the disk driver is the only part of the operating system that knows how many registers that disk controller has and what they are used for. It alone knows about sectors, tracks, cylinders, heads, arm motion, interleave factors, motor drives, head settling times, and all the other mechanics of making the disk work properly.</p>
+      <p> In general terms, the job of a device driver is to accept abstract requests from the device-independent software above it, and see to it that the request is carried out. A typical request is to read block  n.  If the driver is idle at the time a request comes in, it starts carrying out the request immediately. If, however, it is already busy with a request, it will normally enter the new request into a queue of pending requests to be dealt with as soon as possible.</p>
+      <p> The first step in actually carrying out an I/O request, say, for a disk, is to translate it from abstract to concrete terms. For a disk driver, this means figuring out where on the disk the requested block actually is, checking to see if the drive's motor is running, determining if the arm is positioned on the proper cylinder, and so on. In short, it must decide which controller operations are required and in what sequence.</p>
+      <p> Once it has determined which commands to issue to the controller, it starts issuing them by writing into the controller's device registers. Some controllers can handle only one command at a time. Other controllers are willing to accept a linked list of commands, which they then carry out by themselves without further help from the operating system.</p>
+      <p> After the command or commands have been issued, one of two situations will apply. In many cases the device driver must wait until the controller does some work for it, so it blocks itself until the interrupt comes in to unblock it. In other cases, however, the operation finishes without delay, so the driver need not block.   As an example of the latter situation, scrolling the screen on some</p>
+      <p> SEC. 3.2</p>
+      <p> PRINCIPLES OF I/O SOFTWARE</p>
+      <p> 119</p>
+      <p> terminals (including the IBM PC) requires just writing a few bytes into the controller's registers. No mechanical motion is needed, so the entire operation can be completed in a few microseconds.</p>
+      <p> In the former case, the blocked driver will be awakened by the interrupt. In the latter case, it will never go to sleep. Either way, after the operation has been completed it must check for errors. If everything is all right, the driver may have data to pass to the device-independent software (e.g., a block just read). Finally it returns some status information for error reporting back to its caller. If any other requests are queued, one of them can now be selected and started. If nothing is queued, the driver blocks waiting for the next request.</p>
+      <p> 3.2.4. Device-Independent I/O Software</p>
+      <p> Although some of the I/O software is device specific, a large fraction of it is device-independent. The exact boundary between the drivers and the device-independent software is system dependent, because some functions that could be done in a device-independent way may actually be done in the drivers, for efficiency or other reasons. The functions shown in Fig. 3-5 are typically done in the device-independent software. In MINIX, most of the device-independent software is part of the file system, in layer 3 (Fig. 2-26). Although we will study the file system in Chap. 5, we will take a quick look at the device-independent software here, to provide some perspective on I/O and show better where the drivers fit in.</p>
+      <p> Uniform interfacing for the device drivers Device naming Device protection</p>
+      <p> Providing a device-independent block size Buffering</p>
+      <p> Storage allocation on block devices Allocating and releasing dedicated devices Error reporting</p>
+      <p> Fig. 3-5. Functions of the device-independent I/O software.</p>
+      <p> The basic function of the device-independent software is to perform the I/O functions that are common to all devices, and to provide a uniform interface to the user-level software.</p>
+      <p> A major issue in an operating system is how objects such as files and I/O devices are named. The device independent software takes care of mapping symbolic device names onto the proper driver. In MINIX a device name, such as IdevlttyO,  uniquely specifies the i-node for a special file, and this i-node contains the major device number, which is used to locate the appropriate driver. The i-node also contains the minor device number, which is passed as a parameter to the driver to specify the unit to be read or written.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> Closely related to naming is protection. How does the system prevent users from accessing devices that they are not entitled to access? In most microcomputer systems, there is no protection at all. Any process can do anything it wants to. In most mainframe systems, access to I/O devices by user processes is completely forbidden. In MINIX, a more flexible scheme is used. The special files corresponding to I/O devices are protected by the usual  rwx  bits. The system administrator can then set the proper permissions for each device.</p>
+      <p> Different disks may have different sector sizes. It is up to the device-independent software to hide this fact and provide a uniform block size to higher layers, for example, by treating several sectors as a single logical block. In this way, the higher layers only deal with abstract devices that all use the same logical block size, independent of the physical sector size. Similarly, some character devices deliver their data one byte at a time (e.g., paper tape readers), while others deliver theirs in larger units (e.g., card readers). These differences must also be hidden.</p>
+      <p> Buffering is also an issue, both for block and character devices. For block devices, the hardware generally insists upon reading and writing entire blocks at once, but user processes are free to read and write in arbitrary units. If a user process writes half a block, the operating system will normally keep the data around internally until the rest of the data are written, at which time the block can go out to the disk. For character devices, users can write data to the system faster than it can be output, necessitating buffering. Keyboard input can also arrive before it is needed, also requiring buffering.</p>
+      <p> When a file is created and filled with data, new disk blocks have to be allocated to the file. To perform this allocation, the operating system needs a list or bit map of free blocks per disk, but the algorithm for locating a free block is device independent and can be done above the level of the driver.</p>
+      <p> Some devices, such as magnetic tape drives, can be used only by a single process at any given moment. It is up to the operating system to examine requests for device usage and accept or reject them, depending on whether the requested device is available or not. A simple way to handle these requests is to require processes to perform OPENs on the special files for devices directly. If the device is unavailable, the OPEN will fail. Closing such a dedicated device would then release it.</p>
+      <p> Error handling, by and large, is done by the drivers. Most errors are highly device-dependent, so only the driver knows what to do (e.g., retry, ignore it, panic). A typical error is caused by a disk block that has been damaged and cannot be read any more. After the driver has tried to read the block a certain number of times, it gives up and informs the device-independent software. How the error is treated from here on is device independent. If the error occurred while reading a user file, it may be sufficient to report the error back to the caller. However, if it occurred while reading a critical system data structure such as the block containing the bit map showing which blocks are free, the operating system may have no choice but to print an error message and terminate.</p>
+      <p> SEC. 3.2</p>
+      <p> PRINCIPLES OF I/O SOFTWARE</p>
+      <p> 121</p>
+      <p> 3.2.5. User-Space I/O Software</p>
+      <p> Although most of the I/O software is within the operating system, a small portion of it consists of libraries linked together with user programs, and even whole programs running outside the kernel. System calls, including the I/O system calls, are normally made by library procedures. When a C program contains the call</p>
+      <p> bytes_read = read(file_descriptor, buffer, bytes_wanted);</p>
+      <p> the library procedure  read  will be linked with the program and contained in the binary program present in memory at run time. The collection of all these library procedures is clearly part of the I/O system.</p>
+      <p> While these procedures do little more than put their parameters in the appropriate place for the system call, there are other I/O procedures that actually do real work. In particular, formatting of input and output is done by library procedures. One example from C is  printf,  which takes a format string and possibly some variables as input, builds an ASCII string, and then calls  write  to output the string. An example of a similar procedure for input is  atoi  (Ascii TO Integer), which takes a string containing a decimal integer in ASCII and returns the binary value of that integer. The standard I/O library contains a number of procedures that involve I/O and all run as part of user programs.</p>
+      <p> Not all user-level I/O software consists of library procedures. Another important category is the spooling system. Spooling is a way of dealing with dedicated I/O devices in a multiprogramming system. Consider a typical spooled device: the line printer. Although it would be technically easy to let any user process open the character special file for the printer, suppose a process opened it and then did nothing for hours. No other process could print anything.</p>
+      <p> Instead what is done is to create a special process, called a daemon, and a special directory, called a spooling directory. To print a file, a process first generates the entire file to be printed and puts it in the spooling directory. It is up to the daemon, which is the only process having permission to use the printer's special file, to print the files in the directory. By protecting the special file against direct use by users, the problem of having someone keeping it open unnecessarily long is eliminated.</p>
+      <p> Spooling is not only used for printers. It is also used in other situations. For example, file transfer over a network often uses a network daemon. To send a file somewhere, a user puts it in a network spooling directory. Later on, the network daemon takes it out and transmits it. One particular use of spooled file transmission is the USENET network, which is primarily used as an electronic mail system. This network consists of thousands of machines around the world communicating by dial-up telephone lines and many computer networks. To send mail to someone on USENET, you call a program such as  send,  which accepts the letter to be sent and then deposits it in a spooling directory for transmission later. The entire mail system runs outside the operating system.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> Figure 3-6 summarizes the I/O system, showing all the layers and the principal functions of each layer.</p>
+      <p> I/O</p>
+      <p> request</p>
+      <p> Layer</p>
+      <p> User processes</p>
+      <p> Device-independent software</p>
+      <p> Device drivers</p>
+      <p> Interrupt handlers</p>
+      <p> Hardware</p>
+      <p> "°       I/O functions reply</p>
+      <p> Make I/O call; format I/O; spooling</p>
+      <p> Naming, protection, blocking, buffering, allocation</p>
+      <p> Setup device registers; check status</p>
+      <p> Wakeup driver when I/O completed</p>
+      <p> Perform I/O operation</p>
+      <p> Fig. 3-6. Layers of the I/O system and the main functions of each layer.</p>
+      <p> 3.3. DEADLOCKS</p>
+      <p> One problem with spooling is that the entire file to be output must be written to the disk before the output can be started. (What would happen if a daemon began printing a file before it had been fully generated and the process generating it stopped for a few hours before finishing its output?) Sometimes the output is so large that not enough disk space is available to hold it all. A program generating output for a magnetic tape might produce 50 megabytes of data. The only way to handle this situation is not to use spooling for the device, but to allow user processes to request, and be granted, exclusive access for as long as needed.</p>
+      <p> Unfortunately, allowing exclusive access to magnetic tape drives or any other kind of resource can lead to serious problems. Suppose a computer has one tape drive and one plotter, neither of them spooled. Process  A  requests the tape drive and process  B  requests the plotter. Both requests are granted. Now  A  requests the plotter (without giving up the tape drive) and  B  requests the tape drive (without giving up the plotter). Neither request can be granted, so both processes are put to sleep. They will remain asleep forever. This situation is called a deadlock.</p>
+      <p> Deadlocks can occur in many situations besides requesting dedicated I/O devices. In a data base system, a program may have to lock several records it is using, to avoid race conditions. If process  A  locks record  Rl  and process  B locks record  R2,  and then each process tries to lock the other one's record, we also have a deadlock.</p>
+      <p> Almost any situation in which processes can be granted exclusive access to</p>
+      <p> SEC. 3.3</p>
+      <p> DEADLOCKS</p>
+      <p> 123</p>
+      <p> devices, files, records, or other objects has the potential for deadlock. Thus the discussion of deadlocks could have gone in almost any chapter of this book. We put it here for pedagogical reasons: it is obvious that tape drives, plotters, and card punches can only be used by one process at a time. With records in a data base, for example, the need for exclusive access may be equally valid, but the reasoning is much more subtle.</p>
+      <p> In the following sections we will look at deadlocks more closely, see how they arise, and study some ways of preventing them. A great deal has been written about deadlocks. Two bibliographies on the subject have appeared in Operating Systems Review  and should be consulted for references (Newton, 1979; Zobel, 1983).</p>
+      <p> 3.3.1. Resources</p>
+      <p> Deadlocks can occur when processes have been granted exclusive access to devices, files, and so forth. To make the discussion of deadlocks as general as possible, we will refer to the objects granted as resources. A resource can be a hardware device (e.g., a tape drive) or a piece of information (e.g., a locked record in a data base). A computer will normally have many different resources that can be acquired. For some resources, several identical instances may be available, such as three tape drives. When several copies of a resource are available, any one of them can be used to satisfy any request for the resource. In short, a resource is anything that can only be used by a single process at any instant of time.</p>
+      <p> The sequence of events required to use a resource is:</p>
+      <p> 1. Request the resource.</p>
+      <p> 2. Use the resource.</p>
+      <p> 3. Release the resource.</p>
+      <p> If the resource is not available when it is requested, the requesting process is forced to wait. In some operating systems, the process is automatically blocked when a resource request fails, and awakened when it becomes available. In other systems, the request fails with an error code, and it is up to the calling process to wait a little while and try again.</p>
+      <p> The exact nature of requesting a resource is highly system dependent. In some systems, a REQUEST system call is provided to allow processes to ask for resources. In MINIX the only resources that the operating system (potentially) knows about are special files that only one process can have open at a time. These are opened by the usual OPEN call. If the file is already in use, an error code could be returned; what to do next would be up to the user.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> 3.3.2. Deadlock Modeling</p>
+      <p> Deadlock can be defined formally as follows. A set of processes is deadlocked if each process in the set is waiting for an event that only another process in the set can cause. Because all the processes are waiting, none of them will ever cause any of the events that could wake up any of the other members of the set, and all the processes continue to wait forever.</p>
+      <p> In most cases, the event that each process is waiting for is the release of some resource currently possessed by another member of the set. In other words, each member of the set of deadlocked processes is waiting for a resource that can be released only by a deadlocked process. None of the processes can run, none of them can release any resources, and none of them can be awakened. The number of processes and the number and kind of resources possessed and requested are unimportant.</p>
+      <p> Coffman et al. (1971) showed that four conditions must hold for there to be a deadlock:</p>
+      <p> 1. Mutual exclusion condition. Each resource is either currently assigned to exactly one process or is available.</p>
+      <p> 2. Hold and wait condition. Processes currently holding resources granted earlier can request new resources.</p>
+      <p> 3. No preemption condition. Resources previously granted cannot be forcibly taken away from a process. They must be explicitly released by the process holding them.</p>
+      <p> 4. Circular wait condition. There must be a circular chain of two or more processes, each of which is waiting for a resource held by the next member of the chain.</p>
+      <p> Holt (1972) showed how these four conditions can be modeled using directed graphs. The graphs have two kinds of nodes: processes, shown as circles, and resources, shown as squares. An arc from a resource node (square) to a process node (circle) means that the resource previously has been requested by, granted to, and is currently held by that process. In Fig. 3-7(a), resource  R  is currently assigned to process  A.</p>
+      <p> An arc from a process to a resource means that the process is currently blocked waiting for that resource. In Fig. 3-7(b), process  B  is waiting for resource 5. In Fig. 3-7(c) we see a deadlock: process C is waiting for resource T,  which is currently held by process  D.  Process  D  is not about to release resource  T  because it is waiting for resource  U,  held by  C.  Both processes will wait forever. A cycle in the graph means that there is a deadlock involving the processes and resources in the cycle. In this example, the cycle is C-T-D-U-C.</p>
+      <p> Now let us look at an example of how resource graphs can be used. Imagine</p>
+      <p> SEC. 3.3</p>
+      <p> DEADLOCKS</p>
+      <p> 125</p>
+      <p> ©</p>
+      <p> T U</p>
+      <p> H ©</p>
+      <p> (a) (b) (c)</p>
+      <p> Fig. 3-7. Resource allocation graphs, (a) Holding a resource, (b) Requesting a resource, (c) Deadlock.</p>
+      <p> that we have three processes,  A, B,  and C, and three resources,  R, S,  and  T.  The requests and releases of the three processes are given in Fig. 3-8(a)-(c). The operating system is free to run any unblocked process at any instant, so it could decide to run  A  until  A  finished all its work, then run  B  to completion, and finally run  C.</p>
+      <p> This ordering does not lead to any deadlocks (because there is no competition for resources) but it also has no parallelism at all. In addition to requesting and releasing resources, processes compute and do I/O. When the processes are run sequentially, there is no possibility that while one process is waiting for I/O, another can use the CPU. Thus running the processes strictly sequentially may not be optimal. On the other hand, if none of the processes do any I/O at all, shortest job first is better than round robin, so under some circumstances running all processes sequentially may be the best way.</p>
+      <p> Let us now suppose that the processes do both I/O and computing, so that round robin is a reasonable scheduling algorithm. The resource requests might occur in the order of Fig. 3-8(d). If these six requests are carried out in that order, the six resulting resource graphs are shown in Fig. 3-8(e)-(j). After request 4 has been made,  A  blocks waiting for  S,  as shown in Fig. 3-8(h). In the next two steps  B  and C also block, ultimately leading to a cycle and the deadlock of Fig. 3-80).</p>
+      <p> However, as we have already mentioned, the operating system is not required to run the processes in any special order. In particular, if granting a particular request might lead to deadlock, the operating system can simply suspend the process without granting the request (i.e., just not schedule the process) until it is safe. In Fig. 3-8, if the operating system knew about the impending deadlock, it could suspend  B  instead of granting it  S.  By running only  A  and C, we would get the requests and releases of Fig. 3-8(k) instead of Fig. 3-8(d). This sequence leads to the resource graphs of Fig. 3-8(l)-(q), which do not lead to deadlock.</p>
+      <p> After step (q), process  B  can be granted S because  A  is finished and C has everything it needs. Even if  B  should eventually block when requesting  T,  no deadlock can occur.  B  will just wait until C is finished.</p>
+      <p> Later in this chapter we will study a detailed algorithm for making allocation</p>
+      <p class="illus">
+        <img src="images/picture27.jpg" alt="picture27"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture28.jpg" alt="picture28"/>
+      </p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> A</p>
+      <p> Request R Request S Release R Release S</p>
+      <p> B</p>
+      <p> Request S Request T Release S Release T</p>
+      <p> C</p>
+      <p> Request T Request R Release T Release R</p>
+      <p> (a)</p>
+      <p> &lt;b)</p>
+      <p> (c)</p>
+      <p> 1. A requests R</p>
+      <p> 2. B requests S</p>
+      <p> 3. C requests T</p>
+      <p> 4. A requests S</p>
+      <p> 5. B requests T</p>
+      <p> 6. C requests R deadlock</p>
+      <p> © ® ©</p>
+      <p> NHS</p>
+      <p> (e)</p>
+      <p> ®    © ©</p>
+      <p> a a s</p>
+      <p> © © ©</p>
+      <p> BBS</p>
+      <p class="illus">
+        <img src="images/picture29.jpg" alt="picture29"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture30.jpg" alt="picture30"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture31.jpg" alt="picture31"/>
+      </p>
+      <p> (h)</p>
+      <p> 1. A requests R</p>
+      <p> 2. C requests T</p>
+      <p> 3. A requests S</p>
+      <p> 4. C requests R</p>
+      <p> 5. A releases R</p>
+      <p> 6. A releases S no deadlock</p>
+      <p> &lt;k)</p>
+      <p> © © ©</p>
+      <p> e  a m</p>
+      <p> A       B C</p>
+      <p> |R|     [S]  |T| (m)</p>
+      <p class="illus">
+        <img src="images/picture32.jpg" alt="picture32"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture33.jpg" alt="picture33"/>
+      </p>
+      <p class="illus">
+        <img src="images/picture34.jpg" alt="picture34"/>
+      </p>
+      <p> ©    © ©</p>
+      <p class="illus">
+        <img src="images/picture35.jpg" alt="picture35"/>
+      </p>
+      <p> (o)</p>
+      <p> (P)</p>
+      <p> (q)</p>
+      <p> Fig. 3-8. An example of how deadlock occurs and how it can be avoided.</p>
+      <p> SEC. 3.3</p>
+      <p> DEADLOCKS</p>
+      <p> 127</p>
+      <p> decisions that do not lead to deadlock. The point to understand now is that resource graphs are a tool that let us see if a given request/release sequence leads to deadlock. We just carry out the requests and releases step by step, and after every step check the graph to see if it contains any cycles. If so, we have a deadlock; if not, there is no deadlock. Resource graphs can also be generalized to handle multiple resources of the same type (Holt, 1972).</p>
+      <p> In general, four strategies are used for dealing with deadlocks.</p>
+      <p> 1. Just ignore the problem altogether.</p>
+      <p> 2. Detection and recovery.</p>
+      <p> 3. Prevention, by negating one of the four necessary conditions.</p>
+      <p> 4. Dynamic avoidance by careful resource allocation.</p>
+      <p> We will examine each of these methods in turn in the next four sections. 3.3.3. The Ostrich Algorithm</p>
+      <p> The simplest approach is the ostrich algorithm: stick your head in the sand and pretend there is no problem at all. Different people react to this strategy in different ways. Mathematicians find it totally unacceptable and say that deadlocks must be prevented at all costs. Engineers ask how often the problem is expected, how often the system crashes for other reasons, and how serious a deadlock is. If deadlocks occur on the average once every five years, but system crashes due to hardware failures, compiler errors, and operating system bugs occur once a month, most engineers would not be willing to pay a large penalty in performance or convenience to eliminate deadlocks.</p>
+      <p> To make this contrast more specific, UNIX (and MINK) potentially suffer from deadlocks that are not even detected, let alone automatically broken. The total number of processes in the system is determined by the number of entries in the process table. Thus process table slots are finite resources. If a FORK fails because the table is full, a reasonable approach for the program doing the FORK is to wait a random time and try again.</p>
+      <p> Now suppose that a UNIX system has 100 process slots. Ten programs are running, each of which needs to create 12 (sub)processes. After each process has created 9 processes, the 10 original processes and the 90 new processes have exhausted the table. Each of the 10 original processes now sits in an endless loop forking and failing—a deadlock. The probability of this happening is minuscule, but it  could  happen. Should we abandon processes and the FORK call to eliminate the problem?</p>
+      <p> The maximum number of open files is similarly restricted by the size of the i-node table, so a similar problem occurs when it fills up. Swap space on the disk is another limited resource. In fact, almost every table in the operating system represents a finite resource. Should we abolish all of these because it might</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> happen that a collection of  n  processes might each claim  \/n  of the total, and then each try to claim another one?</p>
+      <p> The UNIX approach is just to ignore the problem on the assumption that most users would prefer an occasional deadlock to a rule restricting all users to one process, one open file, and one of everything. If deadlocks could be eliminated for free, there would not be much discussion. The problem is that the price is high, mostly in terms of putting inconvenient restrictions on processes, as we will see shortly. Thus we are faced with an unpleasant tradeoff between convenience and correctness, and a great deal of discussion about which is more important, and to whom.</p>
+      <p> 3.3.4. Detection and Recovery</p>
+      <p> A second technique is detection and recovery. When this technique is used, the system does not do anything except monitor the requests and releases of resources. Every time a resource is requested or released, the resource graph is updated, and a check is made to see if any cycles exist. If a cycle exists, one of the processes in the cycle is killed. If this does not break the deadlock, another process is killed, and so on until the cycle is broken.</p>
+      <p> A somewhat cruder method is to not even maintain the resource graph, but instead periodically check to see if there are any processes that have been continuously blocked for more than say, 1 hour. Such processes are then killed.</p>
+      <p> Detection and recovery is the strategy often used on large mainframe computers, especially batch systems in which killing a process and then restarting it later is usually acceptable. Care must be taken to restore any modified files to their original state, however.</p>
+      <p> 3.3.5. Deadlock Prevention</p>
+      <p> The third deadlock strategy is to impose suitable restrictions on processes so that deadlocks are structurally impossible. The four conditions stated by Coffman et al. (1971) provide a clue to some possible solutions. If we can ensure that at least one of these conditions is never satisfied, then deadlocks will be impossible (Havender, 1968).</p>
+      <p> First let us attack the mutual exclusion condition. If no resource was ever assigned exclusively to a single process, we would never have deadlocks. However, it is equally clear that allowing two processes to write on the printer at the same time will lead to chaos. By spooling printer output, several processes can generate output at the same time. In this model, the only process that actually requests the physical printer is the printer daemon. Since the daemon never requests any other resources, we can eliminate deadlock for the printer.</p>
+      <p> Unfortunately, not all devices can be spooled (the process table does not lend itself well to being spooled). Furthermore, competition for disk space for spooling can itself lead to deadlock. What would happen if two processes each filled</p>
+      <p> SEC. 3.3</p>
+      <p> DEADLOCKS</p>
+      <p> 129</p>
+      <p> up half of the available spooling space with output and neither was finished? If the daemon was programmed to begin printing even before all the output was spooled, the printer might lie idle if an output process decided to wait several hours after the first burst of output. For this reason, daemons are normally programmed to print only after the complete output file is available. Neither process will ever finish, so we have a deadlock on the disk.</p>
+      <p> The second of the conditions stated by Coffman et al. looks more promising. If we can prevent processes that hold resources from waiting for more resources we can eliminate deadlocks. One way to achieve this goal is to require all processes to request all their resources before starting execution. If everything was available, the process would be allocated whatever it needed and could run to completion. If one or more resources were busy, nothing would be allocated and the process would just wait.</p>
+      <p> An immediate problem with this approach is that many processes do not know how many resources they will need until they have started running. Another problem is that resources will not be used optimally with this approach. Take, as an example, a process that reads data from an input tape, analyzes it for an hour, and then writes an output tape as well as plotting the results. If all resources must be requested in advance, the process will tie up the output tape drive and the plotter for an hour.</p>
+      <p> A slightly different way to break the hold-and-wait condition is to require a process requesting a resource to first temporarily release all the resources it currently holds. Only if the request is successful can it get the original resources back.</p>
+      <p> Attacking the third condition (no preemption) is even less promising than attacking the second one. If a process has been assigned the printer and is in the middle of printing its output, forcibly taking away the printer because a needed plotter is not available will lead to a mess.</p>
+      <p> Only one condition is left. The circular wait can be eliminated in several ways. One way is simply to have a rule saying that a process is entitled only to a single resource at any moment. If it needs a second one, it must release the first one. For a process that needs to copy a huge file from a tape to a printer, this restriction is unacceptable.</p>
+      <p> Another way to avoid the circular wait is to provide a global numbering of all the resources, as shown in Fig. 3 9(a). Now the rule is this: processes can request resources whenever they want to, but all requests must be made in numerical order. A process may request first a printer and then a tape drive, but it may not request first a plotter and then a printer.</p>
+      <p> With this rule, the resource allocation graph can never have cycles. Let us see why this is true for the case of two processes, in Fig. 3 9(b). We can get a deadlock only if  A  requests resource  j  and  B  requests resource /. Assuming / and j  are distinct resources, they will have different numbers. If  i &gt; j  then  A  is not allowed to request  j.  If / &lt;  j  then  B  is not allowed to request /. Either way, deadlock is impossible.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> 1. Card reader</p>
+      <p> 2. Printer</p>
+      <p> 3. Plotter</p>
+      <p> 4. Tape drive</p>
+      <p> 5. Card punch</p>
+      <p> (a) (b)</p>
+      <p> Fig. 3-9. (a) Numerically ordered resources, (b) A resource graph.</p>
+      <p> With multiple processes the same logic holds. At every instant, one of the assigned resources will be highest. The process holding that resource will never ask for a resource already assigned. It will either finish, or at worst, request even higher numbered resources, all of which are available. Eventually it will finish and free its resources. At this point, some other process will hold the highest resource and can also finish. In short, there exists a scenario in which all processes finish, so no deadlock is present.</p>
+      <p> A minor variation of this algorithm is to drop the requirement that resources be acquired in strictly increasing sequence, and merely insist that no process request a resource lower than what it is already holding. If a process initially requests 9 and 10, and then releases both of them, it is effectively starting all over, so there is no reason to prohibit it from now requesting resource 1.</p>
+      <p> Although numerically ordering the resources eliminates the problem of deadlocks, it may be impossible to find an ordering that satisfies everyone. When the resources include process table slots, disk spooler space, locked data base records, and other abstract resources, the number of potential resources and different uses may be so large that no ordering could possibly work.</p>
+      <p> The various approaches to deadlock prevention are summarized in Fig. 3-10.</p>
+      <p> Condition Approach</p>
+      <p> Fig. 3-10. Summary of approaches to deadlock prevention.</p>
+      <p> 3.3.6. Deadlock Avoidance</p>
+      <p> In Fig. 3-8 we saw that deadlock was avoided not by imposing arbitrary rules on processes, but by carefully analyzing each resource request to see if could be safely granted. The question arises: is there an algorithm that can always avoid deadlock by making the right choice all the time? The answer is a qualified yes—we can avoid deadlocks, but only if certain information is available in</p>
+      <p class="illus">
+        <img src="images/picture36.jpg" alt="picture36"/>
+      </p>
+      <p> SEC. 3.3</p>
+      <p> DEADLOCKS</p>
+      <p> 131</p>
+      <p> available in advance. In this section we examine ways to avoid deadlock by careful resource allocation.</p>
+      <p> The Banker's Algorithm for a Single Resource</p>
+      <p> A scheduling algorithm that can avoid deadlocks is due to Dijkstra (1965) and is known as the banker's algorithm. It is modeled on the way a small-town banker might deal with a group of customers to whom he has granted lines of credit. In Fig. 3-11(a) we see four customers, each of whom has been granted a certain number of credit units (e.g., 1 unit is IK dollars). The banker knows that not all customers will need their maximum credit immediately, so he has only reserved 10 units rather than 22 to service them. (In this analogy, customers are processes, units are, say, tape drives, and the banker is the operating system.)</p>
+      <p> Name</p>
+      <p> Used Maximum</p>
+      <p> Used Maximum</p>
+      <p> Available: 10 (a)</p>
+      <p> Used Maximum</p>
+      <p> (b)</p>
+      <p> Available: 1 (c)</p>
+      <p> Fig. 3-11. Three resource allocation states: (a) Safe, (b) Safe, (c) Unsafe.</p>
+      <p> The customers go about their respective businesses, making loan requests from time to time. At a certain moment, the situation is as shown in Fig. 3-11(b). A list of customers showing the money already loaned (tape drives already assigned) and the maximum credit available (maximum number of tape drives needed at once later) is called the state of the system with respect to resource allocation.</p>
+      <p> A state is said to be a safe state if there exists a sequence of other states that leads to all the customers getting loans up to their credit limits (all the processes getting all their resources and terminating). The state of Fig. 3-11(b) is safe because with two units left, the banker can delay any requests except Marvin's, thus letting Marvin finish and release all four of his resources. With four units in hand, the banker can let either Suzanne or Barbara have the necessary units, and so on.</p>
+      <p> Consider what would happen if a request from Barbara for one more unit were granted in Fig. 3-11 (b). We would have situation Fig. 3-11(c), which is unsafe. If all the customers suddenly asked for their maximum loans, the banker could not satisfy any of them, and we would have a deadlock. An unsafe state does not  have  to lead to deadlock, since a customer might not need the entire credit line available, but the banker cannot count on this behavior.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> The banker's algorithm is thus to consider each request as it occurs, and see if granting it leads to a safe state. If it does, the request is granted, otherwise, it is postponed until later. To see if a state is safe, the banker checks to see if he has enough resources to satisfy the customer closest to his or her maximum. If so, those loans are assumed to be repaid, and the customer now closest to his or her limit is checked, and so on. If all loans can eventually be repaid, the state is safe and the initial request can be granted.</p>
+      <p> Resource Trajectories</p>
+      <p> The above algorithm was described in terms of a single resource class (e.g., only tape drives or only printers, but not some of each). In Fig. 3-12 we see a model for dealing with two processes and two resources, for example, a printer and a plotter. The horizontal axis represents the number of instructions executed by process  A.  The vertical axis represents the number of instructions executed by process  B.  At  I x  A  requests a printer; at / 2  it needs a plotter. The printer and plotter are released at / 3  and / 4 , respectively. Process  B  needs the plotter from / 5  to  I 7   and the printer from  I 6   to 7 8 .</p>
+      <p> Printer</p>
+      <p> Plotter</p>
+      <p class="illus">
+        <img src="images/picture37.jpg" alt="picture37"/>
+      </p>
+      <p> u (Both</p>
+      <p> processes finished)</p>
+      <p> Printer -</p>
+      <p> Plotter</p>
+      <p> Fig. 3-12. Two process resource trajectories.</p>
+      <p> Every point in the diagram represents a joint state of the two processes. Initially, the state is at  p,  with neither process having executed any instructions. If the scheduler chooses to run  A  first, we get to the point  q,  in which  A  has executed some number of instructions, but  B  has executed none. At point  q  the trajectory becomes vertical, indicating that the scheduler has chosen to run  B.  With a single processor, all paths must be horizontal or vertical, never diagonal. Furthermore, motion is always to the north or east, never to the south or west (processes cannot run backwards).</p>
+      <p> When  A  crosses the /j line on the path from  r  to  s,  it requests and is granted the printer. When  B  reaches point  t,  it requests the plotter.</p>
+      <p> The regions that are shaded are especially interesting. The region with lines</p>
+      <p> SEC. 3.3</p>
+      <p> DEADLOCKS</p>
+      <p> 133</p>
+      <p> slanting from southwest to northeast represents both processes having the printer. The mutual exclusion rule makes it impossible to enter this region. Similarly, the region shaded the other way represents both processes having the plotter, and is equally impossible.</p>
+      <p> If the system ever enters the box bounded by /[ and 7 2  on the sides and / 5 and  I 6   top and bottom, it will eventually deadlock when it gets to the intersection of  I 2   and / 6 . At this point,  A  is requesting the plotter and  B  is requesting the printer, and both are already assigned. The entire box is unsafe and must not be entered. At point  t  the only safe thing to do is run process  A  until it gets to 7 4 . Beyond that, any trajectory to  u  will do.</p>
+      <p> The Banker's Algorithm for Multiple Resources</p>
+      <p> This graphical model is difficult to apply to the general case of an arbitrary number of processes and an arbitrary number of resource classes, each with multiple instances (e.g., two plotters, three tape drives). However, the banker's algorithm can be generalized to do the job. Figure 3-13 shows how it works.</p>
+      <p> *°  \#  s^ V* &lt;</p>
+      <p> ^  qN°  «&lt;&gt;</p>
+      <p> E = (6342) P = (5322) A = (1020!</p>
+      <p> Resources assigned Resources still needed</p>
+      <p> Fig. 3-13. The banker's algorithm with multiple resources.</p>
+      <p> In Fig. 3-13 we see two matrices. The one on the left shows how many of each resource is currently assigned to each of the five processes. The matrix on the right shows how many resources each process still needs in order to complete. As in the single resource case, processes must state their total resource needs before executing, so that the system can compute the right-hand matrix at each instant.</p>
+      <p> The three vectors at the right of the figure show the existing resources,  E,  the possessed resources,  P,  and the available resources,  A,  respectively. From  E  we see that the system has six tape drives, three plotters, four printers, and two punches. Of these, five tape drives, three plotters, two printers, and two punches are currently assigned. This fact can be seen by adding up the four resource columns in the left-hand matrix. The available resource vector is simply the difference between what the system has and what is currently in use.</p>
+      <p> The algorithm for checking to see if a state is safe can now be stated.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> 1. Look for a row,  R,  whose unmet resource needs are all smaller than or equal to  A.  If no such row exists, the system will eventually deadlock since no process can run to completion.</p>
+      <p> 2. Assume the process of the row chosen requests all the resources it needs (which is guaranteed to be possible) and finishes. Mark that process as terminated and add all its resources to the  A  vector.</p>
+      <p> 3. Repeat steps 1 and 2 until either all processes are marked terminated, in which case the initial state was safe, or until a deadlock occurs, in which case it was not.</p>
+      <p> If several processes are eligible to be chosen in step 1, it does not matter which one is selected: the pool of available resources either gets larger, or at worst, stays the same.</p>
+      <p> Now let us get back to the example of Fig. 3-13. The current state is safe. Suppose process  B  now requests a printer. This request can be granted because the resulting state is still safe (process  D  can finish, and then processes  A  or  E, followed by the rest).</p>
+      <p> Now imagine that after giving  B  one of the two remaining printers,  E  wants the last printer. Granting that request would reduce the vector of available resources to (1 0 0 0), which leads to deadlock. Clearly £'s request must be deferred for a while.</p>
+      <p> This algorithm was first published by Dijkstra in 1965. Since that time, nearly every book on operating systems has described it in detail. Innumerable papers have been written about various aspects of it. Unfortunately, few authors have had the audacity to point out that although in theory the algorithm is wonderful, in practice it is essentially useless because processes rarely know what their maximum resource needs will be in advance. In addition, the number of processes is not fixed, but dynamically varying as new users log in and out. Furthermore, resources that were thought to be available can suddenly vanish (tape drives can break).</p>
+      <p> In summary, the schemes described earlier under the name "prevention" are overly restrictive, and the algorithm described here as "avoidance" requires information that is usually not available. If you can think of a general-purpose algorithm that does the job in practice as well as in theory, write it up and send it to your local computer science journal.</p>
+      <p> For specific applications, many excellent special-purpose algorithms are known. As an example, in many data base systems, an operation that occurs frequently is requesting locks on several records and then updating all the locked records. When multiple processes are running at the same time, there is a real danger of deadlock.</p>
+      <p> The approach often used is called two-phase locking. In the first phase, the process tries to lock all the records it needs, one at a time. If it succeeds, it performs its updates and releases the locks. If some record is already locked, it releases the locks it already has and just starts all over.  In a certain sense, this</p>
+      <p> SEC. 3.3</p>
+      <p> DEADLOCKS</p>
+      <p> 135</p>
+      <p> approach is similar to requesting all the resources needed in advance, or at least before anything irreversible is done.</p>
+      <p> However, this strategy is not applicable in general. In real time systems and process control systems, for example, it is not acceptable to just terminate a process partway through because a resource is not available and start all over again. Neither is it acceptable to start over if the process has read or written messages to the network, updated files or anything else that cannot be safely repeated. The algorithm works only in those situations where the programmer has very carefully arranged things so that the program can be stopped at any point during the first phase and restarted. Many applications cannot be structured this way.</p>
+      <p> 3.4. OVERVIEW OF I/O IN MINIX</p>
+      <p> MINIX I/O is structured as shown in Fig. 3-6. In the following sections we will look briefly at each of the layers, with the emphasis on the device drivers. Interrupt handling was covered in the previous chapter, and the device-independent I/O will be discussed when we come to the file system, in Chap. 5.</p>
+      <p> 3.4.1. Interrupt Handlers in MINIX</p>
+      <p> Many of the device drivers start some I/O device and then block, waiting for a message to arrive. That message is generated by the interrupt handler, as we have seen. Other device drivers do not start any physical I/O (e.g., reading from RAM disk), and do not wait for a message from an I/O device. Since, as we have mentioned, the subject of interrupts has been gone over in great detail in the previous chapter, we will say no more about it here.</p>
+      <p> 3.4.2. Device Drivers in MINIX</p>
+      <p> For each class of I/O device present in a MINIX system, a separate I/O task (device driver) is present. These drivers are full-fledged processes, each with its own state, registers, memory map, and so on. Device drivers communicate with each other (where necessary) and with the file system using the standard message passing mechanism used by all MINIX processes. Furthermore, each device driver is written as a single source file, such as  clock.c or floppy.c.  The only difference between device drivers and other processes is that the device drivers are linked together in the kernel, and thus all share a common address space.</p>
+      <p> This design is highly modular and moderately efficient. It is also one of the few places where MINIX differs from UNIX in an essential way. In MINIX a process reads a file by sending a message to the file system process. The file system, in turn, may send a message to the disk driver asking it to read the needed block. This sequence (slightly simplified from reality) is shown in Fig. 3-14(a). By making these interactions via the message mechanism, we force various parts of</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> the system to interface in standard ways with other parts. Nevertheless, by putting all the device drivers in the kernel address space, they have easy access to the process table and other key data structures when needed.</p>
+      <p> Process-structured system Monolithic system</p>
+      <p> User space</p>
+      <p> Kernel space</p>
+      <p> 1-4 are request and reply messages between three independent processes.</p>
+      <p> The user-space part calls the kernel-space part by trapping. The file system calls the device driver as a procedure. The entire operating system is part of each process.</p>
+      <p> (b)</p>
+      <p> Fig. 3-14. Two ways of structuring user-system communication.</p>
+      <p> In UNIX all processes have two parts: a user-space part and a kernel-space part, as shown in Fig. 314(b). When a system call is made, the operating system switches from the user-space part to the kernel-space part in a somewhat magical way. This structure is a remnant of the MULTICS design, in which the switch was just an ordinary procedure call, rather than a trap followed by saving the state of the user-part, as it is in UNIX.</p>
+      <p> Device drivers in UNIX are simply kernel procedures that are called by the kernel-space part of the process. When a driver needs to wait for an interrupt, it calls a kernel procedure that puts it to sleep until some interrupt handler wakes it up. Note that it is the user process itself that is being put to sleep here, because the kernel and user parts are really different parts of the same process.</p>
+      <p> Among operating system designers, arguments about the merits of monolithic systems, as in UNIX, versus process-structured systems, as in  minix,  are endless. The MINIX approach is better structured (more modular), has cleaner interfaces between the pieces, and extends easily to distributed systems in which the various processes run on different computers. The UNIX approach is more efficient, because procedure calls are much faster than sending messages. MINIX was split into many processes because I believe that with increasingly powerful microcomputers available, cleaner software structure was worth making the system somewhat slower. Be warned that many operating systems designers do not share this belief.</p>
+      <p> SEC. 3.4</p>
+      <p> OVERVIEW OF I/O IN MINIX</p>
+      <p> 137</p>
+      <p> The MINIX configuration described in this book contains drivers for RAM disk, floppy disk, clock, and terminal. (The MINIX software distribution contains additional drivers, such as printer and hard disk.) The request messages sent to these tasks contain a variety of fields used to hold the operation code (e.g., READ or WRITE) and its parameters.</p>
+      <p> For block devices, the fields of the request and reply messages are shown in Fig. 3-15. The fields for the character devices are basically similar but can vary slightly from task to task. Messages to the clock task, for example, contain times, and messages to the terminal task specify the characters to use for the intraline editing functions erase-character and kill-line.</p>
+      <p> REQUESTS</p>
+      <p> Fig. 3-15. Fields of the message  m,  sent to and by block device drivers.</p>
+      <p> The function of each task is to accept requests from other processes, normally the file system, and carry them out. All tasks have been written to get a message, carry it out, and send a reply. Among other things, this decision means that tasks are strictly sequential and do not contain any internal multiprogramming, to keep them simple. When a hardware request has been issued, the task does a RECEIVE operation specifying that it is interested only in accepting interrupt messages, not new requests for work. Any new request messages are just kept waiting until the current work has been done (rendezvous principle).</p>
+      <p> The main program for each driver is structurally the same and is outlined in Fig. 3-16. When the system first comes up, each of the drivers is started up in turn to give them a chance to initialize internal tables and similar things. Then each one blocks by trying to get a message. When a message comes in, the identity of the caller is saved, and a procedure is called to carry out the work, with a different procedure invoked for each operation available. After the work has been finished, a reply is sent back to the caller, and the task then goes back to the top of the loop to wait for the next request.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> message mess; /* message buffer */</p>
+      <p> io_task() {</p>
+      <p> int r, caller;</p>
+      <p> initialize(); /* only done once, during system init. */ while (TRUE) {</p>
+      <p> receive(ANY, &amp;mess); /* wait for a request for work */</p>
+      <p> caller = mess.m_source; /* process from whom message came */</p>
+      <p> switch(mess.m_type) { /* handle each possible request type */</p>
+      <p> case READ: r = do_read(); break;</p>
+      <p> case WRITE: r = do_write(); break;</p>
+      <p> case OTHER: r = do_other(); break;</p>
+      <p> default: r = ERROR;</p>
+      <p> }</p>
+      <p> mess.m_type = TASK_REPLY;</p>
+      <p> mess.REP_STATUS = r; /* result code */</p>
+      <p> send(caller, &amp;mess); /* send reply message back to caller #/</p>
+      <p> }</p>
+      <p> }</p>
+      <p> Fig. 3-16. Outline of the main procedure of an I/O task.</p>
+      <p> Each of the  do-xxx  procedures handles one of the operations of which the driver is capable. It returns a status code telling what happened. The status code, which is included in the reply message as the field  REP_STATUS,  is the count of bytes transferred (zero or positive) if all went well, or the error number (negative) if something went wrong. This count may differ from the number of bytes requested. On terminals, for example, at most one line is returned, even if the count requested is larger.</p>
+      <p> 3.4.3. Device-Independent I/O Software in  minix</p>
+      <p> The MINIX file system process contains all the device-independent I/O code. The I/O system is so closely related to the file system that they were merged into one process. The functions performed by the file system are those shown in Fig. 3-5, except for requesting and releasing dedicated devices, which do not exist in MINIX as it is presently configured, but which could easily be added to the relevant device drivers should the need arise in the future.</p>
+      <p> In addition to handling the interface with the drivers, buffering, block allocation and the like, the file system also handles protection and the management of i-nodes, directories, and mounted file systems. The file system will be covered in detail in Chap. 5.</p>
+      <p> SEC. 3.4 OVERVIEW OF I/O IN MINIX</p>
+      <p> 3.4.4. User-level I/O Software in  minix</p>
+      <p> 139</p>
+      <p> The general model outlined earlier in this chapter also applies here. Library procedures are available for making system calls and for converting from binary to ASCII and ASCII to binary. The standard MINIX configuration does not contain any spooler daemons, but since they are just user processes, it is easy to add them as needed later.</p>
+      <p> 3.4.5. Deadlock Handling in  minix</p>
+      <p> True to its heritage, MINIX follows the same path as UNIX with respect to deadlocks: it just ignores the problem altogether,  minix  contains no dedicated I/O devices, although if someone wanted to hang an industry standard 9-track magnetic tape drive on an IBM PC, making the software for it would not pose any special problems. In short, the only place deadlocks can occur are with the implicit shared resources, such as process table slots, i-node table slots, and so on. None of the known deadlock algorithms can deal with resources like these that are not requested explicitly.</p>
+      <p> Actually, the above is not strictly true. A few places do exist where considerable care has been taken to avoid problems. The main one is the interaction between the file system and the memory manager. The memory manager sends messages to the file system to read the binary file (executable program) during an EXEC system call, as well as in other contexts. If the file system is not idle when the memory manager is trying to send to it, the memory manager will be blocked. If the file system should then try to send a message to the memory manager, it too would discover that the rendezvous fails, and would block, leading to a deadlock.</p>
+      <p> This problem has been avoided by constructing the system in such a way that the file system never sends  request  messages to the memory manager, just replies,  with one minor exception. The one exception is that upon starting up, the file system reports its size to the memory manager, which is guaranteed to be waiting for it.</p>
+      <p> 3.5. RAM DISKS</p>
+      <p> In the following sections we will get back to the device drivers, the main topic of this chapter, and study several of them in detail. The drivers to be covered are the RAM disk, floppy disk, clock, and terminal. Each of these is interesting for a different reason. The RAM disk is a good example to study because it has all the properties of block devices in general—except the actual I/O (because the "disk" is actually just a portion of memory). This simplicity makes it a good place to start.  The floppy disk shows what a real disk driver</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> looks like, warts and all. The clock is important because every system has one, and because it is completely different from all the other drivers. The terminal driver is important in its own right, and furthermore, is a good example of a character device driver.</p>
+      <p> Each of these sections describes the relevant hardware, the software principles behind the driver, an overview of the implementation, and the code itself. This structure makes the sections useful reading even for those readers who are not interested in the details of the code itself.</p>
+      <p> 3.5.1. RAM Disk Hardware and Software</p>
+      <p> The idea behind a RAM disk is simple. A block device is a storage medium with two commands: write a block and read a block. Normally these blocks are stored on rotating memories, such as floppy disks or hard disks. A RAM disk is simpler. It just uses a preallocated portion of the main memory for storing the blocks. A RAM disk has the advantage of having instant access (no seek or rotational delay), making it suitable for storing programs or data that are frequently accessed.</p>
+      <p> In a system such as MINIX, which was designed to work even on computers with only one floppy disk, the RAM disk has another advantage. By putting the root device on the RAM disk, the one floppy \lisk can be mounted and unmounted at will, allowing for removable media. Putting the root device on the floppy disk would make it impossible to save files on floppies, since the root device (the only floppy) cannot be unmounted. In addition, having the root device on the RAM disk makes the system highly flexible: any combination of floppy disks or hard disks can be mounted on it.</p>
+      <p> As an aside, it is worth briefly pointing out a difference between systems that support mounted file systems and those that do not (e.g., MS-DOS). With mounted file systems, the root device is always present and in a fixed location, and removable file systems (i.e., disks) can be mounted in the file tree to form an integrated file system. Once everything has been mounted, the user need not worry at all about which device a file is on.</p>
+      <p> In contrast, with systems like MS-DOS, the user must specify the location of each file, either explicitly as in B:FILE or using certain defaults (current device, current directory, and so on). With only one or two floppy disks, this burden is manageable, but on a large computer system, with dozens of disks, having to keep track of devices all the time would be unbearable. Remember that UNIX runs on systems ranging from an IBM PC, through 68000s and VAXes to the Cray-2; MS-DOS runs only on very small systems.</p>
+      <p> Figure 3-17 shows the idea behind a RAM disk. The RAM disk is split up into  n  blocks, depending on how much memory has been allocated for it. Each block is the same size as the block size used on the real disks. When the driver receives a message to read or write a block, it just computes where in the RAM disk memory the requested block lies, and reads or writes from it, instead of</p>
+      <p> SEC. 3.5</p>
+      <p> RAM DISKS</p>
+      <p> 141</p>
+      <p> from a floppy or hard disk. Normally the transfer will be done by calling an assembly language procedure that copies to or from the user program at the maximum speed of which the hardware is capable.</p>
+      <p> Main Memory (RAM)</p>
+      <p> User</p>
+      <p> programs</p>
+      <p> RAM disk</p>
+      <p> Operating system</p>
+      <p> -RAM disk block 1</p>
+      <p> -Reads and writes of RAM block 0 use this memory</p>
+      <p> Fig. 3-17. A RAM disk.</p>
+      <p> A RAM disk driver may support several areas of memory used as RAM disk, each distinguished by a different minor device number. Usually these areas will be distinct, but in some situations it may be convenient to have them overlap, as we shall see in the next section.</p>
+      <p> 3.5.2. Overview of the RAM Disk Driver in  minix</p>
+      <p> The RAM disk driver is actually four closely related drivers in one. Each message to it specifies a minor device as follows:</p>
+      <p> 0: /dev/ram</p>
+      <p> 1: /dev/mem</p>
+      <p> 2: /dev/kmem</p>
+      <p> 3: /dev/null</p>
+      <p> The first special file listed above,  /dev/ram,  is a true RAM disk. Neither its size nor its origin is built into the driver. They are determined by the file system by booting the root file system when MINIX is booted. This strategy makes it possible to increase or reduce the amount of RAM disk present without having to recompile the operating system. All one needs to do is use a different root file system diskette.</p>
+      <p> The next two minor devices are used to read and write physical memory and kernel memory, respectively. When  /dev/mem  is opened and read, it yields the contents of physical memory locations starting at absolute 0 (the interrupt vectors). Ordinary user programs will never do this, but a system program concerned with debugging the system might need this facility. Opening  I dev/mem and writing on it will change the interrupt vectors. Needless to say, this should only be done with the greatest of caution by an experienced user who knows exactly what he is doing.</p>
+      <p> The special file  I dev/kmem  is like  I dev/mem,  except that byte 0 of this file is</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> byte 0 of the kernel's memory (physical address 0x600 or 1536 decimal in MINIX). It too is used mostly for debugging and very special programs. Note that the RAM disk areas covered by these two minor devices overlap. Opening Idevlmem  and seeking to 1536 is the same as reading from  Idevlkmem,  except that the latter will continue to work even if in a subsequent version of MINIX the kernel is moved somewhere else in memory. Both of these special files are protected to prevent everyone except the super-user from using them. The last file in this group,  Idevlnull,  is a special file that accepts data and throws them away. It is commonly used in shell commands when the program being called generates output that is not needed. For example,</p>
+      <p> a.out &gt;/dev/null</p>
+      <p> runs the program  a.out,  but discards its output. The RAM disk driver effectively treats this minor device as having zero size, so no data are ever copied to or from it.</p>
+      <p> The overall structure of the RAM disk driver follows the model of Fig. 3-16. The main loop accepts messages and dispatches to either  do^mem  for reading and writing, or to  dosetup  for the special message telling the driver where the RAM disk is located. When MINIX is booted, the kernel runs, then the memory manager, and then the file system. One of the first things the file system does is to see how far up in memory the operating system extends. Then it reads the super-block of the root file system to see how big it is (and thus how big the RAM disk must be to hold it). Once the file system knows where the operating system ends and how much memory the RAM disk needs, it sends the message to the RAM disk driver telling it the lower and upper limits of the RAM disk.</p>
+      <p> The code for handling  Idev/ram, Idevlmem,  and  Idevlkmem  is identical. The only difference among them is that each one corresponds to a different portion of memory, indicated by the arrays  ram-origin  and  ram-limit,  each indexed by minor device number.</p>
+      <p> 3.5.3. Implementation of the RAM Disk Driver in MINIX</p>
+      <p> The implementation is straightforward and requires little comment. The main procedure, on line 2292, gets messages, dispatches to the appropriate procedure, and sends the replies. The procedure  do-mem  (line 2337) computes two key variables:  mem-phys,  the physical location in memory of the RAM disk block to be read or written, and  user_phys,  the physical location where the block is to go to or come from. Both of these absolute addresses are 32-bit quantities. The procedure  umap  (line 5021) computes the physical address corresponding to a given virtual address within a given process' address space. It is used throughout the kernel for this purpose.</p>
+      <p> Once  mem—phys  and  user-phys  have been computed, the only thing left to do is call  phys-copy,  the assembly code copy routine to move the block from RAM</p>
+      <p> SEC. 3.5</p>
+      <p> RAM DISKS</p>
+      <p> 143</p>
+      <p> disk to the caller or vice versa. Normally, the only process to send messages to the RAM disk driver is the file system, which requests blocks to be copied to or from its buffer cache, not directly to user processes.</p>
+      <p> The procedure  do^setup  (line 2377) takes the parameters in the message and sets up the starting and ending points of the RAM disk, so they can be used in subsequent calls. The limits of the other minor devices are fixed and cannot be set.</p>
+      <p> 3.6. DISKS</p>
+      <p> The RAM disk is a good introduction to disk drivers (because it is so simple), but real disks have a number of issues that we have not touched on yet. In the following sections we will first say a few words about disk hardware, and then take a look at disk drivers in general and the  minix  floppy disk driver in particular. We will not examine the hard disk driver because it is structurally similar, and besides, not every IBM PC has a hard disk.</p>
+      <p> 3.6.1. Disk Hardware</p>
+      <p> All real disks are organized into cylinders, each one containing as many tracks as there are heads stacked vertically. The tracks are divided into sectors, with the number of sectors around the circumference typically being 8 to 32. All sectors contain the same number of bytes, although a little thought will make it clear that sectors close to the outer rim of the disk will be physically longer than those close to the hub. The extra space is not used.</p>
+      <p> A device feature that has important implications for the disk driver is the possibility of a controller doing seeks on two or more drives at the same time. These are known as overlapped seeks. While the controller and software are waiting for a seek to complete on one drive, the controller can initiate a seek on another drive. Many controllers can also read or write on one drive while seeking on one or more other drives, but none can read or write on two drives at the same time. (Reading or writing requires the controller to move bits on a microsecond time scale, so one transfer uses up most of its computing power.) The ability to perform two or more seeks at the same time can reduce the average access time considerably.</p>
+      <p> The parameters of the IBM PC floppy disks are shown in Fig. 3-18. These are the parameters of the standard double-sided, double-density diskettes as used by MINIX. Some other operating systems also support single-sided diskettes, 8 sectors per track, and other configurations,  minix  uses IK blocks, so the blocks used by the software consist of two consecutive sectors, which are always read or written together as a unit.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> Number of cylinders: Tracks per cylinder: Sectors per track:</p>
+      <p> 40 2 9</p>
+      <p> Seek time (adjacent cylinders) Seek time (average case) Rotation time Motor start/stop time Time to transfer 1 sector</p>
+      <p> 6 msec 77 msec 200 msec 250 msec 22 msec</p>
+      <p> Sectors per diskette: Bytes per sector:</p>
+      <p> 720 512</p>
+      <p> Bytes per diskette:</p>
+      <p> 368640</p>
+      <p> Fig. 3-18. Parameters of the IBM PC floppy disks</p>
+      <p> 3.6.2. Disk Software</p>
+      <p> In this section we will look at some of the issues related to disk drivers in general. The time to read or write a disk block is determined by three factors: the seek time (the time to move the arm to the proper cylinder), the rotational delay (the time for the proper sector to rotate under the head), and the actual transfer time. For most disks, the seek time dominates, so reducing the mean seek time can improve system performance substantially.</p>
+      <p> Disk Arm Scheduling Algorithms</p>
+      <p> If the disk driver accepts requests one at a time and carries them out in that order, that is, First-Come, First-Served (FCFS), little can be done to optimize seek time. However, another strategy is possible when the disk is heavily loaded. It is likely that while the arm is seeking on behalf of one request, other disk requests may be generated by other processes. Many disk drivers maintain a table, indexed by cylinder number, with all the pending requests for each cylinder chained together in a linked list headed by the table entries.</p>
+      <p> Given this kind of data structure, we can improve upon the First-Come, First-Served scheduling algorithm. To see how, consider a disk with 40 cylinders. A request comes in to read a block on cylinder 11. While the seek to cylinder 11 is in progress, new requests come in for cylinders 1, 36, 16, 34, 9, and 12, in that order. They are entered into the table of pending requests, with a separate linked list for each cylinder. The requests are shown in Fig. 3-19.</p>
+      <p> When the current request (for cylinder 11) is finished, the disk driver has a choice of which request to handle next. Using FCFS, it would go next to cylinder 1, then to 36, and so on. This algorithm would require arm motions of 10, 35, 20, 18, 25, and 3, respectively, for a total of 111 cylinders.</p>
+      <p> Alternatively, it could always handle the closest request next, to minimize seek time. Given the requests of Fig. 3-19, the sequence is 12, 9, 16, 1, 34, and 36, as shown as the jagged line at the bottom of Fig. 3-19. With this sequence, the arm motions are 1, 3, 7, 15, 33, and 2, for a total of 61 cylinders. This algorithm, shortest seek first (SSF), cuts the total arm motion almost in half compared to FCFS.</p>
+      <p> Unfortunately, SSF has a problem. Suppose more requests keep coming in while the requests of Fig. 3-19 are being processed. For example, if, after going</p>
+      <p> SEC. 3.6</p>
+      <p> DISKS</p>
+      <p> 145</p>
+      <p class="illus">
+        <img src="images/picture38.jpg" alt="picture38"/>
+      </p>
+      <p> Fig. 3-19. Shortest seek first (SSF) disk scheduling algorithm.</p>
+      <p> to cylinder 16, a new request for cylinder 8 is present, that request will have priority over cylinder 1. If a request for cylinder 13 then comes in, the arm will next go to 13, instead of 1. With a heavily loaded disk, the arm will tend to stay in the middle of the disk most of the time, so requests at either extreme will have to wait until a statistical fluctuation in the load causes there to be no requests near the middle. Requests far from the middle may get poor service. The goals of minimal response time and fairness are in conflict here.</p>
+      <p> Tall buildings also have to deal with this tradeoff. The problem of scheduling an elevator in a tall building is similar to that of scheduling a disk arm. Requests come in continuously calling the elevator to floors (cylinders) at random. The microprocessor running the elevator could easily keep track of the sequence in which customers pushed the call button, and service them using FCFS. It could also use SSF.</p>
+      <p> However, most elevators use a different algorithm to reconcile the conflicting goals of efficiency and fairness. They keep moving in the same direction until there are no more outstanding requests in that direction, then they switch directions. This algorithm, known both in the disk world and the elevator world as the elevator algorithm, requires the software to maintain 1 bit: the current direction bit,  UP  or  DOWN.  When a request finishes, the disk or elevator driver checks the bit. If it is  UP,  the arm or cabin is moved to the next highest pending request, if any. If no requests are pending at higher positions, the direction bit is reversed. When the bit is set to  DOWN,  the move is to the next lowest requested position, if any.</p>
+      <p> Figure 3-20 shows the elevator algorithm using the same seven requests as Fig. 3-20, assuming the direction bit was initially  UP.  The order in which the cylinders are serviced is 12, 16, 34, 36, 9, and 1, which yields arm motions of 1, 4, 18, 2, 27, and 8, for a total of 60 cylinders. In this case the elevator algorithm is slightly better than SSF, although it is usually worse. One nice property that the elevator algorithm has is that given any collection of requests, the upper bound on the total motion is fixed: it is just twice the number of cylinders.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> Initial position</p>
+      <p> \</p>
+      <p> 10</p>
+      <p> 15</p>
+      <p> 20</p>
+      <p> 25</p>
+      <p> 30</p>
+      <p> 35 Cylinder</p>
+      <p> Sequence of seeks</p>
+      <p> Fig. 3-20. The elevator algorithm for scheduling disk requests.</p>
+      <p> A slight modification of this algorithm that has a smaller variance in response times (Teory, 1972) is to always scan in the same direction. When the highest numbered cylinder with a pending request has been serviced, the arm goes to the lowest-numbered cylinder with a pending request and then continues moving in an upward direction. In effect, the lowest-numbered cylinder is thought of as being just above the highest-numbered cylinder.</p>
+      <p> Some disk controllers provide a way for the software to inspect the current sector number under the head. With one of these controllers, another optimization is possible. If two or more requests for the same cylinder are pending, the driver can issue a request for the sector that will pass under the head next. Note that when multiple tracks are present in a cylinder, consecutive requests can be for different tracks with no penalty. The controller can select any of its heads instantaneously, because head selection involves neither arm motion nor rotational delay.</p>
+      <p> When several drives are present a pending request table should be kept for each drive separately. Whenever any drive is idle, a seek should be issued to move its arm to the cylinder where it will be needed next (assuming the controller allows overlapped seeks). When the current transfer finishes, a check can be made to see if any drives are positioned on the correct cylinder. If one or more are, the next transfer can be started on a drive that is already on the right cylinder. If none of the arms is in the right place, the driver should issue a new seek on the drive that just completed a transfer, and wait until the next interrupt to see which arm gets to its destination first.</p>
+      <p> Error Handling</p>
+      <p> RAM disks do not have to worry about seek or rotational optimization: at any instant all blocks can be read or written without any physical motion. Another area in which RAM disks are considerably simpler than real disks is error handling. Real disks are subject to a wide variety of errors. Some of the more common ones are:</p>
+      <p> SEC. 3.6</p>
+      <p> DISKS</p>
+      <p> 147</p>
+      <p> 1. Programming error (e.g., request for nonexistent sector).</p>
+      <p> 2. Transient checksum error (e.g., caused by dust on the head).</p>
+      <p> 3. Permanent checksum error (e.g., disk block physically damaged).</p>
+      <p> 4. Seek error (e.g., the arm sent to cylinder 6 but it went to 7).</p>
+      <p> 5. Controller error (e.g., controller refuses to accept commands).</p>
+      <p> It is up to the disk driver to handle each of these as best it can.</p>
+      <p> Programming errors occur when the driver tells the controller to seek to a nonexistent cylinder, read from a nonexistent sector, use a nonexistent head, or transfer to or from nonexistent memory. Most controllers check the parameters given to them and complain if they are invalid. In theory, these errors should never occur, but what should the driver do if the controller indicates that one has happened? For a home-grown system, the best thing to do is stop and print a message like "Call the programmer" so the error can be tracked down and fixed. For a commercial software product in use at thousands of sites around the world, this approach is less attractive. Probably the only thing to do is terminate the current disk request with an error and hope it will not recur too often.</p>
+      <p> Transient checksum errors are caused by specks of dust in the air that get between the head and the disk surface. Most of the time they can be eliminated by just repeating the operation a few times. If the error persists, the block has to be marked as a bad block and avoided.</p>
+      <p> One way to avoid bad blocks is to write a very special program that takes a list of bad blocks as input, and carefully hand crafts a file containing all the bad blocks. Once this file has been made, the disk allocator will think these blocks are occupied and never allocate them. As long as no one ever tries to read the bad block file, no problems will occur.</p>
+      <p> Not reading the bad block file is easier said than done. Many disks are backed up by copying their contents a track at a time to a backup tape or disk drive. If this procedure is followed, the bad blocks will cause trouble. Backing up the disk one file at a time is slower, but will solve the problem, provided that the backup program knows the name of the bad block file and refrains from copying it.</p>
+      <p> Some "intelligent" controllers reserve a few tracks not normally available to user programs. When a disk drive is formatted, the controller determines which blocks are bad and automatically substitutes one of the spare tracks for the bad one. The table that maps bad tracks to spare tracks is kept in the controller's internal memory and on the disk. This substitution is transparent (invisible) to the driver, except that its carefully worked out elevator algorithm may perform poorly if the controller is secretly using cylinder 800 whenever cylinder 3 is requested.</p>
+      <p> Seek errors are caused by mechanical problems in the arm. The controller keeps track of the arm position internally. To perform a seek, it issues a series of pulses to the arm motor, one pulse per cylinder, to move the arm to the new</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> cylinder. When the arm gets to its destination, the controller reads the actual cylinder number (written when the drive was formatted). If the arm is in the wrong place, a seek error has occurred.</p>
+      <p> Some controllers correct seek errors automatically, but others (including the IBM PC's) just set an error bit and leave the rest to the driver. The driver handles this error by issuing a RECALIBRATE command, to move the arm as far out as it will go, and reset the controller's internal idea of the current cylinder to 0. Usually this solves the problem. If it does not, the drive must be repaired.</p>
+      <p> As we have seen, the controller is really a specialized little computer, complete with software, variables, buffers, and occasionally, bugs. Sometimes an unusual sequence of events such as an interrupt on one drive occurring simultaneously with a RECALIBRATE command for another drive will trigger a bug and cause the controller to go into a loop or lose track of what it was doing. Controller designers usually plan for the worst and provide a pin on the chip or board, which, when set high, forces the controller to forget whatever it was doing and reset itself. If all else fails, the disk driver can set a bit to invoke this signal and reset the controller. If that does not help, all the driver can do is print a message and give up.</p>
+      <p> Track-at-a-Time Caching</p>
+      <p> The time required to seek to a new cylinder is usually much more than the rotation or transfer time. In other words, once the driver has gone to the trouble of moving the arm somewhere, it hardly matters whether it reads one sector or a whole track. This effect is especially true if the controller provides rotational sensing, so the driver can see which sector is currently under the head and issue a request for the next sector, thereby making it possible to read a track in one rotation time. (Normally it takes half a rotation plus one sector time just to read a single sector, on the average.)</p>
+      <p> Some disk drivers take advantage of this property by maintaining a secret track-at-a-time cache, unknown to the device-independent software. If a sector that is in the cache is needed, no disk transfer is required. A disadvantage of track-at-a-time caching (in addition to the software complexity and buffer space needed) is that transfers from the cache to the calling program will have to be done by the CPU using a programmed loop, rather than letting the DMA hardware do the job.</p>
+      <p> Some controllers take this process a step further, and do track-at-a-time caching in their own internal memory, transparent to the driver, so that transfer between the controller and memory can use DMA. If the controller works this way, there is little point in having the disk driver do it as well. Note that both the controller and the driver are in a good position to read and write entire tracks in one command, but that the device-independent software cannot, because it regards a disk as a linear sequence of blocks, without regard to how they are divided up into tracks and cylinders.</p>
+      <p> SEC. 3.6</p>
+      <p> DISKS</p>
+      <p> 149</p>
+      <p> 3.6.3. Overview of the Floppy Disk Driver in MIMX</p>
+      <p> The floppy disk driver accepts and processes two messages: for reading a block and for writing a block. A block is of size  BLOCK-SIZE,  which is defined in  hltype.h,  and is 1024 bytes in the standard distribution, although it can be easily changed. The sector size on the disk is 512 bytes, so two consecutive sectors are always read or written together. The advantage of the larger block size is a reduction in the number of disk accesses required, and thus an improvement in performance. The price paid is that a file of only 1 character nevertheless ties up 1024 bytes of disk space.</p>
+      <p> The messages accepted by the floppy disk driver use the format of Fig. 3-15. These messages are normally sent by the file system, and request data to be transferred to or from buffers internal to the file system. The file system takes care of the transfer to or from the address space of the process making the system call. The reply messages also follow the form of Fig. 3-15, with the REP^STATUS  field containing the number of bytes actually transferred or an error code if the request could not be carried out (e.g., disk error, invalid buffer address supplied).</p>
+      <p> The floppy disk driver does not use SSF or the elevator algorithm. It is strictly sequential, accepting a request and carrying it out before even accepting the next request (FCFS). The reason for using this simple strategy has to do with the environment for which  minix  was intended—a personal computer. On a personal computer, most of the time only one process is active; once in a while there are one or two background processes. Having five processes running at once is highly unusual. With only a small number of processes, the chance that a disk request will come in while another disk request is being carried out is slight, so the potential gain from reordering requests is small. This small gain is not enough to offset the considerable increase in software complexity required for queueing requests. A driver for a large time-sharing system would undoubtedly be written differently.</p>
+      <p> The main procedure of the floppy disk driver,  floppy_task,  is similar to that of the RAM disk driver and also that of Fig. 3-16. It accepts messages, calls procedures to do the work, and sends replies, all in an endless loop. The work that needs to be done for reading and writing is virtually identical, so both are handled by the same procedure,  do-rdwt.</p>
+      <p> Figure 3-21 shows the relation between the major procedures within the driver. Under normal conditions (i.e., no errors),  do^rdwt  calls five other procedures, each of which does part of the work of a transfer. The first one, dmasetup,  sets up the registers of the DMA chip so that on a read, after the controller has read the data into its internal buffer, the DMA chip will take care of requesting bus cycles to transfer the data to memory without bothering the CPU.</p>
+      <p> The next procedure,  start-motor,  checks to see if the motor is running. If it is, the procedure just returns. If it is off, the motor is turned on.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p class="illus">
+        <img src="images/picture39.jpg" alt="picture39"/>
+      </p>
+      <p> Set up</p>
+      <p> DMA registers</p>
+      <p> Turn the drive motor on</p>
+      <p> Move arm to proper cylinder</p>
+      <p> Read or</p>
+      <p> write</p>
+      <p> data</p>
+      <p> Start</p>
+      <p> watchdog</p>
+      <p> timer</p>
+      <p> Fig. 3-21. The major procedures forming the floppy disk driver.</p>
+      <p> Seek  checks to see if the drive happens to be positioned on the right cylinder already. If it is not, it commands the controller to seek, and then does a RECEIVE to wait for the interrupt message sent when the seek has been completed.</p>
+      <p> The actual command to read or write the disk is issued by  transfer.  It too, does a RECEIVE after issuing the command to wait for it to complete. When the command has completed,  transfer  inspects the controller's status registers to see if any errors occurred. If a checksum error occurred, the procedure returns an error code to  do-rdwt,  so the transfer can be tried again.</p>
+      <p> The final procedure in Fig. 3-21 sends a message to the clock task asking it to call a certain procedure (part of the disk driver) in 3 sec. This mechanism is needed for motor control. Floppy disks cannot be read or written unless their motors are on. Turning the motors on or off is slow. Leaving the motors on all the time causes the drive and diskette to wear out very quickly. The compromise chosen for MINIX is to leave a drive motor on for 3 sec after a drive is used. If the drive is used again within 3 sec, the timer is extended for another 3 sec. If the drive is not used in this interval, the motor is turned off.</p>
+      <p> Some subsidiary procedures used in the disk driver are listed below:</p>
+      <p> 1.  stop-.motor-  stop a drive motor.</p>
+      <p> 2. fdc^out-  issue a command to the controller.</p>
+      <p> 3.  fdc-results-  extract the results of command from the controller.</p>
+      <p> 4.  recalibrate-  recalibrate a drive after a seek error.</p>
+      <p> 5.  reset-  reset the controller after a serious error.</p>
+      <p> 6.  send-mess-  take care of actually sending a message.</p>
+      <p> SEC. 3.6</p>
+      <p> DISKS</p>
+      <p> 151</p>
+      <p> 3.6.4. Implementation of the Floppy Disk Driver in  mimx</p>
+      <p> The floppy disk driver is 13 pages long, despite the fact that conceptually it is hardly any more complicated than the RAM disk driver. It simply must manage a lot of detail. The first two pages contain a large number of definitions for constants. These could be removed to shorten the driver, but the resulting shorter driver would be much harder to understand than the present one.</p>
+      <p> The main data structure used in the floppy disk driver is  floppy  (line 2508), which is an array of structures, one per drive. Each structure holds information about the state of its drive and the command currently pending. It contains the disk address, memory address, controller status information and calibration state of the drive. On lines 2525 to 2530 we find the declarations for several variables global to the whole disk driver.</p>
+      <p> The main procedure is on line 2540. It is completely straightforward, basically the same as Fig. 3-16, with the addition of a little bit of error checking.</p>
+      <p> The procedure that controls the real work is  do-rdwt  on line 2576. It has one parameter, a pointer to the message just received. The first thing the procedure does (lines 2585 to 2587) is compute  fp,  the pointer to  the floppy  slot of the drive to be used. Then it dissects the message and converts the block number into cylinder, track, sector, and head positions, storing all the pieces in the  floppy array. From this point on,  fp  is used to refer to the drive, since it now contains all the relevant information. The array  interleave  is provided to allow software interleave, if desired; at present this feature is not used.</p>
+      <p> The loop starting on line 2604 is used to allow the operation now stored in  fp to be repeated if checksum errors occur. The code on lines 2610 to 2617 is not strictly necessary, but makes the driver more robust. If the standard double-density MINIX diskette should be run on a machine containing a quad-density drive, this code notices that many errors are occurring right at the start of operation. It then adjusts  steps-per_cyl  to have the controller issue more pulses to the arm when seeking, so that the arm takes larger steps, thus allowing the coarser double-density diskettes to be read and written anyway. In effect, the driver discovers empirically whether the drive is double- or quad-density, and adjusts its parameters accordingly.</p>
+      <p> On line 2620 a check is made to see if the flag  need-reset  is set. If it is,  reset is called to reset the controller. If any of the procedures called by  do-rdwt  discover that the controller is no longer responding, they set  need-reset  so that next time through the loop it will be reset.</p>
+      <p> Now the DMA chip is set up with the user buffer address and count taken from the message and put in  floppy.  Next, the motor is started, if necessary, and the seek command issued, again, if necessary. If the seek fails, for example, due to a controller that is not responding, the current attempt is cut off on line 2631, and the whole process started again. The next time through the loop the controller will be reset by the call on line 2620, if that is needed.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> The actual data transfer is initiated by the call on line 2633. If it succeeds, the loop is exited. The loop is also exited if a write fails because the diskette is write protected (retries will not help here).</p>
+      <p> The code following the loop (lines 2640 and 2641) sets the watchdog timer by sending a message to the clock task, asking it to call the procedure  stop-motor in 3 sec to stop the motor. If the timer runs out, the variable  motor-goal  tells stop-motor  what status to set the motors to.</p>
+      <p> The rest of the driver contains procedures that allow  do-rdwt  to function as described above.  Dmasetup  loads the memory address and count into the DMA chip. The only thing peculiar about it is the check to make sure that a DMA buffer does not cross a 64K boundary. That is, a IK DMA buffer may begin at 64510, but not at 64514 because the latter extends just beyond the 64K boundary at 65536.</p>
+      <p> This annoying rule occurs because the IBM PC uses an old DMA chip, the Intel 8237A, which contains a 16-bit counter, whereas a counter of at least 20 bits is needed because DMA uses absolute addresses, not addresses relative to a segment register. The low-order 16 bits of the DMA address are loaded into the 8237A, and the high-order 4 bits are loaded into a 4-bit latch. When the 8237A goes from OxFFFF to 0x0000 it does not generate a carry into the 4-bit latch, so the DMA address suddenly jumps down by 64K in memory. Unexpected hardware "features" like this can cause weeks of time spent looking for exceedingly obscure bugs (all the more so when, like this one, the technical reference manual says nary a word about them).</p>
+      <p> Start-motor  (line 2703) manages the motors. It calls  lock  to disable interrupts temporarily while checking the motor status, and computes the new motor goal. The 2 low-order bits of  motor-goal  contain the drive being selected. The next 2 bits set the controller in normal (interrupt enabled) mode. The high-order 4 bits control the motors for the four drives the controller can handle, 1 meaning motor on and 0 meaning motor off.</p>
+      <p> If the motor is off, it is necessary to delay while it is starting up. This delay is achieved on line 2732 by sending the clock a message, requesting that it call the function  send-mess  after 250 msec. That function (line 3003) sends the message received on line 2733.</p>
+      <p> Stopping the motor works a little differently. When the timer runs out for killing the motor, the procedure  stop-motor  (line 2740) is called by the clock task. Instead of going to the trouble of sending a message to the disk task, it just outputs the desired motor status to the hardware directly.</p>
+      <p> The procedure  seek  (line 2757) first checks to see if the drive is uncalibrated, a condition that happens when a seek error occurs. If it is uncalibrated, it is first recalibrated. If the current cylinder is the one needed (line 2769),  seek  just returns immediately. Otherwise it issues a seek and waits for the interrupt message on line 2776. The test on line 2775 is needed because if the controller refused to accept the seek command, waiting for the interrupt would be fatal: it would never happen.</p>
+      <p> SEC. 3.6</p>
+      <p> DISKS</p>
+      <p> 153</p>
+      <p> After the interrupt comes in,  seek  checks the status reported by calling fdc-results  on line 2780 to ask the floppy disk controller (FDC) to report back what happened. Unfortunately, even the status reporting may fail, since asking for the status is itself a command that the controller may refuse to accept. If the status is reported back properly, but indicates that there was a seek error, then the drive must be recalibrated.</p>
+      <p> For someone used to ordinary application programs, it may appear that an inordinate amount of the code in the driver deals with balky controllers and drives that refuse to go where they are told to go. In truth, the controller and drives are fairly reliable, but not having all this checking would mean that every once in a while MINIX would just crash for no apparent reason. To spare the user from this unpleasantry, the driver must be on guard against all kinds of unlikely, but theoretically possible events. It is also worth mentioning that the IBM PC's floppy disk controller, the NEC PD765 (a single chip costing less than 10 dollars), is about as simple as they come. More sophisticated (and expensive) controllers do much more of the error handling themselves.</p>
+      <p> The procedure  transfer  actually issues the command to the controller to initiate the read or write. Issuing the command consists of successively outputting 9 bytes of information (lines 2805 to 2813). After the command has been issued, transfer  waits for the interrupt message, gets the results, and checks for errors.</p>
+      <p> Getting the results from the controller is not just a matter of reading a register or two. It requires a complex negotiation protocol with the controller in fdc_results  (line 2843). All kinds of things may go wrong and must be checked for. As if this were not enough, the timing of the negotiation protocol is also important.</p>
+      <p> Even outputting a byte to the controller is complicated and requires a whole procedure,  fdc-out  (line 2872). The problem is that the controller has a mind of its own. You cannot force it to accept a command. There has to be a complex negotiation to determine whether it is in the mood or not. Recalibrating a drive and resetting the controller are handled by  recalibrate  (line 2903) and  reset  (line 2945), respectively.</p>
+      <p> The final two procedures in  floppy.c  take care of sending messages. Clock-mess  (line 2986) sends a message to the clock task requesting a time out. Send-mess  (line 3003) is called by the clock task itself when the motor has gotten up to speed. The message sent here is received on line 2733 to wake up the disk task.</p>
+      <p> All in all, the disk task is conceptually simple but full of detail, some of it inherent in running a real I/O device and some of it due to the fact that the PD765 is a very primitive controller. (On the other hand, a look  inside  the PD765 will quickly reveal how complex it is and how many things it does do by itself.) We will not study any more block devices in this book. Conceptually, they are all the same, differing only in the gory details, which, as we have seen, are plentiful.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> 3.7. CLOCKS</p>
+      <p> Clocks (also called timers) are essential to the operation of any time-sharing system for a variety of reasons. They maintain the time of day and prevent one process from monopolizing the CPU, among other things. The clock software generally takes the form of a device driver, even though a clock is neither a block device, like a disk, nor a character device, like a terminal. Our examination of clocks will follow the same pattern as in the previous sections: first a look at clock hardware and software in general, and then a closer look at how these ideas are applied in MINIX.</p>
+      <p> 3.7.1. Clock Hardware</p>
+      <p> Two types of clocks are commonly used in computers, and both are quite different from the clocks and watches used by people. The simpler clocks are tied to the 110 or 220 volt power line, and cause an interrupt on every voltage cycle, at 50 or 60 Hz.</p>
+      <p> The other kind of clock is built out of three components: a crystal oscillator, a counter, and a holding register, as shown in Fig. 3-22. When a piece of quartz crystal is properly cut and mounted under tension, it can be made to generate a periodic signal of very high accuracy, typically in the range of 1 to 20 MHz, depending on the crystal chosen. This signal is fed into the counter to make it count down to zero. When the counter gets to zero, it causes a CPU interrupt.</p>
+      <p> H □</p>
+      <p> Crystal oscillator</p>
+      <p> Counter is decremented at each pulse</p>
+      <p> Holding register is used to load the counter</p>
+      <p> Fig. 3-22. A programmable clock.</p>
+      <p> Programmable clocks typically have several modes of operation. In one-shot mode, when the clock is started, it copies the value of the holding register into the counter, and then decrements the counter at each pulse from the crystal. When the counter gets to zero, it causes an interrupt and stops until it is explicitly started again by the software. In square-wave mode, after getting to zero and causing the interrupt, the holding register is automatically copied into the counter, and the whole process is repeated again indefinitely. These periodic interrupts are called clock ticks.</p>
+      <p> The advantage of the programmable clock is that its interrupt frequency can be controlled by software. If a 1 MHz crystal is used, then the counter will be</p>
+      <p> SEC. 3.7</p>
+      <p> CLOCKS</p>
+      <p> 155</p>
+      <p> pulsed every microsecond. With 16-bit registers, interrupts can be programmed to occur at rates from 1 microsec to 65.535 msec. Programmable clock chips usually contain two or three independently programmable clocks and have many other options as well (e.g., counting up instead of down, interrupts disabled, and more).</p>
+      <p> To implement a time-of-day clock, the software asks the user for the current time, which is then translated into the number of clock ticks since 12 A.M on Jan. 1, 1970, as UNIX and MINIX do, or since some other benchmark. At every clock tick, the real time is incremented by one count. To prevent the current time from being lost when the computer's power is turned off, some computers store the real time in a special register powered by a battery (battery backup).</p>
+      <p> 3.7.2. Clock Software</p>
+      <p> All the clock hardware does is generate interrupts at known intervals. Everything else involving time must be done by the software, the clock driver. The exact duties of the clock driver vary among operating systems, but usually include most of the following:</p>
+      <p> 1. Maintaining the time of day.</p>
+      <p> 2. Preventing processes from running longer than they are allowed to.</p>
+      <p> 3. Accounting for CPU usage.</p>
+      <p> 4. Handling the ALARM system call made by user processes.</p>
+      <p> 5. Providing watchdog timers for parts of the system itself.</p>
+      <p> 6. Doing profiling, monitoring, and statistics gathering.</p>
+      <p> The first clock function, maintaining the time of day (also called the real time) is not difficult. It just requires incrementing a counter at each clock tick, as mentioned before. The only thing to watch out for is the number of bits in the time-of-day counter. With a clock rate of 60 Hz, a 32-bit counter will overflow in just over 2 years. Clearly the system cannot store the real time as the number of ticks since Jan. 1, 1970 in 32 bits.</p>
+      <p> Three approaches can be taken to solve this problem. The first way is to use a 64-bit counter, although doing so makes adding one to the counter a more expensive operation since it will have to be done many times a second. The second way is to maintain the time of day in seconds, rather than in ticks, using a subsidiary counter to count ticks until a whole second has been accumulated. Because 2 seconds is more than 136 years, this method will work until well into the twenty-second century.</p>
+      <p> The third approach is to count in ticks, but do that relative to the time the system was booted, rather than relative to a fixed external moment. When the user types in the real time, the system boot time is calculated from the current</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> time-of-day value and stored in memory in any convenient form. Later, when the time of day is requested, the stored time of day is added to the counter to get the current time of day. All three approaches are shown in Fig. 3-23.</p>
+      <p> h 64 bits H |- 32 bits H</p>
+      <p> Time of day in ticks</p>
+      <p> I 1 I _^ 1 L_^J</p>
+      <p> Time of day Number of ticks</p>
+      <p> in seconds in current second</p>
+      <p> (a) (b) (c)</p>
+      <p> Fig. 3-23. Three ways to maintain the time of day.</p>
+      <p> The second clock function is preventing processes from running too long. Whenever a process is started, the scheduler should initialize a counter to the value of that process' quantum in clock ticks. At every clock interrupt, the clock driver decrements the quantum counter by 1. When it gets to zero, the clock driver calls the scheduler to set up another process.</p>
+      <p> The third clock function is doing CPU accounting. The most accurate way to do it is to start a second timer, distinct from the main system timer, whenever a process is started. When that process is stopped, the timer can be read out to tell how long the process has run. To do things right, the second timer should be saved when an interrupt occurs and restored afterward.</p>
+      <p> A less accurate, but much simpler, way to do accounting is to maintain a pointer to the process table entry for the currently running process in a global variable. At every clock tick, a field in the current process's entry is incremented. In this way, every clock tick is "charged" to the process running at the time of the tick. A minor problem with this strategy is that if many interrupts occur during a process's run, it will still be charged for a full tick, even though it did not get much work done. Properly accounting for the CPU during interrupts is too expensive and is never done.</p>
+      <p> In MINIX and many other systems, a process can request the operating system to give it a warning after a certain interval. The warning is usually a signal, interrupt, message, or something similar. One application requiring such warnings is networking, in which a packet not acknowledged within a certain time interval is retransmitted. Another application is computer aided instruction, where a student not providing a response within a certain time is told the answer.</p>
+      <p> If the clock driver had enough clocks, it could set a separate clock for each request. This not being the case, it must simulate multiple virtual clocks with a single physical clock. One way is to maintain a table in which the signal time for all pending timers is kept, as well as a variable giving the time of the next one. Whenever the time of day is updated, the driver checks to see if the closest signal has occurred. If it has, the table is searched for the next one to occur.</p>
+      <p> If many signals are expected, it is more efficient to simulate multiple clocks</p>
+      <p> -32 bits -</p>
+      <p> Counter in ticks</p>
+      <p> System boot time in seconds</p>
+      <p> SEC. 3.7</p>
+      <p> CLOCKS</p>
+      <p> 157</p>
+      <p> by chaining all the pending clock requests together, sorted on time, in a linked list, as shown in Fig. 3-24. Each entry on the list tells how many clock ticks following the previous one to wait before causing a signal. In this example, signals are pending for 4203, 4207, 4213, 4215, and 4216.</p>
+      <p> Current time        Next signal</p>
+      <p> 3' —«-4  ^6 —&gt;-2    | »- 1 X</p>
+      <p> Fig. 3-24. Simulating multiple timers with a single clock.</p>
+      <p> In Fig. 3-24, the next interrupt occurs in 3 ticks. On each tick,  Next signal  is decremented. When it gets to 0, the signal corresponding to the first item on the list is caused, and that item is removed from the list. Then  Next signal  is reset to the value in the entry now at the head of the list, in this example, 4.</p>
+      <p> Note that during a clock interrupt, the clock driver has several things to do-increment the real time, decrement the quantum and check for 0, do CPU accounting, and decrement the alarm counter. However, each of these operations has been carefully arranged to be very fast because they have to be repeated many times a second.</p>
+      <p> Parts of the system also need to set timers. These are called watchdog timers. When studying the floppy disk driver we saw that after starting a drive motor the disk driver has to wait 250 msec before proceeding. Similarly, if no activity occurs on a drive for 3 sec after its last use, the motor has to be stopped. Some hardcopy terminals can print at 120 characters/sec (83 msec/character), but cannot return the print head to the left margin in 83 msec, so the terminal driver must delay after typing a carriage return.</p>
+      <p> The mechanism used by the clock driver to handle watchdog timers is the same as for user signals. The only difference is that when a timer goes off, instead of causing a signal, the clock driver calls a procedure supplied by the caller. The procedure is part of the caller's code, but since all the drivers are in the same address space, the clock driver can call it anyway. The called procedure can do whatever is necessary, even causing an interrupt, although within the kernel interrupts are often inconvenient and signals do not exist. That is why the watchdog mechanism is provided.</p>
+      <p> The last thing in our list is profiling. Some operating systems provide a mechanism by which a user program can have the system build up a histogram of its program counter, so it can see where it is spending its time. When profiling is a possibility, at every tick the driver checks to see if the current process is being profiled, and if so, computes the bin number (a range of addresses) corresponding to the current program counter. It then increments that bin by one. This mechanism can also be used to profile the system itself.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> 3.7.3. Overview of the Clock Driver in MINIX</p>
+      <p> The MINIX clock driver is contained in the file  clock, c.  It accepts these four message types, with the parameters shown:</p>
+      <p> 1. SET_ALARM(process number, procedure to call, delay)</p>
+      <p> 2. GET_TIME</p>
+      <p> 3. SET_TIME(new time in seconds)</p>
+      <p> 4. CLOCK_TICK</p>
+      <p> SET-ALARM  allows a process to set a timer that goes off in a specified number of clock ticks. When a user process does an  alarm  call, it sends a message to the memory manager, which then sends a message to the clock driver. When the alarm goes off, the clock driver sends a message back to the memory manager, which then takes care of making the signal happen.</p>
+      <p> SET-ALARM  is also used by tasks that need to start a watchdog timer. When the timer goes off, the procedure provided is simply called. The clock driver has no knowledge of what the procedure does.</p>
+      <p> GET-TIME  just returns the current real time as the number of seconds elapsed since Jan. 1, 1970 at 12:00 A.M..  SET-TIME,  sets the real time. It can only be invoked by the super-user. Internal to the clock driver, the time is kept track of using the method of Fig. 3-23(c). When the time is set, the driver computes when the system was booted. It can make this computation because it has the current real time and it also knows how many ticks the system has been running. The system stores the real time of the boot in a variable. Later, when GET-TIME  is called, it converts the current value of the tick counter to seconds and adds it to the stored boot time. This method is the same as that of Fig. 3-23(c).</p>
+      <p> CLOCK-TICK  is the message sent to the driver when a clock interrupt occurs. It has no parameters. When the driver receives this message, it updates the real time, checks to see if it is time for the next signal or watchdog call, charges the current tick to some process, and checks to see if the quantum is up. MINIX does not currently support profiling.</p>
+      <p> The driver has a few global variables, but no major data structures. The variable  realtime  (line 0703) is a counter incremented at every clock tick. Together with the variable  boot-time  (line 3099) it allows the current time of day to be computed.  Next-alarm  records the time when the next signal or watchdog call may happen. The driver has to be careful here, because the process requesting the signal may exit or be killed before the signal happens. When it is time for the signal, a check is made to see if it is still needed. If it is not needed, it is not carried out.  Sched-ticks  keeps track of the number of ticks left until the scheduler is called. When it becomes zero, it is time to schedule a new process.</p>
+      <p> Each user process is allowed to have only one outstanding alarm timer.</p>
+      <p> SEC. 3.7</p>
+      <p> CLOCKS</p>
+      <p> 159</p>
+      <p> Executing an ALARM call while a timer is still running cancels the first timer. Therefore, a convenient way to store the timers is to reserve one word in the process table entry for each process for its timer, if any. For tasks, the function to be called must also be stored somewhere, so an array,  watch-dog,  has been provided for this purpose.</p>
+      <p> The overall logic of the clock driver follows the same pattern as the disk drivers. The main program is an endless loop that gets messages, dispatches on the message type, and then sends a reply (except for  CLOCK-TICK).  Each message type is handled by a separate procedure, following our standard naming convention of naming all the procedures called from the main loop  do-Kxx, where  xxx  is different for each one, of course. As an aside, many linkers truncate procedure names to seven or eight characters, so the names  doset-time  and doset-alarm  are potentially in conflict. The latter has been renamed dosetalarm.  This problem occurs throughout MINIX, and is usually solved by mangling one of the names.</p>
+      <p> 3.7.4. Implementation of the Clock Driver in MINIX</p>
+      <p> When MINIX starts up, all the drivers are called. Most of them just try to get a message and block. The clock driver does that too, but first it calls  init-dock (line 3117) to initialize the programmable clock frequency to 60 Hz. Then it enters the main loop. The the main loop of the clock driver is essentially the same as the other drivers, so we will not comment on it further.</p>
+      <p> The procedure  dosetalarm  (line 3142) extracts the parameters from the message and stores the alarm time in the process table on line 3161. After setting the alarm, it scans the entire process table to find the next one.</p>
+      <p> Do-get-time  (line 3175) is only two lines. It computes the current real time from the two variables  boot-time  (the system boot time in seconds) and  realtime (the number of ticks since boot).</p>
+      <p> The procedure  doset-time  (line 3187) is even simpler—just one line. It computes the boot time based on the given current real time and number of ticks since booting.</p>
+      <p> The procedure  do-docktick  (line 3199) is more interesting. It first updates the real time. Remember that if a clock interrupt occurs and the clock task is not waiting for a message, the procedure  interrupt  adds one to  lost-ticks  and forgets the whole thing, knowing that another interrupt will occur soon. It is here that these lost ticks are compensated for.</p>
+      <p> Next a check is made to see if a signal or watchdog timer has gone off. If one has, all the alarm entries are inspected. Because lost ticks are compensated for all at once, several alarms may go off in one pass over the table. The procedure  causesig  checks to see if the memory manager is currently waiting for a message. If so, it sends a message telling about the alarm. If the memory manager is busy, a note is made to inform it at the first opportunity. For tasks, the watchdog procedure is just called directly on line 3228.</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> After taking care of the alarms,  accounting  is called to charge someone one clock tick.</p>
+      <p> Finally a check is made to see if it is time to call the scheduler. The variable sched-ticks  is not reset whenever a new process is scheduled (because the file system and memory manager are allowed to run to completion). Instead it is just reset after every  SCHEDJRATE  ticks. The comparison on line 3243 is to make sure that the current process has actually run at least one full scheduler tick before taking the CPU away from it.</p>
+      <p> Accounting in MINix keeps track of both user time and system time. User time is charged against a process if it is running when the clock ticks. System time is charged if the file system or memory manager is running. The variable bill-ptr  always points to the last user process scheduled (the two servers do not count), so the procedure  accounting  (line 3253) will know whom to charge.</p>
+      <p> 3.8. TERMINALS</p>
+      <p> Every computer has one or more terminals used to communicate with it. Terminals come in an extremely large number of different forms. It is up to the terminal driver to hide all these differences, so that the device-independent part of the operating system and the user programs do not have to be rewritten for each kind of terminal. In the following sections we will follow our now-standard approach of first discussing terminal hardware and software in general, and then discussing the MINIX software.</p>
+      <p> 3.8.1. Terminal Hardware</p>
+      <p> From the operating system's point of view, terminals can be divided into two broad categories based on how the operating system communicates with them. The first category consists of terminals that interface via the RS-232 standard; the second category consists of memory-mapped terminals. Each category can be further subdivided, as shown in Fig. 3-25.</p>
+      <p> RS-232 terminals are devices containing a keyboard and a display that communicate using a serial interface, one bit at a time. These terminals use a 25-pin connector, of which one pin is used for transmitting data, one pin is for receiving data, and one pin is ground. The other 22 pins are for various control functions, most of which are generally not used. To send a character to an RS-232 terminal, the computer must transmit it 1 bit at a time, prefixed by a start bit, and followed by 1 or 2 stop bits to delimit the character. Common transmission rates are 300, 1200, 2400, 4800, and 9600 bps.</p>
+      <p> Since both computers and terminals work internally with whole characters, but must communicate over a serial line a bit at a time, chips have been developed to do the character-to-serial and serial-to-character conversions. They</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 161</p>
+      <p> Terminals</p>
+      <p class="illus">
+        <img src="images/picture40.jpg" alt="picture40"/>
+      </p>
+      <p> Fig. 3-25. Terminal types.</p>
+      <p> are called UARTs (Universal Asynchronous Receiver Transmitters). UARTs are attached to the computer by plugging RS-232 interface cards into the bus as illustrated in Fig. 3-26.</p>
+      <p> Computer</p>
+      <p> RS-232 Interface CPU     Memory Card</p>
+      <p> Terminal</p>
+      <p> Receive line</p>
+      <p> _L </p>
+      <p> 7</p>
+      <p> Bus UART</p>
+      <p> Transmit line (50-9600 bps)</p>
+      <p> "X—</p>
+      <p> UART</p>
+      <p> Fig. 3-26. An RS-232 terminal communicates with a computer over a communication line, one bit at a time. The computer and the terminal are completely independent.</p>
+      <p> To print a character, the terminal driver writes the character to the interface card, where it is buffered and then shifted out over the serial line one bit at a time by the UART. Even at 9600 bps, it takes just over 1 msec to send a character. As a result of this slow transmission rate, the driver will generally output a character to the RS-232 card and block, waiting for the interrupt generated by the interface when the character has been transmitted and the UART is able to accept another character. Some interface cards have a CPU and memory and can handle multiple lines, taking over much of the I/O load from the main CPU.</p>
+      <p> RS-232 terminals can be subdivided into several categories, as mentioned above. The simplest ones are hardcopy (printing) terminals. Characters typed on the keyboard are transmitted to the computer. Characters sent by the computer are typed on the paper. That's all there is.</p>
+      <p> Dumb CRT terminals work the same way, only with a screen instead of paper. These are often called "glass ttys" because they are functionally the same</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> as hardcopy ttys. (The term "tty" is an abbreviation for Teletypef, an AT&amp;T subsidiary that pioneered in the computer terminal business; "tty" has come to mean any terminal.)</p>
+      <p> Intelligent CRT terminals are in fact miniature computers. They have a CPU and memory, and contain complex programs, usually in EPROM or ROM. From the operating system's viewpoint, the main difference between a glass tty and an intelligent terminal is that the latter understands certain escape sequences. For example, by sending the ASCII ESC character (033), followed by various other characters, it may be possible to move  the  cursor to any position on the screen, insert text in the middle of the screen, and so forth.</p>
+      <p> The ultimate in intelligent terminals is a terminal that contains a CPU as powerful as the main computer, along with a megabyte or so of memory that can be downloaded from the computer to contain any program at all. The Blit (Pike et al., 1985) is an example of a terminal with a powerful microprocessor and a screen containing 800 by 1024 points, but still communicating with the computer over an RS-232 line. The advantage of the RS-232 interface is that every computer in the world has one. The disadvantage is that downloading the Blit is slow, even at 19.2 kbps.</p>
+      <p> Memory-Mapped Terminals</p>
+      <p> The other broad category of terminals named in Fig. 3-25 consists of memory-mapped terminals. These do not communicate with the computer over a serial line. They are an integral part of the computers themselves. Memory-mapped terminals are interfaced via a special memory called a video RAM, which forms part of the computer's address space and is addressed by the CPU the same way as the rest of memory (see Fig. 3-27).</p>
+      <p> CPU</p>
+      <p> □</p>
+      <p> Bus-</p>
+      <p> Video RAM Memory card</p>
+      <p> □</p>
+      <p> D-</p>
+      <p> Parallel port</p>
+      <p> Video controller</p>
+      <p> Monitor</p>
+      <p> □□□□□□ □□□□□□</p>
+      <p> Keyboard</p>
+      <p> Analog video signal (e.g., 16 MHz)</p>
+      <p> Fig. 3-27. Memory-mapped terminals write directly into video RAM.</p>
+      <p> Also on the video RAM card is a chip called a video controller. This chip pulls bytes out of the video RAM and generates the video signal used to drive the display (monitor). The monitor generates a beam of electrons that scans horizontally across the screen, painting lines on it. Typically the screen has 200 to</p>
+      <p> t Teletype is a Registered Trademark of Teletype Corp.</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 163</p>
+      <p> 1200 lines from top to bottom, with 200 to 1200 points per line. These points are called pixels. The video controller signal modulates the electron beam, determining whether a given pixel will be light or dark. Color monitors have three beams, for red, green and blue, which are independently modulated.</p>
+      <p> A typical monochrome display might fit each character in a box 9 pixels wide by 14 pixels high (including the space between characters), and have 25 lines of 80 characters. The display would then have 350 scan lines of 720 pixels each. Each of these frames is redrawn 45 to 70 times a second. The video controller could be set up to fetch the first 80 characters from the video RAM, generate 14 scan lines, fetch another 80 characters from the video RAM, generate the following 14 scan lines, and so on. Since the first scan line contains parts of 80 characters, all 80 must be fetched into the video controller before starting the first scan line. The 9-by-14 bit patterns for the characters are kept in a ROM used by the video controller.</p>
+      <p> The IBM PC uses a character-mapped display for the console. In Pig. 3-28(a) we see a portion of the video RAM, which starts at address OxBOOOO for the monochrome display and 0xB8000 for the color display. Each character on the screen of Fig. 3-28(b) occupies two characters in the RAM. The low-order character is the ASCII code for the character to be displayed. The high-order character is the attribute byte, which is used to specify color, reverse video, blinking, and so on. The full screen of 25 by 80 characters requires 4000 bytes of video RAM.</p>
+      <p> Video RAM</p>
+      <p> Screen</p>
+      <p> x 3 x 2 x 1 x 0</p>
+      <p> xDxCxBxA</p>
+      <p> RAM address</p>
+      <p> OxBOOAO OxBOOOO</p>
+      <p> A B C D 0 12 3</p>
+      <p> 25 lines</p>
+      <p> -160 characters-fa)</p>
+      <p> ) characters -</p>
+      <p> (b)</p>
+      <p> Fig. 3-28. (a) A video RAM image for the IBM monochrome display, (b) The corresponding screen. The xs are attribute bytes.</p>
+      <p> When a character is written into the video RAM by the CPU, it appears on the screen within one screen display time (1/50 sec for monochrome, 1/60 sec for color). The CPU can load a 4K precomputed screen image to the video RAM in 12 msec. At 9600 bps, writing 2000 characters to an RS-232 terminal takes 2083 msec, which is 174 times slower. Thus memory-mapped terminals allow for extremely fast interaction, which is why they are used.</p>
+      <p> Bit-map terminals use the same principle, except that every bit in the video RAM directly controls a single pixel on the screen.  A screen of 800 by 1024</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> pixels requires 100K bytes of RAM (more for color), but provides complete flexibility in character fonts and sizes, allows multiple windows, and makes arbitrary graphics possible.</p>
+      <p> With a memory-mapped display, the keyboard is completely decoupled from the screen. It is usually interfaced via a parallel port, although keyboards with RS-232 interfaces also exist. On every keystroke the CPU is interrupted, and the keyboard driver extracts the character typed by reading an I/O port. On the IBM PC, interrupts are generated when every key is struck and also when it is released.</p>
+      <p> Furthermore, all that the keyboard hardware provides is the key number, not the ASCII code. When the  A  key is struck, the key code (30) is put in an I/O register. It is up to the driver to determine whether it is lower case, upper case, CTRL A, ALT-A, CTRL-ALT A, or some other combination. Since the driver can tell which keys have been struck but not yet released (e.g., shift), it has enough information to do the job. Although this keyboard interface puts the full burden on the software, it is extremely flexible. For example, user programs may be interested in whether a digit just typed came from the top row of keys or the numeric key pad on the side. In principle, the driver can provide this information.</p>
+      <p> 3.8.2. Terminal Software</p>
+      <p> The keyboard and display are almost independent devices, so we will treat them separately here. (They are not quite independent, since typed characters must be displayed on the screen.) In MINIX the keyboard and screen drivers are part of the same task; in other systems they may be split into distinct drivers.</p>
+      <p> Input Software</p>
+      <p> The basic job of the keyboard driver is to collect input from the keyboard and pass it to user programs when they read from the terminal. Two possible philosophies can be adopted for the driver. In the first one, the driver's job is just to accept input and pass it upward unmodified. A program reading from the terminal gets a raw sequence of ASCII codes. (Giving user programs the key numbers is too primitive, as well as being highly machine dependent.)</p>
+      <p> This philosophy is well suited to the needs of sophisticated screen editors such as Emacs, which allow the user to bind an arbitrary action to any character or sequence of characters. It does, however, mean that if the user types  dste instead of  date,  and then corrects the error by typing three backspaces and  ate, followed by a line feed, the user program will be given all 11 ASCII codes typed.</p>
+      <p> Most programs do not want this much detail. They just want the corrected input, not the exact sequence of how it was produced. This observation leads to the second philosophy, the driver handles all the intraline editing, and just</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 165</p>
+      <p> delivers corrected lines to the user programs. The first philosophy is character-oriented; the second one is line-oriented. They are sometimes referred to as raw mode and cooked mode, respectively. Some systems (including MINIX) provide both, with a system call available to select one or the other.</p>
+      <p> The first task of the keyboard driver is to collect characters. If every keystroke causes an interrupt, the driver can acquire the character during the interrupt. If interrupts are turned into messages by the low-level software, it is possible to put the newly acquired character in the message. Alternatively, it can be put in a small buffer in memory and the message used to tell the driver that something has arrived. The latter approach is actually safer if a message can be sent only to a waiting process and there is some chance that the keyboard driver might still be busy with the previous character.</p>
+      <p> Once the driver has received the character it must begin processing it. If the keyboard delivers key numbers rather than ASCII codes, then the driver must map the key numbers onto ASCII codes using some tables. It is worth noting that some IBM "compatibles" use nonstandard key numbering (e.g., Olivetti M24), so if the driver wants to support these machines, it must map different keyboards with different tables.</p>
+      <p> If the terminal is in cooked mode, characters must be stored until an entire line has been accumulated, because the user may subsequently decide to erase part of it. Even if the terminal is in raw mode, the program may not yet have requested input, so the characters must be buffered to allow type ahead. (System designers who do not allow users to type ahead ought to be tarred and feathered, or worse yet, be forced to use their own system.)</p>
+      <p> Two approaches to character buffering are common. In the first one, the driver contains a central pool of buffers, each buffer holding perhaps 10 characters. Associated with each terminal is a data structure, which contains, among other items, a pointer to the chain of buffers for input collected from that terminal. As more characters are typed, more buffers are acquired and hung on the chain. When the characters are passed to a user program, the buffers are removed and put back in the central pool.</p>
+      <p> The other approach is to do the buffering directly in the terminal data structure itself, with no central pool of buffers. Since it is common for users to type a command that will take a little while (say, a compilation), and then type a few lines ahead, to be safe the driver should allocate something like 200 characters per terminal. In a large-scale time-sharing system with 100 terminals, allocating 20K all the time for type ahead is clearly overkill, so a central buffer pool with space for perhaps 5K is probably enough. On the other hand, a dedicated buffer per terminal makes the driver simpler (no linked list management), and is to be preferred on personal computers with only one or two terminals. Figure 3-29 shows the difference between these two methods.</p>
+      <p> Although the keyboard and display are logically separate devices, many users have grown accustomed to seeing the characters they have just typed appear on the screen.  Some terminals oblige by automatically displaying (in hardware)</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> Terminal Terminal data structure data structure</p>
+      <p> Central</p>
+      <p> Terminal buffer pool Terminal</p>
+      <p> Buffer area for terminal 0</p>
+      <p> Buffer area for terminal 1</p>
+      <p> (a) (b)</p>
+      <p> Fig. 3-29. (a) Central buffer pool, (b) Dedicated buffer for each terminal.</p>
+      <p> whatever has just been typed, which is not only a nuisance when passwords are being entered, but greatly limits the flexibility of sophisticated editors and other programs. Fortunately, most terminals display nothing when keys are typed. It is therefore up to the software to display the input. This process is called echoing.</p>
+      <p> Echoing is complicated by the fact that a program may be writing to the screen while the user is typing. At the very least, the keyboard driver will have to figure out where to put the new input without it being overwritten by program output.</p>
+      <p> Echoing also gets complicated when more than 80 characters are typed on a terminal with 80 character lines. Depending on the application, wrapping around to the next line may be appropriate. Some drivers just truncate lines to 80 characters.</p>
+      <p> Another problem is tab handling. Most terminals have a tab key, but few can handle tab on output. It is up to the driver to compute where the cursor is currently located, taking into account both output from programs and output from echoing, and compute the proper number of spaces to be echoed.</p>
+      <p> Now we come to the problem of device equivalence. Logically, at the end of a line of text one wants a carriage return, to move the cursor back to column 1, and a line feed, to advance to the next line. Requiring users to type both at the end of each line would not sell well (although some terminals have a key which generates both, with a 50 percent chance of doing so in the order that the software wants them). It is up to the driver to convert whatever comes in to the standard internal format used by the operating system.</p>
+      <p> If the standard form is just to store a line feed (the MINIX convention), then carriage returns should be turned into line feeds. If the internal format is to store both, then the driver should generate a line feed when it gets a carriage return and a carriage return when it gets a line feed. No matter what the internal</p>
+      <p class="illus">
+        <img src="images/picture41.jpg" alt="picture41"/>
+      </p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 167</p>
+      <p> convention, the terminal may require both a line feed and a carriage return to be echoed in order to get the screen updated properly. Since a large computer may well have a wide variety of different terminals connected to it, it is up to the keyboard driver to get all the different carriage return/line feed combinations converted to the internal system standard and arrange for all echoing to be done right.</p>
+      <p> A related problem is the timing of carriage return and line feeds. On some terminals, it takes longer to display a carriage return or line feed than a letter or number. If the microprocessor inside the terminal actually has to copy a large block of text to achieve scrolling, then line feeds may be slow. If a mechanical print head has to be returned to the left margin of the paper, carriage returns may be slow. In both cases it is up to the driver to insert filler characters (dummy null characters) into the output stream or just stop outputting long enough for the terminal to catch up. The amount of time to delay is often related to the terminal speed, for example, at 4800 bps or slower, no delays are needed, but at 9600 bps one filler character is required. Terminals with hardware tabs, especially hardcopy ones, may also require a delay after a tab.</p>
+      <p> When operating in cooked mode, a number of input characters have special meanings. Figure 3-30 shows these special characters for  minix  as an example. The erase character allows the user to rub out the character just typed. In MINIX it is the backspace (CTRL-H). It is not added to the character queue, but instead removes the previous character from the queue. It should be echoed as a sequence of three characters, backspace, space, and backspace, in order to remove the previous character from the screen. If the previous character was a tab, erasing it requires keeping track of where the cursor was prior to the tab. In most systems, backspacing will only erase characters on the current line. It will not erase a carriage return and back up into the previous line.</p>
+      <p> Fig. 3-30. Characters that are handled specially in cooked mode.</p>
+      <p> When the user notices an error at the start of the line being typed in, it is often convenient to erase the entire line and start again. The kill character (in MINIX the  @  sign) erases the entire line. It usually is echoed as itself plus a carriage return and line feed, so the user can begin typing at the left-hand margin</p>
+      <p> INPUT/OUTPUT</p>
+      <p> CHAP. 3</p>
+      <p> again. (Some systems make the erased line vanish from the screen, but many users like to see the old line, so how to echo the kill character is a matter of taste.) As with the erase character, it is usually not possible to go further back than the current line. When a block of characters is killed, it may or may not be worth the trouble for the driver to return buffers to the pool, if one is used.</p>
+      <p> Sometimes the erase or kill characters must be entered as data. For example, the USENET mail system uses addresses of the form john@harvard. To make it possible to enter the local editing and other control characters, an escape character should be provided. In MINIX backslash is used. To enter an @ sign, one types \@. To enter a backslash, one types \\. After seeing a backslash, the driver sets a flag saying that the next character is exempt from special processing. The backslash itself is not entered in the character queue.</p>
+      <p> To allow users to stop a screen image from scrolling out of view, control codes are sometimes provided to freeze the screen and restart it later. In MINIX these are CTRL-S and CTRL-Q, respectively. They are not stored, but are used to set and clear a flag in the terminal data structure. Whenever output is attempted, the flag is inspected. If it is set, no output occurs. Whether echoing should also be suppressed along with program output is also a matter of the designer's taste and implementation convenience.</p>
+      <p> It is often necessary to kill a runaway program being debugged. The DEL, BREAK, or RUBOUT keys can be used for this purpose. In MINIX, DEL sends the SIGINT signal to all the processes started up from the terminal. Implementing DEL can be quite tricky. The hard part is getting the information from the driver to the part of the system that handles signals, which, after all, has not asked for this information. CTRL \ is similar to DEL, except that it sends the SIGQUIT signal, which forces a core dump if not caught or ignored. When either of these keys is struck, the driver should echo a carriage return and line feed and discard all accumulated input to allow for a fresh start.</p>
+      <p> Another special character is CTRL-D, which in MINIX causes any pending read requests for the terminal to be satisfied with whatever is available in the buffer, even if the buffer is empty. Typing CTRL-D at the start of a line causes the program to get a read of 0 bytes, which is conventionally interpreted as end-of-file, and causes most programs to act the same way as they would upon seeing end-of file on an input file.</p>
+      <p> Some terminal drivers allow much fancier intraline editing than we have sketched here. They have special control characters to erase a word, skip backward or forward characters or words, go to the beginning or end of the line being typed, and so forth. Adding all these functions to the terminal driver makes it much larger and, furthermore, is wasted when using fancy screen editors that work in raw mode anyway.</p>
+      <p> To allow programs to specify if they want raw mode or cooked mode input (and control other terminal parameters), MINIX provides a system call IOCTL called by</p>
+      <p> ioctl(file_descriptor, request, argp);</p>
+      <p> SEC. 3.8</p>
+      <p> TERMINALS</p>
+      <p> 169</p>
+      <p> The variable  request  is used to specify whether the terminal parameters are to be read or changed, and which ones. The variable  argp  is a pointer to the  sgttyb  or tchars  struct defined in  hlsgtty.h  (line 0350). It includes the erase and kill characters, which are user settable, and the terminal mode word, shown in Fig. 3-31. This particular choice of communication between program and driver was chosen for its UNIX compatibility, rather than for its inherent beauty.</p>
+      <p> Hi ' T</p>
+      <p> I ► Cbreak mode</p>
+      <p>  » Echoing enabled</p>
+      <p>   Output line feed as carriage return + line feed</p>
+      <p>   "  Raw mode</p>
+      <p>  "~ Expand tabs to spaces on output</p>
+      <p> Fig. 3-31. The terminal mode word. The shaded bits are not used.</p>
+      <p> A few quick notes about the mode word are in order. Cbreak mode is a compromise between raw and cooked mode. Characters are passed to the program without waiting for a full line (as in raw mode), but DEL, CTRL-\, CTRL-S, and CTRL-Q are processed as in cooked mode. If neither raw mode nor cbreak mode is enabled, then cooked mode is the default. Echoing, carriage return generation and tab expansion can all be turned on or off independently.</p>
+      <p> Output Software</p>
+      <p> Output is simpler than input, but drivers for RS-232 terminals are radically different from drivers for memory-mapped terminals. The method that is commonly used for RS-232 terminals is to have output buffers associated with each terminal. The buffers can come from the same pool as the input buffers, or be dedicated, as with input. When programs write to the terminal, the output is first copied to the buffers. Similarly, output from echoing is also copied to the buffers. After all the output has been copied to the buffers (or the buffers are full), the first character is output, and the driver goes to sleep. When the interrupt comes in, the next character is output, and so on.</p>
+      <p> With memory-mapped terminals, a simpler scheme is possible. Characters to be printed are extracted one at a time from user space and put directly in the video RAM. With RS-232 terminals, each character to be output is just sent across the line to the terminal. With memory mapping, some characters require special treatment, among them, backspace, carriage return, line feed, and the bell (CTRL-G). A driver for a memory-mapped terminal must keep track in software of the current position in the video RAM, so that printable characters can be put there and the current position advanced. Backspace, carriage return, and line feed all require this position to be updated appropriately.</p>
+    </div>
+  </body>
+</html>

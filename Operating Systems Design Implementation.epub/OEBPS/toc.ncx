@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head>
+    <meta content="test id" name="dtb:uid"/>
+    <meta content="0" name="dtb:totalPageCount"/>
+    <meta content="0" name="dtb:maxPageNumber"/>
+  </head>
+  <docTitle>
+    <text>Operating Systems ( Design &amp; Implementation )</text>
+  </docTitle>
+  <docAuthor>
+    <text>Andrew S. Tanenbaum</text>
+  </docAuthor>
+  <navMap>
+    <navInfo>
+      <text>Book navigation</text>
+    </navInfo>
+    <navPoint class="navpoint-level1" id="navpointnavpoint000001" playOrder="1">
+      <navLabel>
+        <text>Title Page</text>
+      </navLabel>
+      <content src="leaf0000.html"/>
+    </navPoint>
+    <navPoint class="navpoint-level1" id="navpointnavpoint000002" playOrder="2">
+      <navLabel>
+        <text>Pages</text>
+      </navLabel>
+      <content src="part0000.html"/>
+    </navPoint>
+  </navMap>
+</ncx>
